@@ -15,6 +15,7 @@ import {
   WORLD_WIDTH,
 } from '../utils/constants';
 import { MarsTerrainData } from '../utils/terrain';
+import { getPowerLines, PowerLine } from '../utils/navigation';
 
 interface MarsCanvasProps {
   terrain: MarsTerrainData;
@@ -27,6 +28,7 @@ interface MarsCanvasProps {
   selectedHarvester: Harvester | null;
   buildPlacingType: ModuleType | null;
   canAffordPlacing: boolean;
+  powerLines?: PowerLine[];
   onSelectModule: (module: ColonyModule | null) => void;
   onSelectHarvester: (harvester: Harvester | null) => void;
   onPlaceModule: (gridX: number, gridY: number) => void;
@@ -90,6 +92,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
   selectedHarvester,
   buildPlacingType,
   canAffordPlacing,
+  powerLines,
   onSelectModule,
   onSelectHarvester,
   onPlaceModule,
@@ -887,50 +890,97 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       });
 
       // =====================================================================
-      // 7. POWER CONDUITS WITH ENERGY BLOOM
+      // 7. HIGH-VOLTAGE POWER LINES WITH ENERGY BLOOM & STRUCTURAL PYLONS
       // =====================================================================
-      ctx.lineWidth = 2.5;
-      for (let i = 0; i < modules.length; i++) {
-        for (let j = i + 1; j < modules.length; j++) {
-          const m1 = modules[i];
-          const m2 = modules[j];
-          const c1x = (m1.x + m1.width / 2) * TILE_SIZE;
-          const c1y = (m1.y + m1.height / 2) * TILE_SIZE;
-          const c2x = (m2.x + m2.width / 2) * TILE_SIZE;
-          const c2y = (m2.y + m2.height / 2) * TILE_SIZE;
-          const dist = Math.hypot(c1x - c2x, c1y - c2y);
+      const activePowerLines = powerLines || getPowerLines(modules);
+      for (let i = 0; i < activePowerLines.length; i++) {
+        const line = activePowerLines[i];
+        const { x1, y1, x2, y2, length } = line;
 
-          if (dist < TILE_SIZE * 9) {
-            // Conduit ambient glow
-            ctx.beginPath();
-            ctx.moveTo(c1x, c1y);
-            ctx.lineTo(c2x, c2y);
-            ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
-            ctx.lineWidth = 6;
-            ctx.stroke();
+        // 1. Ground safety hazard bed / conduit trench
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.7)';
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+        ctx.stroke();
 
-            // Conduit inner core
-            ctx.beginPath();
-            ctx.moveTo(c1x, c1y);
-            ctx.lineTo(c2x, c2y);
-            ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+        // 2. High-voltage hazard border stripes (amber/slate)
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)';
+        ctx.lineWidth = 11;
+        ctx.stroke();
 
-            // Pulsing energy packet with glow
-            const pulseT = (time * 1.2 + i * 0.5) % 1;
-            const dotX = c1x + (c2x - c1x) * pulseT;
-            const dotY = c1y + (c2y - c1y) * pulseT;
+        // 3. High-voltage ambient electromagnetic bloom
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
+        ctx.lineWidth = 7;
+        ctx.stroke();
 
-            const packetGlow = ctx.createRadialGradient(dotX, dotY, 1, dotX, dotY, 9);
-            packetGlow.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-            packetGlow.addColorStop(0.4, 'rgba(56, 189, 248, 0.7)');
-            packetGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
-            ctx.beginPath();
-            ctx.arc(dotX, dotY, 9, 0, Math.PI * 2);
-            ctx.fillStyle = packetGlow;
-            ctx.fill();
-          }
+        // 4. Heavy insulated casing
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(30, 41, 59, 0.95)';
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+
+        // 5. Glowing superconducting core
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(125, 211, 252, 0.9)';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        // 6. High-voltage energy packet with radial bloom
+        const pulseT = (time * 1.35 + i * 0.42) % 1;
+        const dotX = x1 + (x2 - x1) * pulseT;
+        const dotY = y1 + (y2 - y1) * pulseT;
+
+        const packetGlow = ctx.createRadialGradient(dotX, dotY, 1, dotX, dotY, 10);
+        packetGlow.addColorStop(0, '#ffffff');
+        packetGlow.addColorStop(0.35, '#38bdf8');
+        packetGlow.addColorStop(0.8, 'rgba(56, 189, 248, 0.4)');
+        packetGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, 10, 0, Math.PI * 2);
+        ctx.fillStyle = packetGlow;
+        ctx.fill();
+
+        // 7. Structural Transmission Pylons / Insulator Towers
+        const numPylons = length > 220 ? 2 : length > 120 ? 1 : 0;
+        for (let p = 1; p <= numPylons; p++) {
+          const ptFrac = p / (numPylons + 1);
+          const px = x1 + (x2 - x1) * ptFrac;
+          const py = y1 + (y2 - y1) * ptFrac;
+
+          // Pylon heavy concrete foundation base
+          ctx.beginPath();
+          ctx.arc(px, py, 6, 0, Math.PI * 2);
+          ctx.fillStyle = '#0f172a';
+          ctx.fill();
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Ceramic insulator cap
+          ctx.beginPath();
+          ctx.arc(px, py, 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fill();
+
+          // Flashing high-voltage hazard beacon
+          const beaconFlash = (Math.sin(time * 3.5 + px * 0.08) + 1) * 0.5;
+          ctx.beginPath();
+          ctx.arc(px, py - 4, 2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(239, 68, 68, ${0.35 + beaconFlash * 0.65})`;
+          ctx.fill();
         }
       }
 

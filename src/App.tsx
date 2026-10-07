@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import {
   ColonyEventLog,
@@ -31,6 +31,8 @@ import { sound } from './utils/audio';
 import {
   findDockingApron,
   findNavigationPath,
+  getPowerLines,
+  PowerLine,
   steerAndAvoidBuildings,
 } from './utils/navigation';
 
@@ -237,14 +239,17 @@ export default function App() {
     },
   ]);
 
+  // High-voltage power transmission lines network
+  const powerLines = useMemo(() => getPowerLines(modules), [modules]);
+
   // Initial Harvesters
   const [harvesters, setHarvesters] = useState<Harvester[]>([
     {
       id: 'harvester_alpha',
       name: 'Harvester Alpha',
       model: 'heavy',
-      x: 43.5 * TILE_SIZE,
-      y: 42 * TILE_SIZE,
+      x: 45.5 * TILE_SIZE,
+      y: 39.5 * TILE_SIZE,
       targetX: null,
       targetY: null,
       waypoints: [],
@@ -830,7 +835,7 @@ export default function App() {
             modules.find((m) => m.type === 'command') ||
             modules[0];
           const depotDock = depot
-            ? findDockingApron(depot, h.x, h.y, modules)
+            ? findDockingApron(depot, h.x, h.y, modules, 28, powerLines)
             : { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
           const depotX = depotDock.x;
           const depotY = depotDock.y;
@@ -856,7 +861,7 @@ export default function App() {
               updated.state = 'returning_to_depot';
               updated.targetX = depotX;
               updated.targetY = depotY;
-              updated.waypoints = findNavigationPath(updated.x, updated.y, depotX, depotY, modules);
+              updated.waypoints = findNavigationPath(updated.x, updated.y, depotX, depotY, modules, powerLines);
             }
 
             // IDLE: Seek closest spice patch with spice available
@@ -877,7 +882,7 @@ export default function App() {
                 updated.targetSpiceId = nearest.id;
                 updated.targetX = nearest.x;
                 updated.targetY = nearest.y;
-                updated.waypoints = findNavigationPath(updated.x, updated.y, nearest.x, nearest.y, modules);
+                updated.waypoints = findNavigationPath(updated.x, updated.y, nearest.x, nearest.y, modules, powerLines);
               }
             }
 
@@ -911,7 +916,8 @@ export default function App() {
                       updated.y,
                       targetSpice.x,
                       targetSpice.y,
-                      modules
+                      modules,
+                      powerLines
                     );
                   }
 
@@ -928,7 +934,7 @@ export default function App() {
                     updated.waypoints = updated.waypoints.slice(1);
                   }
 
-                  // Steer around buildings and resolve collisions
+                  // Steer around buildings & power lines and resolve collisions
                   const nextWaypoint =
                     updated.waypoints && updated.waypoints.length > 0
                       ? updated.waypoints[0]
@@ -943,7 +949,8 @@ export default function App() {
                     updated.angle,
                     dt,
                     modules,
-                    roverRadius
+                    roverRadius,
+                    powerLines
                   );
                   updated.x = nextX;
                   updated.y = nextY;
@@ -999,7 +1006,7 @@ export default function App() {
                   updated.state = 'returning_to_depot';
                   updated.targetX = depotX;
                   updated.targetY = depotY;
-                  updated.waypoints = findNavigationPath(updated.x, updated.y, depotX, depotY, modules);
+                  updated.waypoints = findNavigationPath(updated.x, updated.y, depotX, depotY, modules, powerLines);
                   addLog(
                     'spice',
                     'Cargo Full',
@@ -1028,7 +1035,7 @@ export default function App() {
                 ) {
                   updated.targetX = depotX;
                   updated.targetY = depotY;
-                  updated.waypoints = findNavigationPath(updated.x, updated.y, depotX, depotY, modules);
+                  updated.waypoints = findNavigationPath(updated.x, updated.y, depotX, depotY, modules, powerLines);
                 }
 
                 const currentGoal =
@@ -1058,7 +1065,8 @@ export default function App() {
                   updated.angle,
                   dt,
                   modules,
-                  roverRadius
+                  roverRadius,
+                  powerLines
                 );
                 updated.x = nextX;
                 updated.y = nextY;
@@ -1116,7 +1124,8 @@ export default function App() {
                     updated.y,
                     updated.targetX,
                     updated.targetY,
-                    modules
+                    modules,
+                    powerLines
                   );
                 }
 
@@ -1147,7 +1156,8 @@ export default function App() {
                   updated.angle,
                   dt,
                   modules,
-                  roverRadius
+                  roverRadius,
+                  powerLines
                 );
                 updated.x = nextX;
                 updated.y = nextY;
@@ -1244,7 +1254,7 @@ export default function App() {
       modules.find((m) => m.type === 'command') ||
       modules[0];
     const dock = depot
-      ? findDockingApron(depot, WORLD_WIDTH / 2 + 120, WORLD_HEIGHT / 2, modules)
+      ? findDockingApron(depot, WORLD_WIDTH / 2 + 120, WORLD_HEIGHT / 2, modules, 28, powerLines)
       : { x: WORLD_WIDTH / 2 + 50, y: WORLD_HEIGHT / 2 };
     const spawnX = dock.x;
     const spawnY = dock.y;
@@ -1296,7 +1306,7 @@ export default function App() {
             modules.find((m) => m.type === 'command') ||
             modules[0];
           const dock = depot
-            ? findDockingApron(depot, h.x, h.y, modules)
+            ? findDockingApron(depot, h.x, h.y, modules, 28, powerLines)
             : { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
           return {
             ...h,
@@ -1304,7 +1314,7 @@ export default function App() {
             targetX: dock.x,
             targetY: dock.y,
             targetSpiceId: null,
-            waypoints: findNavigationPath(h.x, h.y, dock.x, dock.y, modules),
+            waypoints: findNavigationPath(h.x, h.y, dock.x, dock.y, modules, powerLines),
           };
         }
         return h;
@@ -1484,7 +1494,7 @@ export default function App() {
               targetSpiceId: clickedSpice.id,
               targetX: clickedSpice.x,
               targetY: clickedSpice.y,
-              waypoints: findNavigationPath(h.x, h.y, clickedSpice.x, clickedSpice.y, modules),
+              waypoints: findNavigationPath(h.x, h.y, clickedSpice.x, clickedSpice.y, modules, powerLines),
               autoHarvest: true,
             };
           } else {
@@ -1494,7 +1504,7 @@ export default function App() {
               targetSpiceId: null,
               targetX: worldX,
               targetY: worldY,
-              waypoints: findNavigationPath(h.x, h.y, worldX, worldY, modules),
+              waypoints: findNavigationPath(h.x, h.y, worldX, worldY, modules, powerLines),
               autoHarvest: false,
             };
           }
@@ -1532,6 +1542,7 @@ export default function App() {
         terrain={terrain}
         modules={modules}
         harvesters={harvesters}
+        powerLines={powerLines}
         spicePatches={spicePatches}
         weather={weather}
         timeOfDay={stats.timeOfDay}
