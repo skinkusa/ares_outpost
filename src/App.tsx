@@ -27,6 +27,11 @@ import {
 } from './utils/constants';
 import { generateMarsTerrain, spawnNewSpicePatch } from './utils/terrain';
 import { sound } from './utils/audio';
+import {
+  findDockingApron,
+  findNavigationPath,
+  steerAndAvoidBuildings,
+} from './utils/navigation';
 
 import { MarsCanvas } from './components/MarsCanvas';
 import { TopBar } from './components/TopBar';
@@ -175,9 +180,10 @@ export default function App() {
       name: 'Harvester Alpha',
       model: 'heavy',
       x: 43.5 * TILE_SIZE,
-      y: 40 * TILE_SIZE,
+      y: 42 * TILE_SIZE,
       targetX: null,
       targetY: null,
+      waypoints: [],
       angle: 0,
       speed: HARVESTER_SPECS.heavy.speed,
       cargo: 0,
@@ -706,10 +712,20 @@ export default function App() {
         return prevHarvesters.map((h) => {
           let updated = { ...h };
 
-          // Determine home depot/command position for return
-          const depot = modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'command') || modules[0];
-          const depotX = depot ? (depot.x + depot.width / 2) * TILE_SIZE : WORLD_WIDTH / 2;
-          const depotY = depot ? (depot.y + depot.height / 2) * TILE_SIZE : WORLD_HEIGHT / 2;
+          // Determine home depot/command position for return using exterior docking apron
+          const depot =
+            modules.find((m) => m.id === h.homeDepotId) ||
+            modules.find((m) => m.type === 'depot') ||
+            modules.find((m) => m.type === 'command') ||
+            modules[0];
+          const depotDock = depot
+            ? findDockingApron(depot, h.x, h.y, modules)
+            : { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
+          const depotX = depotDock.x;
+          const depotY = depotDock.y;
+
+          // Vehicle collision radius
+          const roverRadius = h.model === 'titan' ? 22 : h.model === 'heavy' ? 18 : 14;
 
           // Speed modifiers (dust storm slow, tech upgrades)
           let currentSpeed = h.speed * (hasTech('rover_turbo') ? 1.35 : 1.0);
@@ -729,6 +745,7 @@ export default function App() {
               updated.state = 'returning_to_depot';
               updated.targetX = depotX;
               updated.targetY = depotY;
+              updated.waypoints = findNavigationPath(updated.x, updated.y, depotX, depotY, modules);
             }
 
             // IDLE: Seek closest spice patch with spice available
@@ -749,6 +766,7 @@ export default function App() {
                 updated.targetSpiceId = nearest.id;
                 updated.targetX = nearest.x;
                 updated.targetY = nearest.y;
+                updated.waypoints = findNavigationPath(updated.x, updated.y, nearest.x, nearest.y, modules);
               }
             }
 
@@ -759,18 +777,66 @@ export default function App() {
                 // Pick another or return
                 updated.state = 'idle';
                 updated.targetSpiceId = null;
+                updated.waypoints = [];
               } else {
                 const distToSpice = Math.hypot(targetSpice.x - h.x, targetSpice.y - h.y);
-                if (distToSpice < 40) {
+                if (distToSpice < 42) {
                   updated.state = 'harvesting';
                   updated.targetX = null;
                   updated.targetY = null;
+                  updated.waypoints = [];
                 } else {
-                  // Steer towards spice
-                  const targetAngle = Math.atan2(targetSpice.y - h.y, targetSpice.x - h.x);
-                  updated.angle = targetAngle;
-                  updated.x += Math.cos(targetAngle) * currentSpeed * 22 * dt;
-                  updated.y += Math.sin(targetAngle) * currentSpeed * 22 * dt;
+                  // Ensure waypoints are present
+                  if (
+                    !updated.waypoints ||
+                    updated.waypoints.length === 0 ||
+                    updated.targetX !== targetSpice.x ||
+                    updated.targetY !== targetSpice.y
+                  ) {
+                    updated.targetX = targetSpice.x;
+                    updated.targetY = targetSpice.y;
+                    updated.waypoints = findNavigationPath(
+                      updated.x,
+                      updated.y,
+                      targetSpice.x,
+                      targetSpice.y,
+                      modules
+                    );
+                  }
+
+                  const currentGoal =
+                    updated.waypoints && updated.waypoints.length > 0
+                      ? updated.waypoints[0]
+                      : { x: targetSpice.x, y: targetSpice.y };
+
+                  if (
+                    Math.hypot(currentGoal.x - updated.x, currentGoal.y - updated.y) < 26 &&
+                    updated.waypoints &&
+                    updated.waypoints.length > 1
+                  ) {
+                    updated.waypoints = updated.waypoints.slice(1);
+                  }
+
+                  // Steer around buildings and resolve collisions
+                  const nextWaypoint =
+                    updated.waypoints && updated.waypoints.length > 0
+                      ? updated.waypoints[0]
+                      : { x: targetSpice.x, y: targetSpice.y };
+
+                  const { nextX, nextY, nextAngle } = steerAndAvoidBuildings(
+                    updated.x,
+                    updated.y,
+                    nextWaypoint.x,
+                    nextWaypoint.y,
+                    currentSpeed,
+                    updated.angle,
+                    dt,
+                    modules,
+                    roverRadius
+                  );
+                  updated.x = nextX;
+                  updated.y = nextY;
+                  updated.angle = nextAngle;
 
                   // Add tire track history
                   if (
@@ -796,6 +862,7 @@ export default function App() {
                 // Spice patch dried up
                 updated.state = 'idle';
                 updated.targetSpiceId = null;
+                updated.waypoints = [];
               } else {
                 const minedAmount = Math.min(
                   targetSpice.amount,
@@ -821,6 +888,7 @@ export default function App() {
                   updated.state = 'returning_to_depot';
                   updated.targetX = depotX;
                   updated.targetY = depotY;
+                  updated.waypoints = findNavigationPath(updated.x, updated.y, depotX, depotY, modules);
                   addLog(
                     'spice',
                     'Cargo Full',
@@ -833,16 +901,57 @@ export default function App() {
             // RETURNING TO DEPOT
             if (updated.state === 'returning_to_depot') {
               const distToDepot = Math.hypot(depotX - h.x, depotY - h.y);
-              if (distToDepot < 45) {
+              if (distToDepot < 44) {
                 updated.state = 'unloading';
                 updated.unloadingTimer = 2.0; // 2 seconds unload animation
                 updated.targetX = null;
                 updated.targetY = null;
+                updated.waypoints = [];
               } else {
-                const targetAngle = Math.atan2(depotY - h.y, depotX - h.x);
-                updated.angle = targetAngle;
-                updated.x += Math.cos(targetAngle) * currentSpeed * 22 * dt;
-                updated.y += Math.sin(targetAngle) * currentSpeed * 22 * dt;
+                // Ensure waypoints are present
+                if (
+                  !updated.waypoints ||
+                  updated.waypoints.length === 0 ||
+                  updated.targetX !== depotX ||
+                  updated.targetY !== depotY
+                ) {
+                  updated.targetX = depotX;
+                  updated.targetY = depotY;
+                  updated.waypoints = findNavigationPath(updated.x, updated.y, depotX, depotY, modules);
+                }
+
+                const currentGoal =
+                  updated.waypoints && updated.waypoints.length > 0
+                    ? updated.waypoints[0]
+                    : { x: depotX, y: depotY };
+
+                if (
+                  Math.hypot(currentGoal.x - updated.x, currentGoal.y - updated.y) < 26 &&
+                  updated.waypoints &&
+                  updated.waypoints.length > 1
+                ) {
+                  updated.waypoints = updated.waypoints.slice(1);
+                }
+
+                const nextWaypoint =
+                  updated.waypoints && updated.waypoints.length > 0
+                    ? updated.waypoints[0]
+                    : { x: depotX, y: depotY };
+
+                const { nextX, nextY, nextAngle } = steerAndAvoidBuildings(
+                  updated.x,
+                  updated.y,
+                  nextWaypoint.x,
+                  nextWaypoint.y,
+                  currentSpeed,
+                  updated.angle,
+                  dt,
+                  modules,
+                  roverRadius
+                );
+                updated.x = nextX;
+                updated.y = nextY;
+                updated.angle = nextAngle;
 
                 // Add tire track history
                 if (
@@ -882,17 +991,56 @@ export default function App() {
                 updated.totalSpiceDelivered += delivered;
                 updated.cargo = 0;
                 updated.state = 'idle'; // ready to seek next patch!
+                updated.waypoints = [];
               }
             }
           } else {
             // Manual Navigation Orders for Rovers
             if (updated.targetX !== null && updated.targetY !== null) {
               const distToTarget = Math.hypot(updated.targetX - h.x, updated.targetY - h.y);
-              if (distToTarget > 18) {
-                const targetAngle = Math.atan2(updated.targetY - h.y, updated.targetX - h.x);
-                updated.angle = targetAngle;
-                updated.x += Math.cos(targetAngle) * currentSpeed * 22 * dt;
-                updated.y += Math.sin(targetAngle) * currentSpeed * 22 * dt;
+              if (distToTarget > 20) {
+                if (!updated.waypoints || updated.waypoints.length === 0) {
+                  updated.waypoints = findNavigationPath(
+                    updated.x,
+                    updated.y,
+                    updated.targetX,
+                    updated.targetY,
+                    modules
+                  );
+                }
+
+                const currentGoal =
+                  updated.waypoints && updated.waypoints.length > 0
+                    ? updated.waypoints[0]
+                    : { x: updated.targetX, y: updated.targetY };
+
+                if (
+                  Math.hypot(currentGoal.x - updated.x, currentGoal.y - updated.y) < 26 &&
+                  updated.waypoints &&
+                  updated.waypoints.length > 1
+                ) {
+                  updated.waypoints = updated.waypoints.slice(1);
+                }
+
+                const nextWaypoint =
+                  updated.waypoints && updated.waypoints.length > 0
+                    ? updated.waypoints[0]
+                    : { x: updated.targetX, y: updated.targetY };
+
+                const { nextX, nextY, nextAngle } = steerAndAvoidBuildings(
+                  updated.x,
+                  updated.y,
+                  nextWaypoint.x,
+                  nextWaypoint.y,
+                  currentSpeed,
+                  updated.angle,
+                  dt,
+                  modules,
+                  roverRadius
+                );
+                updated.x = nextX;
+                updated.y = nextY;
+                updated.angle = nextAngle;
 
                 if (
                   updated.tireHistory.length === 0 ||
@@ -909,6 +1057,7 @@ export default function App() {
               } else {
                 updated.targetX = null;
                 updated.targetY = null;
+                updated.waypoints = [];
                 updated.state = 'idle';
               }
             }
@@ -966,6 +1115,8 @@ export default function App() {
     };
 
     setModules((prev) => [...prev, newModule]);
+    // Invalidate cached waypoints so roaming vehicles immediately route around the newly constructed building
+    setHarvesters((prev) => prev.map((h) => ({ ...h, waypoints: [] })));
     sound.playBuild();
     addLog('info', 'Construction Complete', `${bp.name} constructed in Sector [${gridX}, ${gridY}].`);
     setBuildPlacingType(null);
@@ -976,10 +1127,16 @@ export default function App() {
     const spec = HARVESTER_SPECS[model];
     if (stats.alloy < spec.costAlloy || stats.credits < spec.costCredits) return;
 
-    // Find depot or command position
-    const depot = modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command');
-    const spawnX = depot ? (depot.x + depot.width / 2 + 1) * TILE_SIZE : WORLD_WIDTH / 2;
-    const spawnY = depot ? (depot.y + depot.height / 2 + 1) * TILE_SIZE : WORLD_HEIGHT / 2;
+    // Find depot or command exterior docking apron
+    const depot =
+      modules.find((m) => m.type === 'depot') ||
+      modules.find((m) => m.type === 'command') ||
+      modules[0];
+    const dock = depot
+      ? findDockingApron(depot, WORLD_WIDTH / 2 + 120, WORLD_HEIGHT / 2, modules)
+      : { x: WORLD_WIDTH / 2 + 50, y: WORLD_HEIGHT / 2 };
+    const spawnX = dock.x;
+    const spawnY = dock.y;
 
     setStats((prev) => ({
       ...prev,
@@ -1022,15 +1179,21 @@ export default function App() {
     setHarvesters((prev) =>
       prev.map((h) => {
         if (h.id === harvesterId) {
-          const depot = modules.find((m) => m.id === h.homeDepotId) || modules[0];
-          const depotX = depot ? (depot.x + depot.width / 2) * TILE_SIZE : WORLD_WIDTH / 2;
-          const depotY = depot ? (depot.y + depot.height / 2) * TILE_SIZE : WORLD_HEIGHT / 2;
+          const depot =
+            modules.find((m) => m.id === h.homeDepotId) ||
+            modules.find((m) => m.type === 'depot') ||
+            modules.find((m) => m.type === 'command') ||
+            modules[0];
+          const dock = depot
+            ? findDockingApron(depot, h.x, h.y, modules)
+            : { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
           return {
             ...h,
             state: 'returning_to_depot',
-            targetX: depotX,
-            targetY: depotY,
+            targetX: dock.x,
+            targetY: dock.y,
             targetSpiceId: null,
+            waypoints: findNavigationPath(h.x, h.y, dock.x, dock.y, modules),
           };
         }
         return h;
@@ -1210,6 +1373,7 @@ export default function App() {
               targetSpiceId: clickedSpice.id,
               targetX: clickedSpice.x,
               targetY: clickedSpice.y,
+              waypoints: findNavigationPath(h.x, h.y, clickedSpice.x, clickedSpice.y, modules),
               autoHarvest: true,
             };
           } else {
@@ -1219,6 +1383,7 @@ export default function App() {
               targetSpiceId: null,
               targetX: worldX,
               targetY: worldY,
+              waypoints: findNavigationPath(h.x, h.y, worldX, worldY, modules),
               autoHarvest: false,
             };
           }

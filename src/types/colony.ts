@@ -115,6 +115,7 @@ export interface Harvester {
   laserPulseTimer: number;
   unloadingTimer: number;
   totalSpiceDelivered: number;
+  waypoints?: Array<{ x: number; y: number }>;
 }
 
 export interface SpicePatch {

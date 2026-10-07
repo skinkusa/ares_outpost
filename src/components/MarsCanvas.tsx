@@ -1699,6 +1699,32 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           ctx.setLineDash([4, 4]);
           ctx.stroke();
           ctx.setLineDash([]);
+
+          // Tactical path navigation indicator around buildings
+          if (h.waypoints && h.waypoints.length > 0) {
+            ctx.beginPath();
+            ctx.moveTo(h.x, h.y);
+            for (let wi = 0; wi < h.waypoints.length; wi++) {
+              ctx.lineTo(h.waypoints[wi].x, h.waypoints[wi].y);
+            }
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+            ctx.lineWidth = 1.6;
+            ctx.setLineDash([6, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Waypoint nodes
+            for (let wi = 0; wi < h.waypoints.length; wi++) {
+              const wp = h.waypoints[wi];
+              ctx.beginPath();
+              ctx.arc(wp.x, wp.y, 3.5, 0, Math.PI * 2);
+              ctx.fillStyle = wi === h.waypoints.length - 1 ? '#22c55e' : '#38bdf8';
+              ctx.fill();
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+          }
         }
 
         const barW = 36;
