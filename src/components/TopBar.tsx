@@ -4,6 +4,7 @@ import {
   WeatherCondition,
 } from '../types/colony';
 import {
+  Activity,
   AlertTriangle,
   Atom,
   Battery,
@@ -35,6 +36,7 @@ interface TopBarProps {
   onOpenTechTree: () => void;
   onOpenTradeRocket: () => void;
   onOpenTutorial: () => void;
+  onOpenResourceMonitor: (filter?: 'all' | 'power' | 'water' | 'oxygen') => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -47,6 +49,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenTechTree,
   onOpenTradeRocket,
   onOpenTutorial,
+  onOpenResourceMonitor,
 }) => {
   // Sol time string formatted e.g. "14:20"
   const hours = Math.floor(stats.timeOfDay * 24);
@@ -124,6 +127,16 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="font-mono text-[10px] bg-indigo-800/80 px-1.5 py-0.2 rounded text-indigo-100">
               {Math.floor(stats.techPoints)} TP
             </span>
+          </button>
+
+          {/* Resource Telemetry Monitor */}
+          <button
+            onClick={() => onOpenResourceMonitor('all')}
+            className="flex items-center gap-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-700/60 px-3 py-1 rounded-md text-xs text-cyan-200 transition-colors shadow-sm"
+            title="Open Historical 50-Minute Resource Consumption Monitor"
+          >
+            <Activity className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="font-title font-semibold tracking-wide">MONITOR</span>
           </button>
 
           {/* Trade Rocket / Earth Shuttle */}
@@ -204,12 +217,13 @@ export const TopBar: React.FC<TopBarProps> = ({
       <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 font-mono text-xs">
         {/* Power Grid */}
         <div
-          className={`flex flex-col border px-2.5 py-1 rounded transition-all ${
+          onClick={() => onOpenResourceMonitor('power')}
+          className={`flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-yellow-500/70 hover:bg-stone-900 ${
             isPowerBlackout
               ? 'border-red-500 bg-red-950/70 text-red-200 animate-critical-pulse'
               : 'bg-stone-900/90 border-stone-800 text-stone-200'
           }`}
-          title={`Generation: ${Math.round(stats.currentPowerProd)} kW | Consumption: ${Math.round(stats.currentPowerCons)} kW | Battery: ${Math.round(stats.powerStored)}/${stats.powerCapacity} kW`}
+          title={`Click to open Resource Monitor (Power Grid) | Generation: ${Math.round(stats.currentPowerProd)} kW | Consumption: ${Math.round(stats.currentPowerCons)} kW | Battery: ${Math.round(stats.powerStored)}/${stats.powerCapacity} kW`}
         >
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans">
@@ -233,12 +247,13 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Oxygen (with subtle shake & pulse animation when critical) */}
         <div
-          className={`flex flex-col border px-2.5 py-1 rounded transition-all ${
+          onClick={() => onOpenResourceMonitor('oxygen')}
+          className={`flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-cyan-500/70 hover:bg-stone-900 ${
             isO2Critical
               ? 'border-red-500 bg-red-950/80 text-red-200 animate-critical-vitals'
               : 'bg-stone-900/90 border-stone-800 text-stone-200'
           }`}
-          title={`Oxygen reserves: ${Math.round(stats.oxygen)}/${stats.maxOxygen} m³ | Delta: ${stats.currentO2Delta >= 0 ? '+' : ''}${Math.round(stats.currentO2Delta)}/s ${isO2Critical ? 'CRITICAL RESERVE ALERT' : ''}`}
+          title={`Click to open Resource Monitor (Oxygen) | Reserves: ${Math.round(stats.oxygen)}/${stats.maxOxygen} m³ | Delta: ${stats.currentO2Delta >= 0 ? '+' : ''}${Math.round(stats.currentO2Delta)}/s ${isO2Critical ? 'CRITICAL RESERVE ALERT' : ''}`}
         >
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans font-bold">
@@ -271,12 +286,13 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Water (with subtle shake & pulse animation when critical) */}
         <div
-          className={`flex flex-col border px-2.5 py-1 rounded transition-all ${
+          onClick={() => onOpenResourceMonitor('water')}
+          className={`flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-blue-500/70 hover:bg-stone-900 ${
             isWaterCritical
               ? 'border-red-500 bg-red-950/80 text-red-200 animate-critical-vitals'
               : 'bg-stone-900/90 border-stone-800 text-stone-200'
           }`}
-          title={`Water reserves: ${Math.round(stats.water)}/${stats.maxWater} L | Delta: ${stats.currentWaterDelta >= 0 ? '+' : ''}${Math.round(stats.currentWaterDelta)}/s ${isWaterCritical ? 'CRITICAL DEHYDRATION ALERT' : ''}`}
+          title={`Click to open Resource Monitor (Water) | Reserves: ${Math.round(stats.water)}/${stats.maxWater} L | Delta: ${stats.currentWaterDelta >= 0 ? '+' : ''}${Math.round(stats.currentWaterDelta)}/s ${isWaterCritical ? 'CRITICAL DEHYDRATION ALERT' : ''}`}
         >
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans font-bold">

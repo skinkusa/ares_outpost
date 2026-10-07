@@ -214,3 +214,25 @@ export interface ColonyStats {
   totalSpiceMined: number;
   totalCreditsEarned: number;
 }
+
+export interface ResourceHistoryPoint {
+  gameMinute: number; // cumulative game minutes from game start
+  sol: number;
+  timeOfDay: number;
+  timeStr: string; // e.g. "08:45"
+  minutesAgo: number; // 0 (current) down to -50 (50 game minutes ago)
+  power: number; // stored power in kW
+  powerPct: number; // % of power capacity (0 - 100)
+  powerNet: number; // net generation/consumption in kW/s
+  powerProd: number; // total production in kW
+  powerCons: number; // total consumption in kW
+  powerCapacity: number;
+  water: number; // stored water in L
+  waterPct: number; // % of water capacity (0 - 100)
+  waterDelta: number; // net water change in L/s
+  maxWater: number;
+  oxygen: number; // stored oxygen in m³
+  oxygenPct: number; // % of oxygen capacity (0 - 100)
+  oxygenDelta: number; // net oxygen change in m³/s
+  maxOxygen: number;
+}

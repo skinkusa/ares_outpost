@@ -12,6 +12,7 @@ import {
   Harvester,
   HarvesterModel,
   ModuleType,
+  ResourceHistoryPoint,
   SpicePatch,
   TechNode,
   WeatherCondition,
@@ -43,6 +44,69 @@ import { TechTreeModal } from './components/TechTreeModal';
 import { TradeRocketModal } from './components/TradeRocketModal';
 import { TutorialModal } from './components/TutorialModal';
 import { ColonyLog } from './components/ColonyLog';
+import { ResourceMonitor } from './components/ResourceMonitor';
+
+function generateInitialResourceHistory(initialStats: ColonyStats): ResourceHistoryPoint[] {
+  const history: ResourceHistoryPoint[] = [];
+  const currentTotalMinutes = (initialStats.sol - 1) * 1440 + Math.floor(initialStats.timeOfDay * 1440);
+
+  // Pre-seed the prior 50 game minutes with realistic telemetry curves
+  for (let offset = -50; offset <= 0; offset++) {
+    const minute = Math.max(0, currentTotalMinutes + offset);
+    const sol = Math.floor(minute / 1440) + 1;
+    const minuteInSol = minute % 1440;
+    const timeOfDay = minuteInSol / 1440;
+    const hours = Math.floor(timeOfDay * 24);
+    const mins = Math.floor((timeOfDay * 24 * 60) % 60);
+    const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+
+    const progress = (offset + 50) / 50; // 0 (50 mins ago) to 1 (now)
+    const power = Math.max(
+      100,
+      Math.min(
+        initialStats.powerCapacity,
+        initialStats.powerStored - (1 - progress) * 50 + Math.sin(offset * 0.22) * 6
+      )
+    );
+    const water = Math.max(
+      80,
+      Math.min(
+        initialStats.maxWater,
+        initialStats.water - (1 - progress) * 25 + Math.cos(offset * 0.18) * 5
+      )
+    );
+    const oxygen = Math.max(
+      90,
+      Math.min(
+        initialStats.maxOxygen,
+        initialStats.oxygen - (1 - progress) * 35 + Math.sin(offset * 0.14) * 6
+      )
+    );
+
+    history.push({
+      gameMinute: minute,
+      sol,
+      timeOfDay,
+      timeStr,
+      minutesAgo: offset,
+      power: Math.round(power * 10) / 10,
+      powerPct: Math.round((power / Math.max(1, initialStats.powerCapacity)) * 1000) / 10,
+      powerNet: initialStats.powerNet,
+      powerProd: initialStats.currentPowerProd,
+      powerCons: initialStats.currentPowerCons,
+      powerCapacity: initialStats.powerCapacity,
+      water: Math.round(water * 10) / 10,
+      waterPct: Math.round((water / Math.max(1, initialStats.maxWater)) * 1000) / 10,
+      waterDelta: initialStats.currentWaterDelta,
+      maxWater: initialStats.maxWater,
+      oxygen: Math.round(oxygen * 10) / 10,
+      oxygenPct: Math.round((oxygen / Math.max(1, initialStats.maxOxygen)) * 1000) / 10,
+      oxygenDelta: initialStats.currentO2Delta,
+      maxOxygen: initialStats.maxOxygen,
+    });
+  }
+  return history;
+}
 
 export default function App() {
   // Terrain & World
@@ -256,6 +320,12 @@ export default function App() {
   const [isTechTreeOpen, setIsTechTreeOpen] = useState<boolean>(false);
   const [isTradeRocketOpen, setIsTradeRocketOpen] = useState<boolean>(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
+  const [isResourceMonitorOpen, setIsResourceMonitorOpen] = useState<boolean>(false);
+  const [resourceMonitorFilter, setResourceMonitorFilter] = useState<'all' | 'power' | 'water' | 'oxygen'>('all');
+  const [resourceHistory, setResourceHistory] = useState<ResourceHistoryPoint[]>(() =>
+    generateInitialResourceHistory(stats)
+  );
+  const lastRecordedGameMinuteRef = useRef<number>((1 - 1) * 1440 + Math.floor(0.15 * 1440));
 
   // Colony Event Logs
   const [logs, setLogs] = useState<ColonyEventLog[]>([
@@ -630,6 +700,47 @@ export default function App() {
         } else {
           tracker.foodSec = 0;
           tracker.foodLastUrgencyAlert = 0;
+        }
+
+        // 5. Telemetry Logging for ResourceMonitor (samples every game minute)
+        const currentTotalMinutes = Math.floor((newSol - 1) * 1440 + newTime * 1440);
+        if (currentTotalMinutes !== lastRecordedGameMinuteRef.current) {
+          lastRecordedGameMinuteRef.current = currentTotalMinutes;
+          const hours = Math.floor(newTime * 24);
+          const mins = Math.floor((newTime * 24 * 60) % 60);
+          const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+
+          const newPt: ResourceHistoryPoint = {
+            gameMinute: currentTotalMinutes,
+            sol: newSol,
+            timeOfDay: newTime,
+            timeStr,
+            minutesAgo: 0,
+            power: Math.round(newPowerStored * 10) / 10,
+            powerPct: Math.round((newPowerStored / Math.max(1, batteryCap)) * 1000) / 10,
+            powerNet: Math.round(netPower * 10) / 10,
+            powerProd: Math.round(powerProd * 10) / 10,
+            powerCons: Math.round(powerCons * 10) / 10,
+            powerCapacity: batteryCap,
+            water: Math.round(newWater * 10) / 10,
+            waterPct: Math.round((newWater / Math.max(1, prevStats.maxWater)) * 1000) / 10,
+            waterDelta: Math.round((waterGen - waterCons) * 10) / 10,
+            maxWater: prevStats.maxWater,
+            oxygen: Math.round(newO2 * 10) / 10,
+            oxygenPct: Math.round((newO2 / Math.max(1, prevStats.maxOxygen)) * 1000) / 10,
+            oxygenDelta: Math.round((o2Gen - o2Cons) * 10) / 10,
+            maxOxygen: prevStats.maxOxygen,
+          };
+
+          setResourceHistory((prev) => {
+            const updated = prev
+              .map((pt) => ({
+                ...pt,
+                minutesAgo: pt.gameMinute - currentTotalMinutes,
+              }))
+              .filter((pt) => pt.gameMinute - currentTotalMinutes >= -50);
+            return [...updated, newPt];
+          });
         }
 
         return {
@@ -1409,6 +1520,11 @@ export default function App() {
         onOpenTechTree={() => setIsTechTreeOpen(true)}
         onOpenTradeRocket={() => setIsTradeRocketOpen(true)}
         onOpenTutorial={() => setIsTutorialOpen(true)}
+        onOpenResourceMonitor={(filter) => {
+          setResourceMonitorFilter(filter || 'all');
+          setIsResourceMonitorOpen(true);
+          sound.playClick(850);
+        }}
       />
 
       {/* Main 2D Martian Surface Canvas */}
@@ -1539,6 +1655,15 @@ export default function App() {
       <TutorialModal
         isOpen={isTutorialOpen}
         onClose={() => setIsTutorialOpen(false)}
+      />
+
+      {/* Historical Resource Consumption & Telemetry Monitor (Recharts) */}
+      <ResourceMonitor
+        isOpen={isResourceMonitorOpen}
+        onClose={() => setIsResourceMonitorOpen(false)}
+        history={resourceHistory}
+        currentStats={stats}
+        initialFilter={resourceMonitorFilter}
       />
     </div>
   );
