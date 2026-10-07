@@ -72,7 +72,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 2. Power Grid & Life Support
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Solar arrays provide high output during daytime, but produce zero at night! Build <strong>Battery Substations</strong> to store daytime power or deploy <strong>RTG Nuclear Cells</strong> for continuous 24/7 baseload power. Keep MOXIE Scrubbers (O2) and Vaporators (H2O) powered to keep your crew alive.
+                Solar arrays provide high output during daytime, but produce zero at night! Build <strong>Battery Substations</strong> to store daytime power or deploy <strong>RTG Nuclear Cells</strong> for continuous 24/7 baseload power. Keep MOXIE Scrubbers (O2) and Vaporators (H2O) powered to sustain crew morale, and build <strong>Medical Bays</strong> to purge cosmic radiation and heal injured colonists.
               </p>
             </div>
           </div>

@@ -219,6 +219,22 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     color: '#14b8a6', // Teal
     icon: 'Scan',
   },
+  medbay: {
+    type: 'medbay',
+    name: 'Trauma & Medical Bay',
+    category: 'life_support',
+    description: 'Advanced cryogenic bio-stasis pods and radioprotective gene clinics. Boosts colonist health recovery (+1.2%/s), cleanses cellular radiation damage, and reduces long-term physical degradation.',
+    costAlloy: 45,
+    costCredits: 95,
+    width: 2,
+    height: 2,
+    powerDelta: -10,
+    o2Delta: -2,
+    waterDelta: -3,
+    foodDelta: 0,
+    color: '#10b981', // Emerald / Cyan medical
+    icon: 'HeartPulse',
+  },
 };
 
 export const HARVESTER_SPECS: Record<string, HarvesterModelSpec> = {

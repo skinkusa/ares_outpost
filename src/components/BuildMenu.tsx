@@ -11,6 +11,7 @@ import {
   Droplets,
   Factory,
   Hammer,
+  HeartPulse,
   Home,
   Layers,
   Radio,
@@ -85,6 +86,7 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
       case 'research': return <Atom className="w-4 h-4 text-indigo-400" />;
       case 'launchpad': return <Rocket className="w-4 h-4 text-amber-400" />;
       case 'radar': return <Scan className="w-4 h-4 text-teal-400" />;
+      case 'medbay': return <HeartPulse className="w-4 h-4 text-emerald-400" />;
       default: return <Cpu className="w-4 h-4" />;
     }
   };

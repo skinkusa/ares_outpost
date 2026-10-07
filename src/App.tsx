@@ -237,6 +237,21 @@ export default function App() {
       constructed: true,
       constructProgress: 100,
     },
+    {
+      id: 'mod_medbay_1',
+      type: 'medbay',
+      x: 35,
+      y: 35,
+      width: 2,
+      height: 2,
+      level: 1,
+      health: 120,
+      maxHealth: 120,
+      isActive: true,
+      assignedColonists: 1,
+      constructed: true,
+      constructProgress: 100,
+    },
   ]);
 
   // High-voltage power transmission lines network
@@ -311,6 +326,11 @@ export default function App() {
     population: 8,
     maxPopulation: 14,
     morale: 88,
+    colonistHealth: 94,
+    radiationLevel: 1.35,
+    effectiveRadiationDose: 0.62,
+    medicalBayCount: 1,
+    healthRecoveryRate: 0.35,
     totalSpiceMined: 45,
     totalCreditsEarned: 0,
   });
@@ -368,14 +388,16 @@ export default function App() {
     ]);
   };
 
-  // Morale & Vital warning cooldown tracker
+  // Morale, Vital & Health warning cooldown tracker
   const moraleWarningCooldownRef = useRef<{
     o2: number;
     water: number;
     food: number;
     power: number;
     general: number;
-  }>({ o2: 0, water: 0, food: 0, power: 0, general: 0 });
+    health: number;
+    radiation: number;
+  }>({ o2: 0, water: 0, food: 0, power: 0, general: 0, health: 0, radiation: 0 });
 
   // Prolonged Low Resource Deprivation Tracker (> 5 minutes / 300 seconds of game time)
   const prolongedLowTrackerRef = useRef<{
@@ -446,6 +468,10 @@ export default function App() {
         }
         if (weather.type === 'dust_storm') {
           sunFactor *= hasTech('storm_hardening') ? 0.6 : 0.25;
+        } else if (weather.type === 'dust_veil') {
+          sunFactor *= 0.75;
+        } else if (weather.type === 'solar_flare') {
+          sunFactor *= 2.2;
         }
 
         // Module rates calculation
@@ -458,12 +484,19 @@ export default function App() {
         let spiceCap = 600;
         let batteryCap = 0;
         let popCap = 0;
+        let medBayCount = 0;
+        let medBayEffectiveness = 0;
 
         modules.forEach((mod) => {
           if (!mod.isActive) return;
           const bp = MODULE_BLUEPRINTS[mod.type];
           if (!bp) return;
           const mult = 1 + (mod.level - 1) * 0.5;
+
+          if (mod.type === 'medbay') {
+            medBayCount++;
+            medBayEffectiveness += mult;
+          }
 
           if (bp.powerDelta > 0) {
             if (mod.type === 'solar') {
@@ -515,6 +548,8 @@ export default function App() {
         cd.food = Math.max(0, cd.food - dt);
         cd.power = Math.max(0, cd.power - dt);
         cd.general = Math.max(0, cd.general - dt);
+        cd.health = Math.max(0, cd.health - dt);
+        cd.radiation = Math.max(0, cd.radiation - dt);
 
         // Dynamic Morale Calculation based on life support and amenities
         let targetMorale = 92;
@@ -595,6 +630,131 @@ export default function App() {
         } else if (newMorale > 80 && prevStats.morale <= 80 && cd.general <= 0) {
           cd.general = 25;
           addLog('success', 'Morale Restored', `Life support stabilized. Colonists report optimal morale (${Math.round(newMorale)}%).`);
+        }
+
+        // =====================================================================
+        // ENVIRONMENTAL RADIATION & EFFECTIVE DOSE DYNAMICS
+        // =====================================================================
+        // Baseline background cosmic radiation on Martian surface: ~1.25 mSv/h
+        let baseRadiation = 1.25;
+        if (newTime <= 0.5) {
+          // Solar cosmic ray flux and solar energetic particles increase with sun elevation
+          baseRadiation += sunFactor * 0.75;
+        }
+        if (weather.type === 'solar_flare') {
+          // Severe coronal mass ejection ion storm! Spikes radiation significantly
+          baseRadiation += 7.5;
+        } else if (weather.type === 'dust_storm') {
+          // Dense dust clouds absorb cosmic ultraviolet rays slightly
+          baseRadiation -= 0.35;
+        } else if (weather.type === 'dust_veil') {
+          baseRadiation -= 0.18;
+        } else if (weather.type === 'seismic_tremor') {
+          baseRadiation += 0.22; // Subterranean radon venting
+        }
+        const currentEnvRadiation = Math.max(0.4, baseRadiation);
+
+        // Grid blackout reduces Medical Bay bio-pod effectiveness to emergency battery reserve
+        const effectiveMedBayPowerMult = (newPowerStored <= 0 && netPower < 0) ? 0.25 : 1.0;
+        const operationalMedBayEffectiveness = medBayEffectiveness * effectiveMedBayPowerMult;
+
+        // Absorbed radiation dose for sheltered colonists
+        const shelterFactor = popCap >= prevStats.population ? 0.6 : 0.85;
+        const techShield = hasTech('storm_hardening') ? 0.75 : 1.0;
+        // Medical Bay actively purges cellular radiation toxins & provides radioprotection
+        const medBayDecontamination = 1 / (1 + operationalMedBayEffectiveness * 0.85);
+
+        const currentEffectiveDose = Math.max(
+          0.05,
+          currentEnvRadiation * shelterFactor * techShield * medBayDecontamination
+        );
+
+        // =====================================================================
+        // COLONIST HEALTH DYNAMICS (Fluctuates on Morale, Radiation & Med Bay)
+        // =====================================================================
+        // 1. Morale Influence on Health:
+        // High morale promotes physiological wellness, rest, and preventative hygiene.
+        // Low morale leads to chronic stress, exhaustion, and physical neglect.
+        let moraleHealthRate = 0;
+        if (newMorale >= 85) {
+          moraleHealthRate = 0.32; // Peak wellness (+0.32%/s)
+        } else if (newMorale >= 70) {
+          moraleHealthRate = 0.16; // Mild recovery (+0.16%/s)
+        } else if (newMorale >= 50) {
+          moraleHealthRate = -0.05; // Equilibrium drift
+        } else if (newMorale >= 35) {
+          moraleHealthRate = -0.35; // Chronic stress fatigue (-0.35%/s)
+        } else {
+          moraleHealthRate = -0.85; // Severe psychological collapse (-0.85%/s)
+        }
+
+        // 2. Radiation Health Degradation:
+        // Safe absorbed threshold is ~0.70 mSv/h. Dosages above cause cellular damage.
+        let radiationDamageRate = 0;
+        if (currentEffectiveDose > 0.70) {
+          radiationDamageRate = -(currentEffectiveDose - 0.70) * 0.45;
+        }
+
+        // 3. Acute Life Support Deprivation Damage:
+        let vitalDeprivationRate = 0;
+        if (newO2 < 35) vitalDeprivationRate -= 1.5;
+        if (newWater < 30) vitalDeprivationRate -= 1.2;
+        if (newFood < 25) vitalDeprivationRate -= 1.0;
+
+        // 4. Medical Bay Recovery Boost & Long-Term Degradation Reduction:
+        // Active Medical Bay boosts recovery with bio-stasis trauma pods
+        const medBayHealingBoost = operationalMedBayEffectiveness * 1.2; // +1.2%/s per level
+
+        // Medical Bay reduces long-term physical degradation from all negative stressors:
+        // Each effective Medical Bay cuts degradation significantly (halves or quarters rate)
+        const degradationMitigation = 1 / (1 + operationalMedBayEffectiveness * 1.05);
+
+        const totalDegradation =
+          (Math.min(0, moraleHealthRate) + radiationDamageRate + vitalDeprivationRate) *
+          degradationMitigation;
+        const totalRecovery = Math.max(0, moraleHealthRate) + medBayHealingBoost;
+
+        const netHealthDeltaRate = totalRecovery + totalDegradation;
+        const prevHealth = prevStats.colonistHealth ?? 94;
+        const newHealth = Math.max(5, Math.min(100, prevHealth + netHealthDeltaRate * dt));
+
+        // Periodic Colonist Health Alerts
+        if (newHealth < 35 && prevHealth >= 35 && cd.health <= 0) {
+          cd.health = 25;
+          sound.playAlarm();
+          addLog(
+            'danger',
+            'COLONIST HEALTH CRISIS',
+            `Colonist health dropped to ${Math.round(newHealth)}%! Crew suffering acute radiation sickness and physiological breakdown. Construct Medical Bay immediately!`,
+            'CRITICAL'
+          );
+        } else if (newHealth < 60 && prevHealth >= 60 && cd.health <= 0) {
+          cd.health = 30;
+          addLog(
+            'warning',
+            'Colonist Health Compromised',
+            `Crew vitality degraded to ${Math.round(newHealth)}% under radiation exposure (${currentEffectiveDose.toFixed(1)} mSv/h) and morale strain.`
+          );
+        } else if (newHealth >= 90 && prevHealth < 90 && cd.health <= 0) {
+          cd.health = 30;
+          addLog(
+            'success',
+            'Colonist Health Restored',
+            `Crew vitality restored to optimal levels (${Math.round(newHealth)}%). Medical bay bio-stasis and high morale stabilized vital signs.`
+          );
+        }
+
+        // Solar radiation alert if unmitigated
+        if (currentEnvRadiation > 5.5 && cd.radiation <= 0) {
+          cd.radiation = 45;
+          if (medBayCount === 0) {
+            addLog(
+              'danger',
+              'Severe Radiation Warning',
+              `Coronal ion storm detected (${currentEnvRadiation.toFixed(1)} mSv/h)! Unshielded colonists suffering cellular damage. Medical Bay treatment required.`,
+              'HIGH'
+            );
+          }
         }
 
         // =====================================================================
@@ -767,6 +927,11 @@ export default function App() {
           spiceCapacity: spiceCap,
           maxPopulation: popCap,
           morale: newMorale,
+          colonistHealth: newHealth,
+          radiationLevel: currentEnvRadiation,
+          effectiveRadiationDose: currentEffectiveDose,
+          medicalBayCount: medBayCount,
+          healthRecoveryRate: netHealthDeltaRate,
         };
       });
 
@@ -776,7 +941,7 @@ export default function App() {
         if (nextDur <= 0) {
           // Roll new weather event
           const roll = Math.random();
-          if (roll < 0.65) {
+          if (roll < 0.45) {
             return {
               type: 'clear',
               name: 'Clear Martian Skies',
@@ -785,16 +950,16 @@ export default function App() {
               maxDuration: 180,
               severity: 0,
             };
-          } else if (roll < 0.85) {
+          } else if (roll < 0.65) {
             return {
               type: 'dust_veil',
               name: 'Atmospheric Dust Veil',
               description: 'Moderate airborne particulate reducing solar output.',
               duration: Math.random() * 45 + 40,
               maxDuration: 90,
-              severity: 0.3,
+              severity: 0.35,
             };
-          } else if (roll < 0.95) {
+          } else if (roll < 0.82) {
             sound.playAlarm();
             addLog('danger', 'Dust Storm Alert', 'Severe Martian dust storm detected! Solar offline.');
             return {
@@ -803,9 +968,9 @@ export default function App() {
               description: 'Dangerous winds and heavy sand. Harvesters slowed, solar penalized.',
               duration: Math.random() * 50 + 40,
               maxDuration: 90,
-              severity: 0.8,
+              severity: 0.85,
             };
-          } else {
+          } else if (roll < 0.92) {
             sound.playAlarm();
             addLog('warning', 'Seismic Tremor', 'Subterranean seismic activity detected! New spice vein geyser erupted.');
             // Spawn new spice vein
@@ -816,7 +981,18 @@ export default function App() {
               description: 'Ground tremors uncovering underground spice melange geysers.',
               duration: 35,
               maxDuration: 35,
-              severity: 0.5,
+              severity: 0.65,
+            };
+          } else {
+            sound.playAlarm();
+            addLog('warning', 'Solar Flare', 'Coronal mass ejection! High radiation ion storm, solar output surge.');
+            return {
+              type: 'solar_flare',
+              name: 'Coronal Solar Flare',
+              description: 'Intense cosmic rays and ion plasma auroras. Solar output +120%, communications interference.',
+              duration: 45,
+              maxDuration: 45,
+              severity: 0.9,
             };
           }
         }

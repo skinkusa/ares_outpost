@@ -7,7 +7,10 @@ import {
   ChevronUp,
   Droplets,
   Heart,
+  HeartPulse,
+  Activity,
   Radio,
+  Shield,
   Smile,
   Users,
   Utensils,
@@ -40,7 +43,17 @@ export const ColonyLog: React.FC<ColonyLogProps> = ({
   const isMoraleCritical = stats.morale < 40;
   const isMoraleStrained = stats.morale < 65;
 
-  const hasAnyCriticalVital = isO2Critical || isWaterCritical || isFoodCritical || isPowerBlackout || isMoraleCritical;
+  const colonistHealth = stats.colonistHealth ?? 95;
+  const isHealthCritical = colonistHealth < 40;
+  const isHealthStrained = colonistHealth < 70;
+
+  const hasAnyCriticalVital =
+    isO2Critical ||
+    isWaterCritical ||
+    isFoodCritical ||
+    isPowerBlackout ||
+    isMoraleCritical ||
+    isHealthCritical;
 
   // Morale tier label & color
   let moraleLabel = 'OPTIMAL';
@@ -63,6 +76,29 @@ export const ColonyLog: React.FC<ColonyLogProps> = ({
     moraleColor = 'text-cyan-400';
     moraleBg = 'bg-cyan-950/50 border-cyan-700/60';
     moraleQuote = 'Basic amenities secured. Standard colony operations proceeding.';
+  }
+
+  // Colonist Health tier label & color
+  let healthLabel = 'OPTIMAL VIGOR';
+  let healthColor = 'text-emerald-400';
+  let healthBg = 'bg-emerald-950/60 border-emerald-700/60';
+  let healthQuote = 'Crew physiological vitals nominal. Cellular regeneration balanced.';
+
+  if (colonistHealth < 40) {
+    healthLabel = 'CRITICAL SICKNESS';
+    healthColor = 'text-red-400';
+    healthBg = 'bg-red-950/80 border-red-500 animate-pulse';
+    healthQuote = 'Severe radiation sickness & physical collapse! Deploy Medical Bay immediately.';
+  } else if (colonistHealth < 70) {
+    healthLabel = 'STRAINED';
+    healthColor = 'text-amber-400';
+    healthBg = 'bg-amber-950/60 border-amber-600/70';
+    healthQuote = 'Cellular fatigue and radiation exposure detected. Medical care recommended.';
+  } else if (colonistHealth < 85) {
+    healthLabel = 'STABLE';
+    healthColor = 'text-cyan-400';
+    healthBg = 'bg-cyan-950/50 border-cyan-700/60';
+    healthQuote = 'Standard physical stamina maintained. Normal baseline vitals.';
   }
 
   // Latest log message for preview banner
@@ -142,15 +178,107 @@ export const ColonyLog: React.FC<ColonyLogProps> = ({
                     : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900'
                 }`}
               >
-                <Users className="w-3 h-3" />
-                <span>POPULATION & MORALE</span>
+                <HeartPulse className="w-3.5 h-3.5" />
+                <span>CREW & HEALTH</span>
               </button>
             </div>
           </div>
 
-          {/* TAB 1: POPULATION & MORALE STATUS DISPLAY */}
+          {/* TAB 1: POPULATION & HEALTH STATUS DISPLAY */}
           {activeTab === 'crew' ? (
             <div className="flex flex-col gap-3 text-xs">
+              {/* Colonist Health & Vitality Banner */}
+              <div className={`p-3 rounded-lg border ${healthBg} flex flex-col gap-2`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-title font-bold">
+                    <HeartPulse
+                      className={`w-4 h-4 ${
+                        isHealthCritical ? 'text-red-400 animate-pulse' : 'text-emerald-400'
+                      }`}
+                    />
+                    <span className="text-stone-200">COLONIST HEALTH & RECOVERY</span>
+                  </div>
+                  <span
+                    className={`font-mono text-xs font-bold px-2 py-0.5 rounded border ${healthColor} bg-black/40`}
+                  >
+                    {healthLabel} ({Math.round(colonistHealth)}%)
+                  </span>
+                </div>
+
+                {/* Health Bar */}
+                <div className="w-full bg-stone-900 rounded-full h-2 overflow-hidden border border-stone-800">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      colonistHealth < 40
+                        ? 'bg-red-500'
+                        : colonistHealth < 70
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${Math.max(4, Math.min(100, colonistHealth))}%` }}
+                  />
+                </div>
+
+                <p className="text-[11px] text-stone-300 italic leading-snug">
+                  "{healthQuote}"
+                </p>
+
+                {/* Real-time Health Diagnostics & Medical Bay Status */}
+                <div className="grid grid-cols-2 gap-2 font-mono text-[10px] pt-1 border-t border-stone-800/80">
+                  <div className="flex items-center justify-between bg-black/30 p-1.5 rounded">
+                    <span className="text-stone-400">Vitality Drift:</span>
+                    <span
+                      className={`font-bold ${
+                        stats.healthRecoveryRate >= 0 ? 'text-emerald-400' : 'text-red-400'
+                      }`}
+                    >
+                      {stats.healthRecoveryRate >= 0 ? '+' : ''}
+                      {stats.healthRecoveryRate?.toFixed(2) ?? '0.00'}%/s
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between bg-black/30 p-1.5 rounded">
+                    <span className="text-stone-400">Absorbed Rads:</span>
+                    <span
+                      className={`font-bold ${
+                        stats.effectiveRadiationDose > 2.0
+                          ? 'text-red-400'
+                          : stats.effectiveRadiationDose > 1.0
+                          ? 'text-amber-400'
+                          : 'text-stone-300'
+                      }`}
+                    >
+                      {stats.effectiveRadiationDose?.toFixed(2) ?? '0.65'} mSv/h
+                    </span>
+                  </div>
+                </div>
+
+                {/* Medical Bay Active Intervention Badge */}
+                <div
+                  className={`p-2 rounded border text-[11px] font-mono flex items-center justify-between ${
+                    (stats.medicalBayCount || 0) > 0
+                      ? 'bg-emerald-950/40 border-emerald-800/70 text-emerald-200'
+                      : 'bg-amber-950/30 border-amber-800/60 text-amber-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Activity
+                      className={`w-3.5 h-3.5 ${
+                        (stats.medicalBayCount || 0) > 0 ? 'text-emerald-400' : 'text-amber-400'
+                      }`}
+                    />
+                    <span>
+                      {(stats.medicalBayCount || 0) > 0
+                        ? `Medical Bay: ${stats.medicalBayCount} Online (+${(
+                            (stats.medicalBayCount || 0) * 1.2
+                          ).toFixed(1)}%/s Recovery)`
+                        : 'No Active Medical Bay (Full Degradation Risk)'}
+                    </span>
+                  </div>
+                  <span className="font-bold text-[10px]">
+                    {(stats.medicalBayCount || 0) > 0 ? 'DECONTAMINATED' : 'UNSHIELDED'}
+                  </span>
+                </div>
+              </div>
               {/* Morale Level Banner */}
               <div className={`p-3 rounded-lg border ${moraleBg} flex flex-col gap-2`}>
                 <div className="flex items-center justify-between">

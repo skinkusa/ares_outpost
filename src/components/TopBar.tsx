@@ -14,6 +14,7 @@ import {
   Coins,
   Droplets,
   Flame,
+  HeartPulse,
   HelpCircle,
   Pause,
   Play,
@@ -37,6 +38,7 @@ interface TopBarProps {
   onOpenTradeRocket: () => void;
   onOpenTutorial: () => void;
   onOpenResourceMonitor: (filter?: 'all' | 'power' | 'water' | 'oxygen') => void;
+  onCycleWeather?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -50,6 +52,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenTradeRocket,
   onOpenTutorial,
   onOpenResourceMonitor,
+  onCycleWeather,
 }) => {
   // Sol time string formatted e.g. "14:20"
   const hours = Math.floor(stats.timeOfDay * 24);
@@ -94,17 +97,27 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
 
           {/* Dynamic Weather Banner */}
-          <div
-            className={`flex items-center gap-2 px-3 py-1 rounded-md text-xs font-semibold border ${
+          <button
+            onClick={onCycleWeather}
+            title="Click to cycle Martian weather conditions (Clear, Dust Veil, Severe Dust Storm, Seismic Tremor, Solar Flare)"
+            className={`flex items-center gap-2 px-3 py-1 rounded-md text-xs font-semibold border transition-all cursor-pointer hover:scale-[1.03] active:scale-[0.98] ${
               weather.type === 'dust_storm'
-                ? 'bg-red-950/80 border-red-500 text-red-200 animate-pulse'
+                ? 'bg-red-950/80 border-red-500 text-red-200 animate-pulse hover:bg-red-900'
                 : weather.type === 'seismic_tremor'
-                ? 'bg-purple-950/80 border-purple-500 text-purple-200'
-                : 'bg-stone-900/80 border-stone-800 text-stone-300'
+                ? 'bg-purple-950/80 border-purple-500 text-purple-200 hover:bg-purple-900'
+                : weather.type === 'solar_flare'
+                ? 'bg-cyan-950/80 border-cyan-500 text-cyan-200 hover:bg-cyan-900'
+                : weather.type === 'dust_veil'
+                ? 'bg-amber-950/80 border-amber-500 text-amber-200 hover:bg-amber-900'
+                : 'bg-stone-900/80 border-stone-800 text-stone-300 hover:bg-stone-800'
             }`}
           >
             {weather.type === 'dust_storm' ? (
               <AlertTriangle className="w-3.5 h-3.5 text-red-400 animate-bounce" />
+            ) : weather.type === 'seismic_tremor' ? (
+              <Activity className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+            ) : weather.type === 'solar_flare' ? (
+              <Zap className="w-3.5 h-3.5 text-cyan-400" />
             ) : (
               <Wind className="w-3.5 h-3.5 text-orange-400" />
             )}
@@ -112,7 +125,8 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="font-mono text-[10px] text-stone-400">
               ({Math.round(weather.duration)}s)
             </span>
-          </div>
+            <span className="text-[10px] text-stone-500 hover:text-stone-300">⇄</span>
+          </button>
         </div>
 
         {/* Action Controls & Navigation */}
@@ -378,6 +392,76 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="text-stone-500 text-[10px]">/{stats.maxPopulation} CAP</span>
           </div>
         </div>
+
+        {/* Colonist Health & Radiation Exposure */}
+        {(() => {
+          const health = stats.colonistHealth ?? 95;
+          const rad = stats.effectiveRadiationDose ?? 0.65;
+          const isCrit = health < 40;
+          const isStrained = health < 70;
+          return (
+            <div
+              className={`flex flex-col border px-2.5 py-1 rounded transition-colors ${
+                isCrit
+                  ? 'bg-red-950/90 border-red-500 shadow-md animate-pulse'
+                  : isStrained
+                  ? 'bg-amber-950/70 border-amber-600/80'
+                  : 'bg-stone-900/90 border-stone-800'
+              }`}
+              title={`Colonist Health: ${Math.round(health)}% | Vitality Drift: ${stats.healthRecoveryRate >= 0 ? '+' : ''}${stats.healthRecoveryRate?.toFixed(2) ?? '0.00'}%/s | Radiation Dose: ${rad.toFixed(1)} mSv/h (Env: ${(stats.radiationLevel ?? 1.3).toFixed(1)} mSv/h) | Medical Bays: ${stats.medicalBayCount || 0} online`}
+            >
+              <div className="flex items-center justify-between text-[10px] text-stone-400">
+                <span className="flex items-center gap-1 font-sans font-bold">
+                  <HeartPulse
+                    className={`w-3 h-3 ${
+                      isCrit
+                        ? 'text-red-400 animate-bounce'
+                        : isStrained
+                        ? 'text-amber-400'
+                        : 'text-emerald-400'
+                    }`}
+                  />
+                  <span className={isCrit ? 'text-red-300' : 'text-stone-300'}>HEALTH</span>
+                </span>
+                <span
+                  className={`font-mono text-[9px] font-bold ${
+                    isCrit
+                      ? 'text-red-400'
+                      : isStrained
+                      ? 'text-amber-400'
+                      : 'text-emerald-400'
+                  }`}
+                >
+                  {isCrit ? 'CRIT' : isStrained ? 'STRAINED' : 'OPTIMAL'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between font-bold mt-0.5">
+                <span
+                  className={
+                    isCrit
+                      ? 'text-red-300'
+                      : isStrained
+                      ? 'text-amber-300'
+                      : 'text-emerald-300'
+                  }
+                >
+                  {Math.round(health)}%
+                </span>
+                <span
+                  className={`text-[9px] font-mono ${
+                    rad > 2.5
+                      ? 'text-red-400 font-bold'
+                      : rad > 1.1
+                      ? 'text-amber-400'
+                      : 'text-stone-400'
+                  }`}
+                >
+                  {rad.toFixed(1)} rad
+                </span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Construction Alloy */}
         <div

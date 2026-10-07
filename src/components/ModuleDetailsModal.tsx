@@ -163,6 +163,28 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
             </div>
           </div>
         )}
+
+        {module.type === 'medbay' && (
+          <div className="bg-emerald-950/40 p-2 rounded border border-emerald-800/80 col-span-2 flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                Bio-Stasis Trauma Pods:
+              </span>
+              <span className="text-emerald-300 font-bold">
+                +{(1.2 * levelMultiplier).toFixed(1)}% Health/s
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-stone-300">
+              <span className="text-stone-400">Cellular Radiation Decontamination:</span>
+              <span className="text-cyan-300 font-bold">
+                -{Math.min(90, Math.round(50 * levelMultiplier))}% Dose
+              </span>
+            </div>
+            <div className="text-[9px] text-emerald-400/80 italic">
+              Halves long-term degradation from low morale and toxic dust exposure.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Action Controls: Toggle Power, Repair, Upgrade, Demolish */}

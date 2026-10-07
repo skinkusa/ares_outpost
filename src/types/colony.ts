@@ -30,7 +30,8 @@ export type ModuleType =
   | 'depot'
   | 'research'
   | 'launchpad'
-  | 'radar';
+  | 'radar'
+  | 'medbay';
 
 export interface ModuleBlueprint {
   type: ModuleType;
@@ -211,6 +212,11 @@ export interface ColonyStats {
   population: number;
   maxPopulation: number;
   morale: number; // 0 to 100
+  colonistHealth: number; // 0 to 100
+  radiationLevel: number; // Environmental radiation in mSv/h
+  effectiveRadiationDose: number; // Absorbed radiation after shielding & medical bay in mSv/h
+  medicalBayCount: number; // Number of operational Medical Bays
+  healthRecoveryRate: number; // Net %/s colonist health change
   totalSpiceMined: number;
   totalCreditsEarned: number;
 }

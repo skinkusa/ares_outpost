@@ -34,6 +34,7 @@ interface MarsCanvasProps {
   onPlaceModule: (gridX: number, gridY: number) => void;
   onCancelPlacing: () => void;
   onManualHarvesterOrder: (harvesterId: string, worldX: number, worldY: number) => void;
+  onCycleWeather?: () => void;
 }
 
 // Particle types for sci-fi rendering
@@ -43,6 +44,41 @@ interface AtmosphericParticle {
   vx: number;
   vy: number;
   size: number;
+  alpha: number;
+  color: string;
+}
+
+// High-speed storm grit & sand streaks for dust_storm
+interface StormStreakParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  length: number;
+  thickness: number;
+  alpha: number;
+  color: string;
+}
+
+// Swirling dust devil vortex in world space
+interface DustDevilVortex {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  angle: number;
+  spinSpeed: number;
+}
+
+// Cosmic ray ionization beam for solar_flare
+interface CosmicRayStreak {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  length: number;
+  thickness: number;
   alpha: number;
   color: string;
 }
@@ -98,6 +134,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
   onPlaceModule,
   onCancelPlacing,
   onManualHarvesterOrder,
+  onCycleWeather,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -127,14 +164,21 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
     };
   }, []);
 
-  // Particle systems
+  // Particle systems & weather simulation refs
   const atmosphericParticlesRef = useRef<AtmosphericParticle[]>([]);
   const dustKickParticlesRef = useRef<DustKickParticle[]>([]);
   const miningParticlesRef = useRef<MiningParticle[]>([]);
+  const stormStreaksRef = useRef<StormStreakParticle[]>([]);
+  const dustDevilsRef = useRef<DustDevilVortex[]>([]);
+  const cosmicRaysRef = useRef<CosmicRayStreak[]>([]);
+  const lensDustFlecksRef = useRef<
+    Array<{ x: number; y: number; size: number; alpha: number; life: number; maxLife: number }>
+  >([]);
   const lastRoverPositionsRef = useRef<Record<string, { x: number; y: number; time: number }>>({});
 
-  // Initialize atmospheric particles
+  // Initialize weather & atmospheric particles
   useEffect(() => {
+    // 1. Ambient atmospheric dust
     const p: AtmosphericParticle[] = [];
     for (let i = 0; i < 240; i++) {
       p.push({
@@ -148,6 +192,73 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       });
     }
     atmosphericParticlesRef.current = p;
+
+    // 2. High-speed sandstorm streaks (screen-space)
+    const ss: StormStreakParticle[] = [];
+    const stormColors = ['#fde047', '#fb923c', '#ea580c', '#d97706', '#b45309', '#fed7aa', '#fef08a'];
+    for (let i = 0; i < 190; i++) {
+      const spd = Math.random() * 16 + 18;
+      const angle = 0.31 + (Math.random() - 0.5) * 0.12; // ~18 degrees
+      ss.push({
+        x: Math.random() * 2600,
+        y: Math.random() * 1800,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        length: Math.random() * 28 + 14,
+        thickness: Math.random() * 2.2 + 0.7,
+        alpha: Math.random() * 0.65 + 0.3,
+        color: stormColors[Math.floor(Math.random() * stormColors.length)],
+      });
+    }
+    stormStreaksRef.current = ss;
+
+    // 3. Swirling dust devils in world space
+    dustDevilsRef.current = [
+      {
+        x: WORLD_WIDTH * 0.25,
+        y: WORLD_HEIGHT * 0.35,
+        vx: 0.8,
+        vy: 0.3,
+        radius: 95,
+        angle: 0,
+        spinSpeed: 3.5,
+      },
+      {
+        x: WORLD_WIDTH * 0.72,
+        y: WORLD_HEIGHT * 0.62,
+        vx: 0.6,
+        vy: -0.4,
+        radius: 120,
+        angle: Math.PI,
+        spinSpeed: -4.2,
+      },
+      {
+        x: WORLD_WIDTH * 0.48,
+        y: WORLD_HEIGHT * 0.78,
+        vx: -0.7,
+        vy: 0.5,
+        radius: 80,
+        angle: Math.PI * 0.5,
+        spinSpeed: 3.8,
+      },
+    ];
+
+    // 4. Cosmic ray ionization streaks for solar flare
+    const cr: CosmicRayStreak[] = [];
+    const ionColors = ['#67e8f9', '#a5f3fc', '#ffffff', '#38bdf8', '#c084fc', '#86efac'];
+    for (let i = 0; i < 40; i++) {
+      cr.push({
+        x: Math.random() * 2400,
+        y: Math.random() * 1600,
+        vx: (Math.random() - 0.5) * 4,
+        vy: Math.random() * 22 + 18,
+        length: Math.random() * 45 + 25,
+        thickness: Math.random() * 1.8 + 0.6,
+        alpha: Math.random() * 0.7 + 0.3,
+        color: ionColors[Math.floor(Math.random() * ionColors.length)],
+      });
+    }
+    cosmicRaysRef.current = cr;
   }, []);
 
   // Helper: check if tile is occupied by an existing module
@@ -187,6 +298,18 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
 
       const screenX = e.clientX - rect.left;
       const screenY = e.clientY - rect.top;
+
+      // Environmental sensor widget click (allows cycling weather)
+      if (
+        onCycleWeather &&
+        screenX >= 18 &&
+        screenX <= 268 &&
+        screenY >= 18 &&
+        screenY <= 86
+      ) {
+        onCycleWeather();
+        return;
+      }
 
       // Minimap click & drag navigation (allows dragging the camera square)
       const mmWidth = 190;
@@ -621,9 +744,29 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      // Dynamic camera rumble & tectonic tremor shake
+      let cameraShakeX = 0;
+      let cameraShakeY = 0;
+
+      if (weather.type === 'seismic_tremor') {
+        const severity = Math.min(1, Math.max(0.3, weather.severity || 0.6));
+        const rTime = time * 26;
+        const wave1 = Math.sin(rTime) * Math.cos(rTime * 0.77);
+        const wave2 = Math.sin(rTime * 1.73 + 2.1);
+        const wave3 = Math.cos(rTime * 0.45);
+        const envelope = Math.sin(time * 3.2) * 0.5 + 0.85;
+        const shakeMag = severity * 3.8 * envelope;
+        cameraShakeX = (wave1 * 0.7 + wave2 * 0.3) * shakeMag;
+        cameraShakeY = (wave2 * 0.6 + wave3 * 0.4) * shakeMag;
+      } else if (weather.type === 'dust_storm') {
+        const gust = Math.sin(time * 8.5) * Math.sin(time * 3.2);
+        cameraShakeX = gust * 1.0;
+        cameraShakeY = Math.cos(time * 6.5) * 0.6;
+      }
+
       // Camera transformation
       ctx.scale(camera.zoom, camera.zoom);
-      ctx.translate(-camera.x, -camera.y);
+      ctx.translate(-camera.x + cameraShakeX, -camera.y + cameraShakeY);
 
       // =====================================================================
       // DIURNAL CYCLE & PLANETARY ILLUMINATION MODEL
@@ -1100,6 +1243,9 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
             auraRadius = pw * 1.0;
           } else if (mod.type === 'command') {
             auraColor = 'rgba(3, 105, 161, 0.25)'; // Sky blue bunker
+          } else if (mod.type === 'medbay') {
+            auraColor = 'rgba(16, 185, 129, 0.28)'; // Emerald bio-luminescence
+            auraRadius = pw * 0.95;
           }
 
           const moduleAura = ctx.createRadialGradient(cx, cy, pw * 0.2, cx, cy, auraRadius);
@@ -1406,6 +1552,128 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
             ctx.arc(cx, cy, pw * 1.1, radAngle - 0.45, radAngle);
             ctx.closePath();
             ctx.fillStyle = 'rgba(45, 212, 191, 0.28)';
+            ctx.fill();
+            break;
+          }
+
+          case 'medbay': {
+            // Sterile reinforced trauma pavilion foundation
+            const padInset = 4;
+            const rx = px + padInset;
+            const ry = py + padInset;
+            const rw = pw - padInset * 2;
+            const rh = ph - padInset * 2;
+
+            ctx.fillStyle = '#064e3b'; // Deep sterile emerald
+            ctx.fillRect(rx, ry, rw, rh);
+            ctx.strokeStyle = '#34d399'; // Emerald accent line
+            ctx.lineWidth = 1.8;
+            ctx.strokeRect(rx, ry, rw, rh);
+
+            // Bio-stasis pod bays (left & right pressurized pods)
+            const podW = 12;
+            const podH = rh - 16;
+            const podY = ry + 8;
+
+            // Left Pod
+            const leftPodX = rx + 6;
+            ctx.fillStyle = '#022c22';
+            ctx.fillRect(leftPodX, podY, podW, podH);
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(leftPodX, podY, podW, podH);
+
+            // Left Pod Cryo-fluid glow & bubble mote
+            const fluidAlpha = 0.55 + Math.sin(time * 3) * 0.15;
+            ctx.fillStyle = `rgba(52, 211, 153, ${fluidAlpha})`;
+            ctx.fillRect(leftPodX + 2, podY + 3, podW - 4, podH - 6);
+            // Floating bubble in cryo tube
+            const bY1 = podY + podH - 8 - ((time * 16) % (podH - 12));
+            ctx.beginPath();
+            ctx.arc(leftPodX + podW / 2, bY1, 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ecfdf5';
+            ctx.fill();
+
+            // Right Pod
+            const rightPodX = rx + rw - podW - 6;
+            ctx.fillStyle = '#022c22';
+            ctx.fillRect(rightPodX, podY, podW, podH);
+            ctx.strokeStyle = '#10b981';
+            ctx.strokeRect(rightPodX, podY, podW, podH);
+
+            // Right Pod Cryo-fluid glow & bubble mote
+            ctx.fillStyle = `rgba(52, 211, 153, ${fluidAlpha})`;
+            ctx.fillRect(rightPodX + 2, podY + 3, podW - 4, podH - 6);
+            const bY2 = podY + podH - 8 - (((time + 1.2) * 18) % (podH - 12));
+            ctx.beginPath();
+            ctx.arc(rightPodX + podW / 2, bY2, 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ecfdf5';
+            ctx.fill();
+
+            // Central Medical Pavilion Core
+            const coreW = rw - podW * 2 - 18;
+            const coreH = rh - 12;
+            const coreX = cx - coreW / 2;
+            const coreY = cy - coreH / 2;
+
+            ctx.fillStyle = '#0f172a'; // High-density medical hull
+            ctx.fillRect(coreX, coreY, coreW, coreH);
+            ctx.strokeStyle = '#059669';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(coreX, coreY, coreW, coreH);
+
+            // Central Medical Red/Cyan Cross (+) with gentle heartbeat breathing glow
+            const crossArm = 7;
+            const crossThickness = 4.5;
+            const heartPulse = Math.sin(time * 4) * 0.5 + 0.5;
+
+            // Heartbeat glow backing
+            const crossGlow = ctx.createRadialGradient(cx, cy - 2, 2, cx, cy - 2, 16);
+            crossGlow.addColorStop(0, `rgba(239, 68, 68, ${0.4 + heartPulse * 0.35})`);
+            crossGlow.addColorStop(1, 'rgba(239, 68, 68, 0)');
+            ctx.beginPath();
+            ctx.arc(cx, cy - 2, 16, 0, Math.PI * 2);
+            ctx.fillStyle = crossGlow;
+            ctx.fill();
+
+            // Cross geometry
+            ctx.fillStyle = heartPulse > 0.4 ? '#ef4444' : '#f87171'; // Pulse red
+            ctx.fillRect(cx - crossThickness / 2, cy - 2 - crossArm, crossThickness, crossArm * 2);
+            ctx.fillRect(cx - crossArm, cy - 2 - crossThickness / 2, crossArm * 2, crossThickness);
+
+            // EKG Oscilloscope Vitals Screen on lower deck
+            const ekgX = coreX + 4;
+            const ekgY = coreY + coreH - 12;
+            const ekgW = coreW - 8;
+            const ekgH = 8;
+            ctx.fillStyle = '#022c22';
+            ctx.fillRect(ekgX, ekgY, ekgW, ekgH);
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 0.8;
+            ctx.strokeRect(ekgX, ekgY, ekgW, ekgH);
+
+            // Dynamic EKG waveform
+            ctx.beginPath();
+            for (let ex = 0; ex < ekgW; ex += 2) {
+              const ekgPhase = (ex * 0.6 - time * 24) % (Math.PI * 2);
+              let waveY = 0;
+              // Heartbeat spike at phase ~ 0
+              if (Math.abs(ekgPhase - Math.PI) < 0.6) {
+                waveY = -Math.sin((ekgPhase - Math.PI) * 5) * 3;
+              }
+              const pyEkg = ekgY + ekgH / 2 + waveY;
+              if (ex === 0) ctx.moveTo(ekgX + ex, pyEkg);
+              else ctx.lineTo(ekgX + ex, pyEkg);
+            }
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Rooftop emergency decontamination strobe beacon
+            const strobe = Math.sin(time * 7) > 0.3;
+            ctx.beginPath();
+            ctx.arc(coreX + 4, coreY + 4, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = strobe ? '#34d399' : '#065f46';
             ctx.fill();
             break;
           }
@@ -1840,25 +2108,99 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       });
 
       // =====================================================================
-      // 12. WEATHER & DUST STORM OVERLAY
+      // 12. WORLD-SPACE WEATHER PHENOMENA & SEISMIC FRACTURES
       // =====================================================================
-      if (weather.type === 'dust_storm') {
-        const stormGrad = ctx.createLinearGradient(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-        stormGrad.addColorStop(0, 'rgba(180, 83, 9, 0.45)');
-        stormGrad.addColorStop(0.5, 'rgba(194, 65, 12, 0.58)');
-        stormGrad.addColorStop(1, 'rgba(154, 52, 18, 0.45)');
-        ctx.fillStyle = stormGrad;
-        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+      if (weather.type === 'seismic_tremor') {
+        const severity = weather.severity || 0.65;
+        // Expanding tectonic shockwave rings radiating from spice patch epicenters
+        const numEpicenters = Math.min(5, Math.max(2, spicePatches.length));
+        for (let e = 0; e < numEpicenters; e++) {
+          const sp = spicePatches[e];
+          const ex = sp ? sp.x : WORLD_WIDTH * (0.35 + e * 0.15);
+          const ey = sp ? sp.y : WORLD_HEIGHT * (0.4 + e * 0.12);
 
-        ctx.strokeStyle = 'rgba(254, 215, 170, 0.3)';
-        ctx.lineWidth = 2.5;
-        for (let ws = 0; ws < 28; ws++) {
-          const wx = (time * 350 + ws * 110) % WORLD_WIDTH;
-          const wy = (ws * 75) % WORLD_HEIGHT;
+          for (let r = 0; r < 4; r++) {
+            const waveT = (time * 0.72 + e * 0.35 + r * 0.25) % 1;
+            const waveRadius = waveT * 540;
+            const waveAlpha = (1 - waveT) * 0.55 * severity;
+
+            // Outer shockwave compression crest
+            ctx.beginPath();
+            ctx.arc(ex, ey, waveRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(192, 132, 252, ${waveAlpha})`;
+            ctx.lineWidth = 3.5 * (1 - waveT) + 1;
+            ctx.stroke();
+
+            // Inner harmonic reverberation ring
+            ctx.beginPath();
+            ctx.arc(ex, ey, waveRadius * 0.72, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(244, 114, 182, ${waveAlpha * 0.75})`;
+            ctx.lineWidth = 2 * (1 - waveT) + 0.5;
+            ctx.stroke();
+          }
+
+          // Subterranean fault epicenter thermal pulse
+          const pulseR = 18 + Math.sin(time * 6 + e) * 6;
+          const epicGlow = ctx.createRadialGradient(ex, ey, 2, ex, ey, pulseR * 2.8);
+          epicGlow.addColorStop(0, 'rgba(244, 114, 182, 0.75)');
+          epicGlow.addColorStop(0.5, 'rgba(192, 132, 252, 0.35)');
+          epicGlow.addColorStop(1, 'rgba(168, 85, 247, 0)');
           ctx.beginPath();
-          ctx.moveTo(wx, wy);
-          ctx.lineTo(wx + 90, wy + 25);
-          ctx.stroke();
+          ctx.arc(ex, ey, pulseR * 2.8, 0, Math.PI * 2);
+          ctx.fillStyle = epicGlow;
+          ctx.fill();
+        }
+      } else if (weather.type === 'dust_storm') {
+        // Swirling dust devils drifting across the Martian landscape
+        dustDevilsRef.current.forEach((dd, di) => {
+          dd.x = (dd.x + dd.vx * 1.8) % WORLD_WIDTH;
+          dd.y = (dd.y + dd.vy * 1.8) % WORLD_HEIGHT;
+          if (dd.x < 0) dd.x += WORLD_WIDTH;
+          if (dd.y < 0) dd.y += WORLD_HEIGHT;
+          dd.angle += dd.spinSpeed * 0.05;
+
+          // Ground dust foot
+          const footGlow = ctx.createRadialGradient(dd.x, dd.y, 4, dd.x, dd.y, dd.radius);
+          footGlow.addColorStop(0, 'rgba(180, 83, 9, 0.55)');
+          footGlow.addColorStop(0.6, 'rgba(194, 65, 12, 0.28)');
+          footGlow.addColorStop(1, 'rgba(154, 52, 18, 0)');
+          ctx.beginPath();
+          ctx.arc(dd.x, dd.y, dd.radius, 0, Math.PI * 2);
+          ctx.fillStyle = footGlow;
+          ctx.fill();
+
+          // Spiral vortex arms
+          const numArms = 5;
+          ctx.lineWidth = 2.2;
+          for (let a = 0; a < numArms; a++) {
+            const baseAngle = dd.angle + (a * Math.PI * 2) / numArms;
+            ctx.beginPath();
+            for (let st = 0; st <= 14; st++) {
+              const r = (st / 14) * dd.radius;
+              const th = baseAngle + st * 0.28;
+              const px = dd.x + Math.cos(th) * r;
+              const py = dd.y + Math.sin(th) * r;
+              if (st === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.strokeStyle = `rgba(254, 215, 170, ${0.45 + Math.sin(time * 4 + a + di) * 0.15})`;
+            ctx.stroke();
+          }
+        });
+      } else if (weather.type === 'solar_flare') {
+        // High-energy ionization plasma reflections across the regolith
+        const numPillars = 4;
+        for (let ip = 0; ip < numPillars; ip++) {
+          const px = (time * 65 + ip * (WORLD_WIDTH / numPillars)) % WORLD_WIDTH;
+          const py = WORLD_HEIGHT * 0.35 + Math.sin(time * 2 + ip) * 200;
+          const ionGrad = ctx.createRadialGradient(px, py, 10, px, py, 350);
+          ionGrad.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
+          ionGrad.addColorStop(0.5, 'rgba(52, 211, 153, 0.15)');
+          ionGrad.addColorStop(1, 'rgba(192, 132, 252, 0)');
+          ctx.beginPath();
+          ctx.arc(px, py, 350, 0, Math.PI * 2);
+          ctx.fillStyle = ionGrad;
+          ctx.fill();
         }
       }
 
@@ -2049,6 +2391,8 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
                 ? 'rgba(249, 115, 22, 0.32)'
                 : mod.type === 'refinery'
                 ? 'rgba(192, 38, 211, 0.26)'
+                : mod.type === 'medbay'
+                ? 'rgba(16, 185, 129, 0.28)'
                 : 'rgba(56, 189, 248, 0.18)';
             secGrad.addColorStop(0, secColor);
             secGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
@@ -2108,6 +2452,294 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       }
 
       ctx.restore();
+
+      // =====================================================================
+      // 13.5 DYNAMIC SCREEN-SPACE WEATHER EFFECT OVERLAY
+      // =====================================================================
+
+      // 1. SEVERE DUST STORM OVERLAY (Animated rushing sand streaks, sweeping curtains, lens vignette)
+      if (weather.type === 'dust_storm') {
+        // Atmospheric amber/ochre dust haze wash
+        const stormWash = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        stormWash.addColorStop(0, 'rgba(180, 83, 9, 0.26)');
+        stormWash.addColorStop(0.5, 'rgba(194, 65, 12, 0.36)');
+        stormWash.addColorStop(1, 'rgba(146, 64, 14, 0.28)');
+        ctx.fillStyle = stormWash;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Sweeping sinusoidal wind curtains
+        for (let wave = 0; wave < 3; wave++) {
+          const waveSpeed = time * 540 + wave * 320;
+          ctx.beginPath();
+          ctx.moveTo(0, canvas.height);
+          for (let wx = 0; wx <= canvas.width + 40; wx += 40) {
+            const wy =
+              Math.sin((wx + waveSpeed) * 0.004) * 80 + canvas.height * (0.3 + wave * 0.24);
+            ctx.lineTo(wx, wy);
+          }
+          ctx.lineTo(canvas.width, canvas.height);
+          ctx.closePath();
+          ctx.fillStyle = `rgba(217, 119, 6, ${0.08 + Math.sin(time * 3 + wave) * 0.03})`;
+          ctx.fill();
+        }
+
+        // Animated rushing sand streaks with directional motion blur tails
+        stormStreaksRef.current.forEach((p) => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x > canvas.width + 80) p.x = -60;
+          if (p.x < -80) p.x = canvas.width + 60;
+          if (p.y > canvas.height + 80) p.y = -60;
+          if (p.y < -80) p.y = canvas.height + 60;
+
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - p.vx * 1.6, p.y - p.vy * 1.6);
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.thickness;
+          ctx.globalAlpha = p.alpha;
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        });
+
+        // Sandblast perimeter vignette on visor/lens
+        const stormVignette = ctx.createRadialGradient(
+          canvas.width / 2,
+          canvas.height / 2,
+          canvas.width * 0.3,
+          canvas.width / 2,
+          canvas.height / 2,
+          canvas.width * 0.72
+        );
+        stormVignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        stormVignette.addColorStop(0.7, 'rgba(120, 53, 15, 0.28)');
+        stormVignette.addColorStop(1, 'rgba(67, 20, 7, 0.62)');
+        ctx.fillStyle = stormVignette;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // 2. SEISMIC TREMOR OVERLAY (Screen distortion scanlines, tectonic stress vignette, seismograph wave)
+      else if (weather.type === 'seismic_tremor') {
+        const severity = weather.severity || 0.65;
+
+        // Tectonic horizontal chromatic displacement bands / screen refraction ripples
+        const numDisplacementBands = 7;
+        for (let b = 0; b < numDisplacementBands; b++) {
+          const bandProgress =
+            (time * 170 + b * (canvas.height / numDisplacementBands)) % canvas.height;
+          const bandHeight = 16 + Math.sin(time * 8 + b) * 8;
+          const waveAmp = Math.sin(time * 12 + b * 1.7) * 0.5 + 0.5;
+          const bandAlpha = waveAmp * 0.28 * severity;
+
+          // Chromatic split lines (magenta & cyan chromatic fringes)
+          ctx.fillStyle = `rgba(192, 132, 252, ${bandAlpha * 0.8})`;
+          ctx.fillRect(0, bandProgress - 2, canvas.width, 2.5);
+          ctx.fillStyle = `rgba(56, 189, 248, ${bandAlpha * 0.5})`;
+          ctx.fillRect(0, bandProgress + bandHeight, canvas.width, 1.5);
+
+          // Translucent tectonic refraction stripe
+          ctx.fillStyle = `rgba(168, 85, 247, ${bandAlpha * 0.12})`;
+          ctx.fillRect(0, bandProgress, canvas.width, bandHeight);
+        }
+
+        // Pulsing seismic stress perimeter vignette
+        const tremorPulse = Math.sin(time * 5) * 0.5 + 0.5;
+        const tremorVignette = ctx.createRadialGradient(
+          canvas.width / 2,
+          canvas.height / 2,
+          canvas.width * 0.35,
+          canvas.width / 2,
+          canvas.height / 2,
+          canvas.width * 0.72
+        );
+        tremorVignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        tremorVignette.addColorStop(
+          0.7,
+          `rgba(88, 28, 135, ${0.15 * tremorPulse * severity})`
+        );
+        tremorVignette.addColorStop(
+          1,
+          `rgba(59, 7, 100, ${0.45 * tremorPulse * severity})`
+        );
+        ctx.fillStyle = tremorVignette;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Subterranean Seismometer live waveform strip
+        const sgWidth = 240;
+        const sgHeight = 38;
+        const sgX = 18;
+        const sgY = canvas.height - sgHeight - 18;
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        ctx.fillRect(sgX, sgY, sgWidth, sgHeight);
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(sgX, sgY, sgWidth, sgHeight);
+
+        ctx.font = '700 9px Chakra Petch, sans-serif';
+        ctx.fillStyle = '#f5d0fe';
+        ctx.textAlign = 'left';
+        ctx.fillText('SEISMOMETER // P-WAVE OSCILLOGRAM', sgX + 8, sgY + 11);
+
+        ctx.beginPath();
+        for (let sx = 0; sx < sgWidth - 16; sx += 3) {
+          const waveFreq = time * 24 + sx * 0.18;
+          const py =
+            sgY +
+            23 +
+            (Math.sin(waveFreq) * 0.6 + Math.sin(waveFreq * 2.3) * 0.4) * 8 * severity;
+          if (sx === 0) ctx.moveTo(sgX + 8 + sx, py);
+          else ctx.lineTo(sgX + 8 + sx, py);
+        }
+        ctx.strokeStyle = '#f472b6';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      // 3. ATMOSPHERIC DUST VEIL OVERLAY (Soft copper haze wash, floating motes)
+      else if (weather.type === 'dust_veil') {
+        const veilWash = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        veilWash.addColorStop(0, 'rgba(217, 119, 6, 0.14)');
+        veilWash.addColorStop(0.5, 'rgba(180, 83, 9, 0.18)');
+        veilWash.addColorStop(1, 'rgba(217, 119, 6, 0.12)');
+        ctx.fillStyle = veilWash;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Soft dust veil perimeter glow
+        const veilVignette = ctx.createRadialGradient(
+          canvas.width / 2,
+          canvas.height / 2,
+          canvas.width * 0.4,
+          canvas.width / 2,
+          canvas.height / 2,
+          canvas.width * 0.75
+        );
+        veilVignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        veilVignette.addColorStop(1, 'rgba(180, 83, 9, 0.22)');
+        ctx.fillStyle = veilVignette;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // 4. SOLAR FLARE / ION STORM OVERLAY (Aurora plasma curtains, cosmic ray streaks, CRT glitch)
+      else if (weather.type === 'solar_flare') {
+        // Upper atmospheric aurora plasma curtains
+        for (let cur = 0; cur < 3; cur++) {
+          const waveSpeed = time * 2.2 + cur * 1.5;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          for (let ax = 0; ax <= canvas.width + 40; ax += 30) {
+            const ay =
+              Math.sin(ax * 0.005 + waveSpeed) * 55 +
+              Math.cos(ax * 0.008 - waveSpeed * 0.5) * 35 +
+              canvas.height * (0.18 + cur * 0.12);
+            ctx.lineTo(ax, ay);
+          }
+          ctx.lineTo(canvas.width, 0);
+          ctx.closePath();
+          const auroraColors = [
+            'rgba(52, 211, 153, 0.12)', // emerald
+            'rgba(56, 189, 248, 0.15)', // cyan
+            'rgba(192, 132, 252, 0.14)', // violet
+          ];
+          ctx.fillStyle = auroraColors[cur % auroraColors.length];
+          ctx.fill();
+        }
+
+        // Fast cosmic ray ionization streaks piercing the atmosphere
+        cosmicRaysRef.current.forEach((cr) => {
+          cr.x += cr.vx;
+          cr.y += cr.vy;
+          if (cr.y > canvas.height + 50) {
+            cr.y = -40;
+            cr.x = Math.random() * canvas.width;
+          }
+          ctx.beginPath();
+          ctx.moveTo(cr.x, cr.y);
+          ctx.lineTo(cr.x - cr.vx * 1.4, cr.y - cr.vy * 1.4);
+          ctx.strokeStyle = cr.color;
+          ctx.lineWidth = cr.thickness;
+          ctx.globalAlpha = cr.alpha;
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        });
+
+        // Electromagnetic CRT telemetry static scanlines
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.04)';
+        for (let sl = 0; sl < canvas.height; sl += 4) {
+          ctx.fillRect(0, sl, canvas.width, 1);
+        }
+
+        // Coronal radiation pulse wash
+        const flarePulse = (Math.sin(time * 4) + 1) * 0.5;
+        ctx.fillStyle = `rgba(254, 240, 138, ${0.05 + flarePulse * 0.06})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // 5. ENVIRONMENTAL TELEMETRY HUD BADGE (Screen Space, Top-Left)
+      const hudBoxX = 18;
+      const hudBoxY = 18;
+      const hudBoxW = 250;
+      const hudBoxH = 68;
+
+      // Theme colors based on active weather condition
+      const weatherThemeColor =
+        weather.type === 'dust_storm'
+          ? '#ef4444'
+          : weather.type === 'seismic_tremor'
+          ? '#c084fc'
+          : weather.type === 'solar_flare'
+          ? '#38bdf8'
+          : weather.type === 'dust_veil'
+          ? '#f59e0b'
+          : '#10b981';
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.fillRect(hudBoxX, hudBoxY, hudBoxW, hudBoxH);
+      ctx.strokeStyle = weatherThemeColor;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(hudBoxX, hudBoxY, hudBoxW, hudBoxH);
+
+      // Status beacon dot
+      const beaconAlpha = (Math.sin(time * 5) + 1) * 0.5;
+      ctx.beginPath();
+      ctx.arc(hudBoxX + 12, hudBoxY + 14, 4, 0, Math.PI * 2);
+      ctx.fillStyle = weatherThemeColor;
+      ctx.globalAlpha = 0.5 + beaconAlpha * 0.5;
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+
+      // Header text
+      ctx.font = '700 10px Chakra Petch, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.textAlign = 'left';
+      ctx.fillText('ENVIRONMENTAL SENSOR // MARS', hudBoxX + 22, hudBoxY + 16);
+
+      // Active condition title
+      ctx.font = '800 12px Chakra Petch, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(weather.name.toUpperCase(), hudBoxX + 12, hudBoxY + 34);
+
+      // Scientific telemetry readout line
+      ctx.font = '600 9px JetBrains Mono, monospace';
+      ctx.fillStyle = '#cbd5e1';
+      let telemetryStr = 'PRES: 6.1 MBAR · VIS: 100% · NOMINAL';
+      if (weather.type === 'dust_storm') {
+        telemetryStr = 'WIND: 84 KM/H · VIS: 18% · 840 PPM';
+      } else if (weather.type === 'seismic_tremor') {
+        telemetryStr = 'RICHTER: 5.6M · FAULT ACCEL: 0.42G';
+      } else if (weather.type === 'dust_veil') {
+        telemetryStr = 'OPACITY: 32% · SOLAR: -25% · AEROSOL';
+      } else if (weather.type === 'solar_flare') {
+        telemetryStr = 'FLUX: X-CLASS 2.8 · RAD: 450 RADS';
+      }
+      ctx.fillText(telemetryStr, hudBoxX + 12, hudBoxY + 49);
+
+      // Interactive Simulate button indicator
+      ctx.font = '700 8px Chakra Petch, sans-serif';
+      ctx.fillStyle = weatherThemeColor;
+      ctx.textAlign = 'right';
+      ctx.fillText('[CLICK TO CYCLE ⇄]', hudBoxX + hudBoxW - 8, hudBoxY + 61);
+      ctx.textAlign = 'left';
 
       // =====================================================================
       // 14. MINIMAP (Screen Space)
