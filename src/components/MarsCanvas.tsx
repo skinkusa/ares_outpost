@@ -1465,23 +1465,126 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         ctx.save();
         ctx.translate(h.x, h.y);
 
-        // Volumetric Headlight Cone (amplified at night for dark planetary visibility)
+        // ===================================================================
+        // DYNAMIC TIME-OF-DAY HEADLIGHT PROJECTION & VOLUMETRIC BEAMS
+        // Adjusts reach, intensity, color temperature and pool spread based on Sol cycle
+        // ===================================================================
         ctx.save();
         ctx.rotate(h.angle);
-        const headlightCoreAlpha = 0.4 + 0.45 * nightFactor;
-        const headlightBeamReach = 130 + 40 * nightFactor;
-        const lightGrad = ctx.createRadialGradient(0, 0, 10, 80, 0, headlightBeamReach);
-        lightGrad.addColorStop(0, `rgba(254, 240, 138, ${headlightCoreAlpha})`);
-        lightGrad.addColorStop(0.4, `rgba(253, 224, 71, ${headlightCoreAlpha * 0.45})`);
-        lightGrad.addColorStop(0.8, `rgba(250, 204, 21, ${headlightCoreAlpha * 0.15})`);
-        lightGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+
+        const modelMult = h.model === 'titan' ? 1.3 : h.model === 'heavy' ? 1.15 : 1.0;
+        const length = h.model === 'titan' ? 38 : h.model === 'heavy' ? 30 : 22;
+        const width = h.model === 'titan' ? 26 : h.model === 'heavy' ? 20 : 15;
+
+        // Reach: Faint short daytime (50px) -> Golden morning (110px) -> Amber dusk (145px) -> High-beam night (225px+)
+        const baseReach =
+          50 * daylightFactor * (1 - morningFactor * 0.4 - eveningFactor * 0.4) +
+          (80 + 35 * morningFactor) * morningFactor +
+          (100 + 50 * eveningFactor) * eveningFactor +
+          (135 + 90 * nightFactor) * nightFactor;
+        const beamReach = baseReach * modelMult;
+
+        // Core intensity: 0.12 in broad daylight -> 0.55 in morning -> 0.70 in evening -> 0.95 at night
+        const beamAlpha =
+          0.12 * daylightFactor * (1 - morningFactor * 0.5 - eveningFactor * 0.5) +
+          (0.35 + 0.30 * morningFactor) * morningFactor +
+          (0.45 + 0.35 * eveningFactor) * eveningFactor +
+          (0.55 + 0.42 * nightFactor) * nightFactor;
+
+        // Spread width at beam tip
+        const beamSpreadY = (34 + 36 * nightFactor + 14 * (morningFactor + eveningFactor)) * modelMult;
+
+        // Dual Headlight Geometry: Left projector cone + Right projector cone
+        const leftLensY = -width * 0.36;
+        const rightLensY = width * 0.36;
+        const lensX = length / 2 - 2;
+
+        // Primary volumetric forward beam gradient
+        const lightGrad = ctx.createRadialGradient(lensX, 0, 8, lensX + beamReach * 0.5, 0, beamReach);
+        if (nightFactor > 0.08) {
+          // Night: Brilliant Xenon / Halogen white-yellow with cool atmospheric scatter
+          lightGrad.addColorStop(0, `rgba(255, 255, 255, ${beamAlpha * 0.95})`);
+          lightGrad.addColorStop(0.25, `rgba(254, 240, 138, ${beamAlpha * 0.85})`);
+          lightGrad.addColorStop(0.65, `rgba(250, 204, 21, ${beamAlpha * 0.42})`);
+          lightGrad.addColorStop(0.9, `rgba(147, 197, 253, ${beamAlpha * 0.18 * nightFactor})`);
+          lightGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+        } else if (morningFactor > 0.08) {
+          // Morning: Warm golden-orange sunrise beam
+          lightGrad.addColorStop(0, `rgba(255, 251, 235, ${beamAlpha * 0.9})`);
+          lightGrad.addColorStop(0.35, `rgba(253, 224, 71, ${beamAlpha * 0.75})`);
+          lightGrad.addColorStop(0.7, `rgba(251, 146, 60, ${beamAlpha * 0.40})`);
+          lightGrad.addColorStop(1, 'rgba(249, 115, 22, 0)');
+        } else if (eveningFactor > 0.08) {
+          // Evening: Warm sunset amber-orange dusk beam
+          lightGrad.addColorStop(0, `rgba(254, 243, 199, ${beamAlpha * 0.9})`);
+          lightGrad.addColorStop(0.35, `rgba(251, 191, 36, ${beamAlpha * 0.75})`);
+          lightGrad.addColorStop(0.7, `rgba(249, 115, 22, ${beamAlpha * 0.45})`);
+          lightGrad.addColorStop(1, 'rgba(234, 88, 12, 0)');
+        } else {
+          // High Noon: Subtle daytime running light
+          lightGrad.addColorStop(0, 'rgba(254, 240, 138, 0.22)');
+          lightGrad.addColorStop(0.5, 'rgba(254, 240, 138, 0.08)');
+          lightGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+        }
+
+        // 1. Left Projector Beam
         ctx.beginPath();
-        ctx.moveTo(10, 0);
-        ctx.lineTo(headlightBeamReach, -45);
-        ctx.lineTo(headlightBeamReach, 45);
+        ctx.moveTo(lensX, leftLensY);
+        ctx.lineTo(lensX + beamReach, leftLensY - beamSpreadY * 0.6);
+        ctx.lineTo(lensX + beamReach, 4);
         ctx.closePath();
         ctx.fillStyle = lightGrad;
         ctx.fill();
+
+        // 2. Right Projector Beam
+        ctx.beginPath();
+        ctx.moveTo(lensX, rightLensY);
+        ctx.lineTo(lensX + beamReach, -4);
+        ctx.lineTo(lensX + beamReach, rightLensY + beamSpreadY * 0.6);
+        ctx.closePath();
+        ctx.fillStyle = lightGrad;
+        ctx.fill();
+
+        // 3. Central Merged Main Floodlight Cone
+        ctx.beginPath();
+        ctx.moveTo(lensX, 0);
+        ctx.lineTo(lensX + beamReach * 1.05, -beamSpreadY * 0.85);
+        ctx.lineTo(lensX + beamReach * 1.05, beamSpreadY * 0.85);
+        ctx.closePath();
+        ctx.fillStyle = lightGrad;
+        ctx.fill();
+
+        // 4. Ground Spotlight Illumination Pool (illuminating the dark terrain ahead)
+        if (nightFactor > 0.08 || eveningFactor > 0.1 || morningFactor > 0.1) {
+          const poolDist = lensX + beamReach * 0.65;
+          const poolRadiusX = beamReach * 0.42;
+          const poolRadiusY = beamSpreadY * 0.75;
+          const poolGrad = ctx.createRadialGradient(poolDist, 0, 5, poolDist, 0, poolRadiusX);
+          const poolAlpha = 0.45 * nightFactor + 0.25 * (eveningFactor + morningFactor);
+          poolGrad.addColorStop(0, `rgba(254, 240, 138, ${poolAlpha})`);
+          poolGrad.addColorStop(0.45, `rgba(253, 224, 71, ${poolAlpha * 0.5})`);
+          poolGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+
+          ctx.beginPath();
+          ctx.ellipse(poolDist, 0, poolRadiusX, poolRadiusY, 0, 0, Math.PI * 2);
+          ctx.fillStyle = poolGrad;
+          ctx.fill();
+        }
+
+        // 5. Volumetric dust motes caught in the headlight beam at night
+        if (nightFactor > 0.15) {
+          for (let di = 0; di < 4; di++) {
+            const moteDist = lensX + ((time * 45 + di * 42) % (beamReach * 0.82)) + 12;
+            const moteSpread = (moteDist / beamReach) * (beamSpreadY * 0.6);
+            const moteY = Math.sin(time * 3.5 + di * 1.9 + h.x * 0.01) * moteSpread;
+            const moteAlpha = (1 - (moteDist - lensX) / beamReach) * 0.75 * nightFactor;
+            ctx.beginPath();
+            ctx.arc(moteDist, moteY, 1.4, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${moteAlpha})`;
+            ctx.fill();
+          }
+        }
+
         ctx.restore();
 
         // Unloading fountain at Depot
@@ -1506,9 +1609,6 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
 
         // Rotate chassis
         ctx.rotate(h.angle);
-
-        const length = h.model === 'titan' ? 38 : h.model === 'heavy' ? 30 : 22;
-        const width = h.model === 'titan' ? 26 : h.model === 'heavy' ? 20 : 15;
 
         // Wheels / Treads
         ctx.fillStyle = '#1c1917';
@@ -1560,6 +1660,32 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         ctx.lineTo(length / 2, width * 0.3);
         ctx.closePath();
         ctx.fill();
+
+        // Front Headlight Lens Pods (mounted on bumper corners, glowing brightly at night)
+        const lampAlpha = 0.3 + 0.7 * nightFactor + 0.4 * (morningFactor + eveningFactor);
+        const lampGlow = nightFactor > 0.1 ? 14 * nightFactor : (morningFactor + eveningFactor) > 0.1 ? 8 : 0;
+        const lampColor =
+          nightFactor > 0.1
+            ? '#ffffff'
+            : (morningFactor + eveningFactor) > 0.1
+            ? '#fef08a'
+            : '#e2e8f0';
+
+        ctx.save();
+        ctx.fillStyle = lampColor;
+        if (lampGlow > 0) {
+          ctx.shadowColor = nightFactor > 0.1 ? '#fef08a' : '#f59e0b';
+          ctx.shadowBlur = lampGlow;
+        }
+        // Left lamp
+        ctx.beginPath();
+        ctx.arc(length / 2 - 1, -width * 0.36, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Right lamp
+        ctx.beginPath();
+        ctx.arc(length / 2 - 1, width * 0.36, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
 
         ctx.restore();
 
@@ -1751,6 +1877,115 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
       }
 
+      // =====================================================================
+      // 13b. DYNAMIC HIGH-BEAM EMISSIVE PIERCING PASS AT NIGHT & TWILIGHT
+      // Ensures vehicle headlights and perimeter floodlights vividly illuminate the dark night
+      // =====================================================================
+      if (nightFactor > 0.05 || eveningFactor > 0.1 || morningFactor > 0.1) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen'; // Additive screen blending against dark terrain
+
+        harvesters.forEach((h) => {
+          ctx.save();
+          ctx.translate(h.x, h.y);
+          ctx.rotate(h.angle);
+
+          const modelMult = h.model === 'titan' ? 1.3 : h.model === 'heavy' ? 1.15 : 1.0;
+          const length = h.model === 'titan' ? 38 : h.model === 'heavy' ? 30 : 22;
+          const width = h.model === 'titan' ? 26 : h.model === 'heavy' ? 20 : 15;
+          const beamReach = (135 + 90 * nightFactor) * modelMult;
+          const beamSpreadY = (34 + 36 * nightFactor) * modelMult;
+          const lensX = length / 2 - 2;
+
+          // Piercing light cone that cuts through night shadow
+          const emissiveGrad = ctx.createRadialGradient(lensX, 0, 5, lensX + beamReach * 0.5, 0, beamReach);
+          const emissiveAlpha = Math.min(0.92, 0.45 * nightFactor + 0.3 * eveningFactor + 0.25 * morningFactor);
+
+          if (nightFactor > 0.1) {
+            emissiveGrad.addColorStop(0, `rgba(255, 255, 255, ${emissiveAlpha * 0.95})`);
+            emissiveGrad.addColorStop(0.3, `rgba(254, 240, 138, ${emissiveAlpha * 0.70})`);
+            emissiveGrad.addColorStop(0.7, `rgba(250, 204, 21, ${emissiveAlpha * 0.30})`);
+            emissiveGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          } else if (eveningFactor > 0.1) {
+            emissiveGrad.addColorStop(0, `rgba(255, 247, 237, ${emissiveAlpha * 0.85})`);
+            emissiveGrad.addColorStop(0.4, `rgba(251, 146, 60, ${emissiveAlpha * 0.55})`);
+            emissiveGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          } else {
+            emissiveGrad.addColorStop(0, `rgba(255, 255, 240, ${emissiveAlpha * 0.85})`);
+            emissiveGrad.addColorStop(0.4, `rgba(253, 224, 71, ${emissiveAlpha * 0.55})`);
+            emissiveGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          }
+
+          ctx.beginPath();
+          ctx.moveTo(lensX, 0);
+          ctx.lineTo(lensX + beamReach, -beamSpreadY * 0.85);
+          ctx.lineTo(lensX + beamReach, beamSpreadY * 0.85);
+          ctx.closePath();
+          ctx.fillStyle = emissiveGrad;
+          ctx.fill();
+
+          // Forward ground spotlight pool piercing
+          const poolDist = lensX + beamReach * 0.65;
+          const poolRadX = beamReach * 0.40;
+          const poolRadY = beamSpreadY * 0.72;
+          const emissivePool = ctx.createRadialGradient(poolDist, 0, 3, poolDist, 0, poolRadX);
+          emissivePool.addColorStop(0, `rgba(254, 240, 138, ${emissiveAlpha * 0.50})`);
+          emissivePool.addColorStop(0.55, `rgba(253, 224, 71, ${emissiveAlpha * 0.22})`);
+          emissivePool.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+          ctx.beginPath();
+          ctx.ellipse(poolDist, 0, poolRadX, poolRadY, 0, 0, Math.PI * 2);
+          ctx.fillStyle = emissivePool;
+          ctx.fill();
+
+          // High-beam headlight lens corona flare
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = nightFactor > 0.1 ? '#fef08a' : '#f59e0b';
+          ctx.shadowBlur = 18 * nightFactor + 8;
+          ctx.beginPath();
+          ctx.arc(lensX, -width * 0.36, 3, 0, Math.PI * 2);
+          ctx.arc(lensX, width * 0.36, 3, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        });
+
+        // Module security lights & perimeter floodlights brightening at night
+        if (nightFactor > 0.08) {
+          modules.forEach((mod) => {
+            if (!mod.isActive) return;
+            const px = mod.x * TILE_SIZE;
+            const py = mod.y * TILE_SIZE;
+            const pw = mod.width * TILE_SIZE;
+            const ph = mod.height * TILE_SIZE;
+            const cx = px + pw / 2;
+            const cy = py + ph / 2;
+
+            // Security perimeter floodlight
+            const secRad = pw * (0.85 + 0.35 * nightFactor);
+            const secGrad = ctx.createRadialGradient(cx, cy, pw * 0.25, cx, cy, secRad);
+            const secColor =
+              mod.type === 'command'
+                ? 'rgba(56, 189, 248, 0.28)'
+                : mod.type === 'greenhouse'
+                ? 'rgba(34, 197, 94, 0.24)'
+                : mod.type === 'rtg'
+                ? 'rgba(249, 115, 22, 0.32)'
+                : mod.type === 'refinery'
+                ? 'rgba(192, 38, 211, 0.26)'
+                : 'rgba(56, 189, 248, 0.18)';
+            secGrad.addColorStop(0, secColor);
+            secGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.beginPath();
+            ctx.arc(cx, cy, secRad, 0, Math.PI * 2);
+            ctx.fillStyle = secGrad;
+            ctx.fill();
+          });
+        }
+
+        ctx.restore();
+      }
+
       // Ghost Building Placement Preview
       if (buildPlacingType && cursorGrid) {
         const bp = MODULE_BLUEPRINTS[buildPlacingType];
@@ -1876,6 +2111,20 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
 
         const mx = mmX + (h.x / WORLD_WIDTH) * mmWidth;
         const my = mmY + (h.y / WORLD_HEIGHT) * mmHeight;
+
+        // Minimap Headlight beam projection at night/twilight
+        if (nightFactor > 0.08 || (morningFactor + eveningFactor) > 0.1) {
+          ctx.beginPath();
+          ctx.moveTo(mx, my);
+          ctx.lineTo(
+            mx + Math.cos(h.angle) * (5 + 4 * nightFactor),
+            my + Math.sin(h.angle) * (5 + 4 * nightFactor)
+          );
+          ctx.strokeStyle = nightFactor > 0.08 ? 'rgba(254, 240, 138, 0.85)' : 'rgba(249, 115, 22, 0.7)';
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+        }
+
         ctx.fillStyle = '#f59e0b';
         ctx.beginPath();
         ctx.arc(mx, my, 3, 0, Math.PI * 2);
