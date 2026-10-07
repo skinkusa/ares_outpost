@@ -622,16 +622,52 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
 
-      // 1. Draw Martian Terrain Base
+      // =====================================================================
+      // DIURNAL CYCLE & PLANETARY ILLUMINATION MODEL
+      // 0 = dawn, 0.25 = noon, 0.5 = sunset, 0.75 = midnight
+      // =====================================================================
+      const sunAngle = timeOfDay * Math.PI * 2;
+      const solarAltitude = Math.sin(sunAngle); // > 0 during day, < 0 during night
+
+      // 1. Daylight & Night Intensity Curves
+      const daylightFactor = Math.max(0, solarAltitude); // 0 to 1 during day, 0 at night
+      const nightFactor = Math.max(0, -solarAltitude); // 0 to 1 during night, 0 during day
+
+      // 2. Morning Phase Warmth Factor: active from pre-dawn (0.94) through early morning (0.22), peaking around 0.08 - 0.12
+      let morningNorm = -1;
+      if (timeOfDay >= 0.94) {
+        morningNorm = (timeOfDay - 0.94) / 0.28;
+      } else if (timeOfDay <= 0.22) {
+        morningNorm = (timeOfDay + 0.06) / 0.28;
+      }
+      const morningFactor = morningNorm >= 0 && morningNorm <= 1 ? Math.sin(morningNorm * Math.PI) : 0;
+
+      // 3. Evening Phase Warmth Factor: active from afternoon (0.36) to post-sunset (0.54), peaking around 0.47
+      const eveningNorm = (timeOfDay - 0.36) / 0.18;
+      const eveningFactor = eveningNorm >= 0 && eveningNorm <= 1 ? Math.sin(eveningNorm * Math.PI) : 0;
+
+      // 1. Draw Martian Terrain Base (dynamically shaded by timeOfDay)
+      // Base Day: oxidized iron ochre / Morning: radiant golden orange / Evening: deep amber sunset / Night: dark cool-blue basalt
+      const r0 = Math.round(141 * daylightFactor * (1 - morningFactor * 0.25) + 168 * morningFactor + 152 * eveningFactor + 27 * nightFactor);
+      const g0 = Math.round(53 * daylightFactor + 72 * morningFactor + 55 * eveningFactor + 34 * nightFactor);
+      const b0 = Math.round(30 * daylightFactor + 32 * morningFactor + 25 * eveningFactor + 58 * nightFactor);
+
+      const r1 = Math.round(122 * daylightFactor * (1 - morningFactor * 0.25) + 144 * morningFactor + 128 * eveningFactor + 21 * nightFactor);
+      const g1 = Math.round(42 * daylightFactor + 54 * morningFactor + 41 * eveningFactor + 26 * nightFactor);
+      const b1 = Math.round(22 * daylightFactor + 24 * morningFactor + 19 * eveningFactor + 46 * nightFactor);
+
+      const r2 = Math.round(92 * daylightFactor * (1 - morningFactor * 0.25) + 110 * morningFactor + 95 * eveningFactor + 14 * nightFactor);
+      const g2 = Math.round(30 * daylightFactor + 36 * morningFactor + 26 * eveningFactor + 18 * nightFactor);
+      const b2 = Math.round(14 * daylightFactor + 14 * morningFactor + 10 * eveningFactor + 32 * nightFactor);
+
       const terrainGrad = ctx.createLinearGradient(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-      terrainGrad.addColorStop(0, '#782d1b');
-      terrainGrad.addColorStop(0.5, '#682414');
-      terrainGrad.addColorStop(1, '#531b0e');
+      terrainGrad.addColorStop(0, `rgb(${r0}, ${g0}, ${b0})`);
+      terrainGrad.addColorStop(0.5, `rgb(${r1}, ${g1}, ${b1})`);
+      terrainGrad.addColorStop(1, `rgb(${r2}, ${g2}, ${b2})`);
       ctx.fillStyle = terrainGrad;
       ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
       // 1b. Atmospheric Ambient Ground Sheen / Horizon Solar Radiance
-      const sunAngle = timeOfDay * Math.PI * 2;
       const sunCenterWorldX = WORLD_WIDTH / 2 + Math.cos(sunAngle) * (WORLD_WIDTH * 0.35);
       const sunCenterWorldY = WORLD_HEIGHT / 2 + Math.sin(sunAngle) * (WORLD_HEIGHT * 0.25);
 
@@ -643,16 +679,28 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         WORLD_HEIGHT / 2,
         WORLD_WIDTH * 0.95
       );
-      if (timeOfDay < 0.5) {
-        // Daylight warmth
-        atmoAura.addColorStop(0, 'rgba(251, 146, 60, 0.18)');
-        atmoAura.addColorStop(0.6, 'rgba(234, 88, 12, 0.08)');
+      if (nightFactor > 0.08) {
+        // Night twilight cool celestial starlight and Phobos/Deimos blue sheen
+        atmoAura.addColorStop(0, `rgba(59, 130, 246, ${0.16 * nightFactor})`);
+        atmoAura.addColorStop(0.4, `rgba(99, 102, 241, ${0.09 * nightFactor})`);
+        atmoAura.addColorStop(1, 'rgba(15, 23, 42, 0)');
+      } else if (morningFactor > 0.08) {
+        // Morning warm golden-orange sunrise flare
+        atmoAura.addColorStop(0, `rgba(251, 146, 60, ${0.34 * morningFactor})`);
+        atmoAura.addColorStop(0.4, `rgba(249, 115, 22, ${0.18 * morningFactor})`);
+        atmoAura.addColorStop(0.8, `rgba(234, 88, 12, ${0.08 * morningFactor})`);
         atmoAura.addColorStop(1, 'rgba(120, 45, 27, 0)');
+      } else if (eveningFactor > 0.08) {
+        // Evening warm fiery amber/orange sunset flare
+        atmoAura.addColorStop(0, `rgba(249, 115, 22, ${0.35 * eveningFactor})`);
+        atmoAura.addColorStop(0.4, `rgba(225, 29, 72, ${0.18 * eveningFactor})`);
+        atmoAura.addColorStop(0.8, `rgba(180, 83, 9, ${0.09 * eveningFactor})`);
+        atmoAura.addColorStop(1, 'rgba(60, 20, 10, 0)');
       } else {
-        // Night twilight crimson/violet glow
-        atmoAura.addColorStop(0, 'rgba(192, 38, 211, 0.12)');
-        atmoAura.addColorStop(0.5, 'rgba(99, 102, 241, 0.07)');
-        atmoAura.addColorStop(1, 'rgba(20, 8, 16, 0)');
+        // High noon solar radiance
+        atmoAura.addColorStop(0, 'rgba(254, 240, 138, 0.22)');
+        atmoAura.addColorStop(0.5, 'rgba(251, 146, 60, 0.10)');
+        atmoAura.addColorStop(1, 'rgba(120, 45, 27, 0)');
       }
       ctx.fillStyle = atmoAura;
       ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
@@ -673,8 +721,16 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         ctx.lineCap = 'round';
         ctx.stroke();
 
-        // Shaded crest line
-        ctx.strokeStyle = 'rgba(230, 110, 75, 0.25)';
+        // Shaded crest line with time-of-day dynamic highlights
+        if (nightFactor > 0.1) {
+          ctx.strokeStyle = `rgba(147, 197, 253, ${0.18 * nightFactor})`;
+        } else if (morningFactor > 0.1) {
+          ctx.strokeStyle = `rgba(253, 186, 116, ${0.35 * morningFactor + 0.15})`;
+        } else if (eveningFactor > 0.1) {
+          ctx.strokeStyle = `rgba(251, 146, 60, ${0.35 * eveningFactor + 0.15})`;
+        } else {
+          ctx.strokeStyle = 'rgba(230, 110, 75, 0.25)';
+        }
         ctx.lineWidth = 3;
         ctx.stroke();
       });
@@ -698,7 +754,15 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         ctx.fillStyle = cg;
         ctx.fill();
 
-        ctx.strokeStyle = 'rgba(235, 120, 85, 0.4)';
+        if (nightFactor > 0.1) {
+          ctx.strokeStyle = `rgba(96, 165, 250, ${0.28 * nightFactor})`;
+        } else if (morningFactor > 0.1) {
+          ctx.strokeStyle = `rgba(251, 146, 60, ${0.45 * morningFactor + 0.15})`;
+        } else if (eveningFactor > 0.1) {
+          ctx.strokeStyle = `rgba(244, 63, 94, ${0.4 * eveningFactor + 0.15})`;
+        } else {
+          ctx.strokeStyle = 'rgba(235, 120, 85, 0.4)';
+        }
         ctx.lineWidth = 2.5;
         ctx.stroke();
       });
@@ -1401,17 +1465,20 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         ctx.save();
         ctx.translate(h.x, h.y);
 
-        // Volumetric Headlight Cone
+        // Volumetric Headlight Cone (amplified at night for dark planetary visibility)
         ctx.save();
         ctx.rotate(h.angle);
-        const lightGrad = ctx.createRadialGradient(0, 0, 10, 80, 0, 130);
-        lightGrad.addColorStop(0, 'rgba(254, 240, 138, 0.5)');
-        lightGrad.addColorStop(0.5, 'rgba(254, 240, 138, 0.2)');
+        const headlightCoreAlpha = 0.4 + 0.45 * nightFactor;
+        const headlightBeamReach = 130 + 40 * nightFactor;
+        const lightGrad = ctx.createRadialGradient(0, 0, 10, 80, 0, headlightBeamReach);
+        lightGrad.addColorStop(0, `rgba(254, 240, 138, ${headlightCoreAlpha})`);
+        lightGrad.addColorStop(0.4, `rgba(253, 224, 71, ${headlightCoreAlpha * 0.45})`);
+        lightGrad.addColorStop(0.8, `rgba(250, 204, 21, ${headlightCoreAlpha * 0.15})`);
         lightGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
         ctx.beginPath();
         ctx.moveTo(10, 0);
-        ctx.lineTo(130, -42);
-        ctx.lineTo(130, 42);
+        ctx.lineTo(headlightBeamReach, -45);
+        ctx.lineTo(headlightBeamReach, 45);
         ctx.closePath();
         ctx.fillStyle = lightGrad;
         ctx.fill();
@@ -1594,15 +1661,93 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       }
 
       // =====================================================================
-      // 13. DAY / NIGHT ATMOSPHERIC LIGHTING FILTER & VIGNETTE
+      // 13. DYNAMIC TIME-OF-DAY ATMOSPHERIC LIGHTING & GLOBAL SURFACE BRIGHTNESS
       // =====================================================================
-      let nightAlpha = 0;
-      if (timeOfDay > 0.5 && timeOfDay < 1) {
-        nightAlpha = Math.sin((timeOfDay - 0.5) * Math.PI * 2) * 0.68;
+
+      // A. Darker, blue-hued night phase (peaking around midnight)
+      if (nightFactor > 0.02) {
+        // Darkness absorption pass to lower global surface brightness
+        const darkAlpha = Math.min(0.70, nightFactor * 0.68);
+        ctx.fillStyle = `rgba(6, 10, 26, ${darkAlpha})`;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        // Rich cool cobalt/azure blue hue wash across Martian surface
+        const blueAlpha = Math.min(0.38, nightFactor * 0.35);
+        ctx.fillStyle = `rgba(29, 78, 216, ${blueAlpha})`;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        // Celestial moonlit radial glow across the surface
+        const nightGrad = ctx.createRadialGradient(
+          WORLD_WIDTH * 0.35,
+          WORLD_HEIGHT * 0.3,
+          WORLD_WIDTH * 0.12,
+          WORLD_WIDTH / 2,
+          WORLD_HEIGHT / 2,
+          WORLD_WIDTH * 0.88
+        );
+        nightGrad.addColorStop(0, `rgba(96, 165, 250, ${nightFactor * 0.15})`);
+        nightGrad.addColorStop(0.5, `rgba(30, 58, 138, ${nightFactor * 0.20})`);
+        nightGrad.addColorStop(1, `rgba(10, 15, 30, ${nightFactor * 0.30})`);
+        ctx.fillStyle = nightGrad;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
       }
 
-      if (nightAlpha > 0.05) {
-        ctx.fillStyle = `rgba(10, 15, 30, ${nightAlpha})`;
+      // B. Warm, orange-tinted morning phase (dawn to mid-morning)
+      if (morningFactor > 0.02) {
+        // Golden-orange ambient tint layer
+        const mOrangeAlpha = Math.min(0.28, morningFactor * 0.25);
+        ctx.fillStyle = `rgba(249, 115, 22, ${mOrangeAlpha})`;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        // Radiant amber morning sunrise sheen
+        const mGoldAlpha = Math.min(0.20, morningFactor * 0.18);
+        ctx.fillStyle = `rgba(251, 146, 60, ${mGoldAlpha})`;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        // Directional sunrise solar horizon glow
+        const morningHorizon = ctx.createLinearGradient(
+          0,
+          WORLD_HEIGHT,
+          WORLD_WIDTH * 0.75,
+          0
+        );
+        morningHorizon.addColorStop(0, `rgba(254, 215, 170, ${morningFactor * 0.22})`);
+        morningHorizon.addColorStop(0.4, `rgba(249, 115, 22, ${morningFactor * 0.15})`);
+        morningHorizon.addColorStop(1, 'rgba(180, 83, 9, 0)');
+        ctx.fillStyle = morningHorizon;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+      }
+
+      // C. Warm, orange-tinted evening / sunset phase (afternoon to post-sunset)
+      if (eveningFactor > 0.02) {
+        // Warm sunset orange ambient tint layer
+        const eOrangeAlpha = Math.min(0.30, eveningFactor * 0.27);
+        ctx.fillStyle = `rgba(234, 88, 12, ${eOrangeAlpha})`;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        // Burnt sienna & crimson dusk twilight wash
+        const eCrimsonAlpha = Math.min(0.20, eveningFactor * 0.17);
+        ctx.fillStyle = `rgba(194, 65, 12, ${eCrimsonAlpha})`;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        // Directional sunset solar horizon glow
+        const sunsetHorizon = ctx.createLinearGradient(
+          WORLD_WIDTH,
+          0,
+          WORLD_WIDTH * 0.25,
+          WORLD_HEIGHT
+        );
+        sunsetHorizon.addColorStop(0, `rgba(251, 146, 60, ${eveningFactor * 0.26})`);
+        sunsetHorizon.addColorStop(0.5, `rgba(225, 29, 72, ${eveningFactor * 0.17})`);
+        sunsetHorizon.addColorStop(1, 'rgba(124, 45, 18, 0)');
+        ctx.fillStyle = sunsetHorizon;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+      }
+
+      // D. High-noon peak solar brilliance
+      if (daylightFactor > 0.85 && morningFactor < 0.15 && eveningFactor < 0.15) {
+        const noonBoost = (daylightFactor - 0.85) / 0.15;
+        ctx.fillStyle = `rgba(255, 247, 237, ${noonBoost * 0.07})`;
         ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
       }
 
@@ -1661,14 +1806,33 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       const mmX = canvas.width - mmWidth - 16;
       const mmY = canvas.height - mmHeight - 16;
 
-      ctx.fillStyle = 'rgba(12, 10, 9, 0.88)';
+      // Minimap theming dynamically responding to Martian diurnal cycle
+      const mmBg =
+        nightFactor > 0.1
+          ? 'rgba(8, 14, 28, 0.93)'
+          : morningFactor > 0.1
+          ? 'rgba(26, 14, 8, 0.91)'
+          : eveningFactor > 0.1
+          ? 'rgba(28, 12, 10, 0.91)'
+          : 'rgba(14, 10, 9, 0.90)';
+
+      const mmBorder =
+        nightFactor > 0.1
+          ? '#38bdf8'
+          : morningFactor > 0.1
+          ? '#f97316'
+          : eveningFactor > 0.1
+          ? '#f43f5e'
+          : '#ea580c';
+
+      ctx.fillStyle = mmBg;
       ctx.fillRect(mmX, mmY, mmWidth, mmHeight);
-      ctx.strokeStyle = '#ea580c';
+      ctx.strokeStyle = mmBorder;
       ctx.lineWidth = 1.5;
       ctx.strokeRect(mmX, mmY, mmWidth, mmHeight);
 
       // Sector quadrant crosshair lines
-      ctx.strokeStyle = 'rgba(234, 88, 12, 0.25)';
+      ctx.strokeStyle = nightFactor > 0.1 ? 'rgba(56, 189, 248, 0.22)' : 'rgba(234, 88, 12, 0.25)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(mmX + mmWidth / 2, mmY);
@@ -1772,6 +1936,31 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       ctx.textAlign = 'left';
       ctx.fillStyle = '#f59e0b';
       ctx.fillText('TACTICAL ORBITAL MAP', mmX + 6, mmY + 12);
+
+      // Sol Phase badge
+      const phaseBadge =
+        nightFactor > 0.1
+          ? 'NIGHT // BLUE'
+          : morningFactor > 0.1
+          ? 'MORNING // WARM'
+          : eveningFactor > 0.1
+          ? 'DUSK // WARM'
+          : 'NOON // PEAK';
+
+      const phaseBadgeColor =
+        nightFactor > 0.1
+          ? '#38bdf8'
+          : morningFactor > 0.1
+          ? '#fb923c'
+          : eveningFactor > 0.1
+          ? '#fb7185'
+          : '#facc15';
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = phaseBadgeColor;
+      ctx.fillText(phaseBadge, mmX + mmWidth - 6, mmY + 12);
+
+      ctx.textAlign = 'left';
       ctx.fillStyle = isMinimapDraggingRef.current ? '#38bdf8' : '#78716c';
       ctx.fillText(
         isMinimapDraggingRef.current ? 'DRAGGING VIEWPORT' : 'DRAG SQUARE TO PAN',
