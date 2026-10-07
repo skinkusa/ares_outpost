@@ -17,6 +17,7 @@ import {
   WeatherCondition,
 } from './types/colony';
 import {
+  GRID_SIZE,
   HARVESTER_SPECS,
   MODULE_BLUEPRINTS,
   TECH_TREE,
@@ -48,8 +49,8 @@ export default function App() {
     {
       id: 'mod_cmd',
       type: 'command',
-      x: 18,
-      y: 18,
+      x: 38,
+      y: 38,
       width: 3,
       height: 3,
       level: 1,
@@ -63,8 +64,8 @@ export default function App() {
     {
       id: 'mod_solar_1',
       type: 'solar',
-      x: 15,
-      y: 18,
+      x: 35,
+      y: 38,
       width: 2,
       height: 2,
       level: 1,
@@ -78,8 +79,8 @@ export default function App() {
     {
       id: 'mod_rtg_1',
       type: 'rtg',
-      x: 15,
-      y: 21,
+      x: 35,
+      y: 41,
       width: 2,
       height: 2,
       level: 1,
@@ -93,8 +94,8 @@ export default function App() {
     {
       id: 'mod_depot_1',
       type: 'depot',
-      x: 22,
-      y: 18,
+      x: 42,
+      y: 38,
       width: 3,
       height: 3,
       level: 1,
@@ -108,8 +109,8 @@ export default function App() {
     {
       id: 'mod_scrubber_1',
       type: 'scrubber',
-      x: 18,
-      y: 15,
+      x: 38,
+      y: 35,
       width: 2,
       height: 2,
       level: 1,
@@ -123,8 +124,8 @@ export default function App() {
     {
       id: 'mod_vaporator_1',
       type: 'vaporator',
-      x: 21,
-      y: 15,
+      x: 41,
+      y: 35,
       width: 2,
       height: 2,
       level: 1,
@@ -138,8 +139,8 @@ export default function App() {
     {
       id: 'mod_battery_1',
       type: 'battery',
-      x: 18,
-      y: 22,
+      x: 38,
+      y: 42,
       width: 2,
       height: 2,
       level: 1,
@@ -153,8 +154,8 @@ export default function App() {
     {
       id: 'mod_hab_1',
       type: 'habitat',
-      x: 22,
-      y: 22,
+      x: 42,
+      y: 42,
       width: 3,
       height: 3,
       level: 1,
@@ -173,8 +174,8 @@ export default function App() {
       id: 'harvester_alpha',
       name: 'Harvester Alpha',
       model: 'heavy',
-      x: 23.5 * TILE_SIZE,
-      y: 20 * TILE_SIZE,
+      x: 43.5 * TILE_SIZE,
+      y: 40 * TILE_SIZE,
       targetX: null,
       targetY: null,
       angle: 0,
@@ -930,6 +931,11 @@ export default function App() {
     if (!buildPlacingType) return;
     const bp = MODULE_BLUEPRINTS[buildPlacingType];
     if (!bp) return;
+
+    if (gridX < 0 || gridY < 0 || gridX + bp.width > GRID_SIZE || gridY + bp.height > GRID_SIZE) {
+      addLog('warning', 'Boundary Error', `Cannot construct outside planetary sector limits.`);
+      return;
+    }
 
     if (stats.alloy < bp.costAlloy || stats.credits < bp.costCredits) {
       addLog('warning', 'Insufficient Resources', `Cannot afford ${bp.name}.`);

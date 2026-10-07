@@ -1,9 +1,9 @@
 import { HarvesterModelSpec, ModuleBlueprint, TechNode } from '../types/colony';
 
-export const GRID_SIZE = 40; // 40x40 tiles on the surface
+export const GRID_SIZE = 80; // 80x80 tiles on the surface (expanded map)
 export const TILE_SIZE = 48; // 48 pixels per tile
-export const WORLD_WIDTH = GRID_SIZE * TILE_SIZE; // 1920 pixels
-export const WORLD_HEIGHT = GRID_SIZE * TILE_SIZE; // 1920 pixels
+export const WORLD_WIDTH = GRID_SIZE * TILE_SIZE; // 3840 pixels
+export const WORLD_HEIGHT = GRID_SIZE * TILE_SIZE; // 3840 pixels
 
 export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
   command: {

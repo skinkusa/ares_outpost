@@ -100,8 +100,8 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
 
   // Camera viewport
   const [camera, setCamera] = useState({
-    x: WORLD_WIDTH / 2 - 400,
-    y: WORLD_HEIGHT / 2 - 300,
+    x: WORLD_WIDTH / 2 - 450,
+    y: WORLD_HEIGHT / 2 - 350,
     zoom: 1,
   });
 
@@ -119,7 +119,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
   // Initialize atmospheric particles
   useEffect(() => {
     const p: AtmosphericParticle[] = [];
-    for (let i = 0; i < 110; i++) {
+    for (let i = 0; i < 240; i++) {
       p.push({
         x: Math.random() * WORLD_WIDTH,
         y: Math.random() * WORLD_HEIGHT,
@@ -167,13 +167,45 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
     if (e.button === 0) {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+
+      const screenX = e.clientX - rect.left;
+      const screenY = e.clientY - rect.top;
+
+      // Minimap click navigation
+      const mmWidth = 190;
+      const mmHeight = 190;
+      const mmX = rect.width - mmWidth - 16;
+      const mmY = rect.height - mmHeight - 16;
+      if (
+        screenX >= mmX &&
+        screenX <= mmX + mmWidth &&
+        screenY >= mmY &&
+        screenY <= mmY + mmHeight
+      ) {
+        const targetWorldX = ((screenX - mmX) / mmWidth) * WORLD_WIDTH;
+        const targetWorldY = ((screenY - mmY) / mmHeight) * WORLD_HEIGHT;
+        setCamera((prev) => ({
+          ...prev,
+          x: Math.max(-400, Math.min(WORLD_WIDTH - 200, targetWorldX - (rect.width / prev.zoom) / 2)),
+          y: Math.max(-400, Math.min(WORLD_HEIGHT - 200, targetWorldY - (rect.height / prev.zoom) / 2)),
+        }));
+        return;
+      }
+
+      const world = screenToWorld(screenX, screenY);
       const gx = Math.floor(world.x / TILE_SIZE);
       const gy = Math.floor(world.y / TILE_SIZE);
 
       if (buildPlacingType) {
         const bp = MODULE_BLUEPRINTS[buildPlacingType];
-        if (bp && !isTileOccupied(gx, gy, bp.width, bp.height)) {
+        if (
+          bp &&
+          gx >= 0 &&
+          gy >= 0 &&
+          gx + bp.width <= GRID_SIZE &&
+          gy + bp.height <= GRID_SIZE &&
+          !isTileOccupied(gx, gy, bp.width, bp.height)
+        ) {
           onPlaceModule(gx, gy);
         }
         return;
@@ -233,7 +265,33 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
+
+    // Drag on minimap to pan
+    const mmWidth = 190;
+    const mmHeight = 190;
+    const mmX = rect.width - mmWidth - 16;
+    const mmY = rect.height - mmHeight - 16;
+    if (
+      e.buttons === 1 &&
+      screenX >= mmX &&
+      screenX <= mmX + mmWidth &&
+      screenY >= mmY &&
+      screenY <= mmY + mmHeight
+    ) {
+      const targetWorldX = ((screenX - mmX) / mmWidth) * WORLD_WIDTH;
+      const targetWorldY = ((screenY - mmY) / mmHeight) * WORLD_HEIGHT;
+      setCamera((prev) => ({
+        ...prev,
+        x: Math.max(-400, Math.min(WORLD_WIDTH - 200, targetWorldX - (rect.width / prev.zoom) / 2)),
+        y: Math.max(-400, Math.min(WORLD_HEIGHT - 200, targetWorldY - (rect.height / prev.zoom) / 2)),
+      }));
+      return;
+    }
+
+    const world = screenToWorld(screenX, screenY);
     const gx = Math.floor(world.x / TILE_SIZE);
     const gy = Math.floor(world.y / TILE_SIZE);
 
@@ -245,8 +303,8 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       const dy = (e.clientY - dragStartRef.current.y) / camera.zoom;
       setCamera((prev) => ({
         ...prev,
-        x: Math.max(-200, Math.min(WORLD_WIDTH - 200, dragStartRef.current.camX - dx)),
-        y: Math.max(-200, Math.min(WORLD_HEIGHT - 200, dragStartRef.current.camY - dy)),
+        x: Math.max(-400, Math.min(WORLD_WIDTH - 200, dragStartRef.current.camX - dx)),
+        y: Math.max(-400, Math.min(WORLD_HEIGHT - 200, dragStartRef.current.camY - dy)),
       }));
     }
   };
@@ -260,7 +318,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
     e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.88;
     setCamera((prev) => {
-      const newZoom = Math.min(2.0, Math.max(0.5, prev.zoom * zoomFactor));
+      const newZoom = Math.min(2.0, Math.max(0.3, prev.zoom * zoomFactor));
       return { ...prev, zoom: newZoom };
     });
   };
@@ -489,16 +547,16 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
 
       // 1b. Atmospheric Ambient Ground Sheen / Horizon Solar Radiance
       const sunAngle = timeOfDay * Math.PI * 2;
-      const sunCenterWorldX = WORLD_WIDTH / 2 + Math.cos(sunAngle) * 600;
-      const sunCenterWorldY = WORLD_HEIGHT / 2 + Math.sin(sunAngle) * 400;
+      const sunCenterWorldX = WORLD_WIDTH / 2 + Math.cos(sunAngle) * (WORLD_WIDTH * 0.35);
+      const sunCenterWorldY = WORLD_HEIGHT / 2 + Math.sin(sunAngle) * (WORLD_HEIGHT * 0.25);
 
       const atmoAura = ctx.createRadialGradient(
         sunCenterWorldX,
         sunCenterWorldY,
-        100,
+        150,
         WORLD_WIDTH / 2,
         WORLD_HEIGHT / 2,
-        WORLD_WIDTH * 0.9
+        WORLD_WIDTH * 0.95
       );
       if (timeOfDay < 0.5) {
         // Daylight warmth
@@ -1474,8 +1532,13 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           const pw = bp.width * TILE_SIZE;
           const ph = bp.height * TILE_SIZE;
 
+          const inBounds =
+            gx >= 0 &&
+            gy >= 0 &&
+            gx + bp.width <= GRID_SIZE &&
+            gy + bp.height <= GRID_SIZE;
           const occupied = isTileOccupied(gx, gy, bp.width, bp.height);
-          const valid = !occupied && canAffordPlacing;
+          const valid = inBounds && !occupied && canAffordPlacing;
 
           ctx.fillStyle = valid
             ? 'rgba(34, 197, 94, 0.35)'
@@ -1490,7 +1553,13 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           ctx.textAlign = 'center';
           ctx.fillStyle = '#ffffff';
           ctx.fillText(
-            valid ? `SNAP: ${bp.name}` : occupied ? 'LOCATION OBSTRUCTED' : 'INSUFFICIENT RESOURCES',
+            valid
+              ? `SNAP: ${bp.name}`
+              : !inBounds
+              ? 'OUT OF SECTOR BOUNDS'
+              : occupied
+              ? 'LOCATION OBSTRUCTED'
+              : 'INSUFFICIENT RESOURCES',
             px + pw / 2,
             py - 8
           );
@@ -1502,16 +1571,26 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       // =====================================================================
       // 14. MINIMAP (Screen Space)
       // =====================================================================
-      const mmWidth = 160;
-      const mmHeight = 160;
+      const mmWidth = 190;
+      const mmHeight = 190;
       const mmX = canvas.width - mmWidth - 16;
       const mmY = canvas.height - mmHeight - 16;
 
-      ctx.fillStyle = 'rgba(12, 10, 9, 0.85)';
+      ctx.fillStyle = 'rgba(12, 10, 9, 0.88)';
       ctx.fillRect(mmX, mmY, mmWidth, mmHeight);
       ctx.strokeStyle = '#ea580c';
       ctx.lineWidth = 1.5;
       ctx.strokeRect(mmX, mmY, mmWidth, mmHeight);
+
+      // Sector quadrant crosshair lines
+      ctx.strokeStyle = 'rgba(234, 88, 12, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(mmX + mmWidth / 2, mmY);
+      ctx.lineTo(mmX + mmWidth / 2, mmY + mmHeight);
+      ctx.moveTo(mmX, mmY + mmHeight / 2);
+      ctx.lineTo(mmX + mmWidth, mmY + mmHeight / 2);
+      ctx.stroke();
 
       spicePatches.forEach((sp) => {
         if (sp.amount <= 0) return;
@@ -1526,7 +1605,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       modules.forEach((mod) => {
         const mx = mmX + ((mod.x * TILE_SIZE) / WORLD_WIDTH) * mmWidth;
         const my = mmY + ((mod.y * TILE_SIZE) / WORLD_HEIGHT) * mmHeight;
-        ctx.fillStyle = '#38bdf8';
+        ctx.fillStyle = mod.type === 'command' ? '#38bdf8' : '#0284c7';
         ctx.fillRect(mx, my, 3.5, 3.5);
       });
 
@@ -1559,13 +1638,15 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       const camX = mmX + (camera.x / WORLD_WIDTH) * mmWidth;
       const camY = mmY + (camera.y / WORLD_HEIGHT) * mmHeight;
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.2;
       ctx.strokeRect(camX, camY, camW, camH);
 
       ctx.font = '600 9px JetBrains Mono, monospace';
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#a8a29e';
-      ctx.fillText('SECTOR ORBITAL MAP', mmX + 6, mmY + 12);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillText('TACTICAL ORBITAL MAP', mmX + 6, mmY + 12);
+      ctx.fillStyle = '#78716c';
+      ctx.fillText('80x80 GRID | 3840m', mmX + 6, mmY + mmHeight - 6);
 
       animId = requestAnimationFrame(render);
     };
@@ -1606,30 +1687,46 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       <div className="absolute left-4 bottom-24 flex flex-col gap-1.5 z-20">
         <button
           onClick={() => setCamera((prev) => ({ ...prev, zoom: Math.min(2.0, prev.zoom * 1.25) }))}
-          className="w-9 h-9 bg-stone-900/90 hover:bg-stone-800 text-amber-400 border border-stone-700/80 rounded-md flex items-center justify-center font-bold text-lg shadow-lg active:scale-95 transition-transform"
+          className="w-10 h-10 bg-stone-900/90 hover:bg-stone-800 text-amber-400 border border-stone-700/80 rounded-md flex items-center justify-center font-bold text-lg shadow-lg active:scale-95 transition-transform"
           title="Zoom In"
         >
           +
         </button>
         <button
-          onClick={() => setCamera((prev) => ({ ...prev, zoom: Math.max(0.5, prev.zoom * 0.8) }))}
-          className="w-9 h-9 bg-stone-900/90 hover:bg-stone-800 text-amber-400 border border-stone-700/80 rounded-md flex items-center justify-center font-bold text-lg shadow-lg active:scale-95 transition-transform"
+          onClick={() => setCamera((prev) => ({ ...prev, zoom: Math.max(0.3, prev.zoom * 0.8) }))}
+          className="w-10 h-10 bg-stone-900/90 hover:bg-stone-800 text-amber-400 border border-stone-700/80 rounded-md flex items-center justify-center font-bold text-lg shadow-lg active:scale-95 transition-transform"
           title="Zoom Out"
         >
           -
         </button>
+        <div className="bg-stone-900/90 border border-stone-800 px-1 py-0.5 rounded text-[10px] font-mono text-center text-amber-400/90">
+          {Math.round(camera.zoom * 100)}%
+        </div>
         <button
           onClick={() =>
             setCamera({
-              x: WORLD_WIDTH / 2 - 400,
-              y: WORLD_HEIGHT / 2 - 300,
+              x: WORLD_WIDTH / 2 - 450,
+              y: WORLD_HEIGHT / 2 - 350,
               zoom: 1,
             })
           }
-          className="w-9 h-9 bg-stone-900/90 hover:bg-stone-800 text-cyan-400 border border-stone-700/80 rounded-md flex items-center justify-center font-mono text-xs font-bold shadow-lg active:scale-95 transition-transform"
-          title="Center on Base"
+          className="w-10 h-8 bg-stone-900/90 hover:bg-stone-800 text-cyan-400 border border-stone-700/80 rounded-md flex items-center justify-center font-mono text-[10px] font-bold shadow-lg active:scale-95 transition-transform"
+          title="Center on Colony Base"
         >
           BASE
+        </button>
+        <button
+          onClick={() =>
+            setCamera({
+              x: WORLD_WIDTH / 2 - 1200,
+              y: WORLD_HEIGHT / 2 - 900,
+              zoom: 0.35,
+            })
+          }
+          className="w-10 h-8 bg-stone-900/90 hover:bg-stone-800 text-purple-400 border border-stone-700/80 rounded-md flex items-center justify-center font-mono text-[10px] font-bold shadow-lg active:scale-95 transition-transform"
+          title="Orbital Overview (Full Planet Map)"
+        >
+          ORBIT
         </button>
       </div>
 
