@@ -106,9 +106,23 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
   });
 
   const isDraggingRef = useRef(false);
+  const isMinimapDraggingRef = useRef(false);
+  const minimapDragOffsetRef = useRef({ x: 0, y: 0 });
   const dragStartRef = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
   const mouseWorldPosRef = useRef({ x: 0, y: 0, gridX: 0, gridY: 0 });
   const [cursorGrid, setCursorGrid] = useState<{ x: number; y: number } | null>(null);
+
+  // Global mouse up to reliably release minimap or world camera dragging
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      isDraggingRef.current = false;
+      isMinimapDraggingRef.current = false;
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, []);
 
   // Particle systems
   const atmosphericParticlesRef = useRef<AtmosphericParticle[]>([]);
@@ -171,7 +185,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       const screenX = e.clientX - rect.left;
       const screenY = e.clientY - rect.top;
 
-      // Minimap click navigation
+      // Minimap click & drag navigation (allows dragging the camera square)
       const mmWidth = 190;
       const mmHeight = 190;
       const mmX = rect.width - mmWidth - 16;
@@ -182,13 +196,42 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         screenY >= mmY &&
         screenY <= mmY + mmHeight
       ) {
-        const targetWorldX = ((screenX - mmX) / mmWidth) * WORLD_WIDTH;
-        const targetWorldY = ((screenY - mmY) / mmHeight) * WORLD_HEIGHT;
-        setCamera((prev) => ({
-          ...prev,
-          x: Math.max(-400, Math.min(WORLD_WIDTH - 200, targetWorldX - (rect.width / prev.zoom) / 2)),
-          y: Math.max(-400, Math.min(WORLD_HEIGHT - 200, targetWorldY - (rect.height / prev.zoom) / 2)),
-        }));
+        isMinimapDraggingRef.current = true;
+
+        const camW = (rect.width / camera.zoom / WORLD_WIDTH) * mmWidth;
+        const camH = (rect.height / camera.zoom / WORLD_HEIGHT) * mmHeight;
+        const camX = mmX + (camera.x / WORLD_WIDTH) * mmWidth;
+        const camY = mmY + (camera.y / WORLD_HEIGHT) * mmHeight;
+
+        const isInsideCameraSquare =
+          screenX >= camX &&
+          screenX <= camX + camW &&
+          screenY >= camY &&
+          screenY <= camY + camH;
+
+        if (isInsideCameraSquare) {
+          // Grab exact position relative to square top-left
+          minimapDragOffsetRef.current = {
+            x: screenX - camX,
+            y: screenY - camY,
+          };
+        } else {
+          // Clicked anywhere else on minimap: center square on click
+          minimapDragOffsetRef.current = {
+            x: camW / 2,
+            y: camH / 2,
+          };
+          const desiredCamXOnMinimap = screenX - mmX - camW / 2;
+          const desiredCamYOnMinimap = screenY - mmY - camH / 2;
+          const targetWorldX = (desiredCamXOnMinimap / mmWidth) * WORLD_WIDTH;
+          const targetWorldY = (desiredCamYOnMinimap / mmHeight) * WORLD_HEIGHT;
+
+          setCamera((prev) => ({
+            ...prev,
+            x: Math.max(-400, Math.min(WORLD_WIDTH - 200, targetWorldX)),
+            y: Math.max(-400, Math.min(WORLD_HEIGHT - 200, targetWorldY)),
+          }));
+        }
         return;
       }
 
@@ -269,26 +312,64 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
     const screenX = e.clientX - rect.left;
     const screenY = e.clientY - rect.top;
 
-    // Drag on minimap to pan
-    const mmWidth = 190;
-    const mmHeight = 190;
-    const mmX = rect.width - mmWidth - 16;
-    const mmY = rect.height - mmHeight - 16;
-    if (
-      e.buttons === 1 &&
-      screenX >= mmX &&
-      screenX <= mmX + mmWidth &&
-      screenY >= mmY &&
-      screenY <= mmY + mmHeight
-    ) {
-      const targetWorldX = ((screenX - mmX) / mmWidth) * WORLD_WIDTH;
-      const targetWorldY = ((screenY - mmY) / mmHeight) * WORLD_HEIGHT;
+    // 1. Dragging the minimap camera square or radar viewport
+    if (isMinimapDraggingRef.current) {
+      const mmWidth = 190;
+      const mmHeight = 190;
+      const mmX = rect.width - mmWidth - 16;
+      const mmY = rect.height - mmHeight - 16;
+
+      const desiredCamXOnMinimap = (screenX - mmX) - minimapDragOffsetRef.current.x;
+      const desiredCamYOnMinimap = (screenY - mmY) - minimapDragOffsetRef.current.y;
+
+      const targetWorldX = (desiredCamXOnMinimap / mmWidth) * WORLD_WIDTH;
+      const targetWorldY = (desiredCamYOnMinimap / mmHeight) * WORLD_HEIGHT;
+
       setCamera((prev) => ({
         ...prev,
-        x: Math.max(-400, Math.min(WORLD_WIDTH - 200, targetWorldX - (rect.width / prev.zoom) / 2)),
-        y: Math.max(-400, Math.min(WORLD_HEIGHT - 200, targetWorldY - (rect.height / prev.zoom) / 2)),
+        x: Math.max(-400, Math.min(WORLD_WIDTH - 200, targetWorldX)),
+        y: Math.max(-400, Math.min(WORLD_HEIGHT - 200, targetWorldY)),
       }));
+
+      if (canvasRef.current) {
+        canvasRef.current.style.cursor = 'grabbing';
+      }
       return;
+    }
+
+    // Dynamic cursor styling based on minimap hover
+    if (canvasRef.current) {
+      const mmWidth = 190;
+      const mmHeight = 190;
+      const mmX = rect.width - mmWidth - 16;
+      const mmY = rect.height - mmHeight - 16;
+
+      const camW = (rect.width / camera.zoom / WORLD_WIDTH) * mmWidth;
+      const camH = (rect.height / camera.zoom / WORLD_HEIGHT) * mmHeight;
+      const camX = mmX + (camera.x / WORLD_WIDTH) * mmWidth;
+      const camY = mmY + (camera.y / WORLD_HEIGHT) * mmHeight;
+
+      if (
+        screenX >= camX &&
+        screenX <= camX + camW &&
+        screenY >= camY &&
+        screenY <= camY + camH
+      ) {
+        canvasRef.current.style.cursor = 'grab';
+      } else if (
+        screenX >= mmX &&
+        screenX <= mmX + mmWidth &&
+        screenY >= mmY &&
+        screenY <= mmY + mmHeight
+      ) {
+        canvasRef.current.style.cursor = 'pointer';
+      } else if (buildPlacingType) {
+        canvasRef.current.style.cursor = 'crosshair';
+      } else if (isDraggingRef.current) {
+        canvasRef.current.style.cursor = 'grabbing';
+      } else {
+        canvasRef.current.style.cursor = 'default';
+      }
     }
 
     const world = screenToWorld(screenX, screenY);
@@ -311,6 +392,10 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
 
   const handleMouseUp = () => {
     isDraggingRef.current = false;
+    isMinimapDraggingRef.current = false;
+    if (canvasRef.current) {
+      canvasRef.current.style.cursor = buildPlacingType ? 'crosshair' : 'default';
+    }
   };
 
   // Wheel zoom
@@ -1633,20 +1718,66 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         ctx.fill();
       });
 
+      // Draggable Viewport Camera Square
       const camW = (canvas.width / camera.zoom / WORLD_WIDTH) * mmWidth;
       const camH = (canvas.height / camera.zoom / WORLD_HEIGHT) * mmHeight;
       const camX = mmX + (camera.x / WORLD_WIDTH) * mmWidth;
       const camY = mmY + (camera.y / WORLD_HEIGHT) * mmHeight;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.2;
+
+      // Soft semi-transparent fill for the draggable camera box
+      ctx.fillStyle = isMinimapDraggingRef.current
+        ? 'rgba(56, 189, 248, 0.35)'
+        : 'rgba(255, 255, 255, 0.12)';
+      ctx.fillRect(camX, camY, camW, camH);
+
+      // Distinct border with drag highlight
+      ctx.strokeStyle = isMinimapDraggingRef.current ? '#38bdf8' : '#ffffff';
+      ctx.lineWidth = isMinimapDraggingRef.current ? 2 : 1.2;
       ctx.strokeRect(camX, camY, camW, camH);
 
-      ctx.font = '600 9px JetBrains Mono, monospace';
+      // Sci-fi corner brackets on the square
+      const cornerLen = Math.max(3, Math.min(6, camW * 0.25, camH * 0.25));
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.8;
+      // Top-left
+      ctx.beginPath();
+      ctx.moveTo(camX, camY + cornerLen);
+      ctx.lineTo(camX, camY);
+      ctx.lineTo(camX + cornerLen, camY);
+      // Top-right
+      ctx.moveTo(camX + camW - cornerLen, camY);
+      ctx.lineTo(camX + camW, camY);
+      ctx.lineTo(camX + camW, camY + cornerLen);
+      // Bottom-left
+      ctx.moveTo(camX, camY + camH - cornerLen);
+      ctx.lineTo(camX, camY + camH);
+      ctx.lineTo(camX + cornerLen, camY + camH);
+      // Bottom-right
+      ctx.moveTo(camX + camW - cornerLen, camY + camH);
+      ctx.lineTo(camX + camW, camY + camH);
+      ctx.lineTo(camX + camW, camY + camH - cornerLen);
+      ctx.stroke();
+
+      // Center crosshair
+      ctx.strokeStyle = isMinimapDraggingRef.current ? '#38bdf8' : 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(camX + camW / 2 - 3, camY + camH / 2);
+      ctx.lineTo(camX + camW / 2 + 3, camY + camH / 2);
+      ctx.moveTo(camX + camW / 2, camY + camH / 2 - 3);
+      ctx.lineTo(camX + camW / 2, camY + camH / 2 + 3);
+      ctx.stroke();
+
+      ctx.font = '600 8.5px JetBrains Mono, monospace';
       ctx.textAlign = 'left';
       ctx.fillStyle = '#f59e0b';
       ctx.fillText('TACTICAL ORBITAL MAP', mmX + 6, mmY + 12);
-      ctx.fillStyle = '#78716c';
-      ctx.fillText('80x80 GRID | 3840m', mmX + 6, mmY + mmHeight - 6);
+      ctx.fillStyle = isMinimapDraggingRef.current ? '#38bdf8' : '#78716c';
+      ctx.fillText(
+        isMinimapDraggingRef.current ? 'DRAGGING VIEWPORT' : 'DRAG SQUARE TO PAN',
+        mmX + 6,
+        mmY + mmHeight - 6
+      );
 
       animId = requestAnimationFrame(render);
     };
@@ -1672,7 +1803,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
   ]);
 
   return (
-    <div className="relative w-full h-full select-none overflow-hidden cursor-crosshair">
+    <div className="relative w-full h-full select-none overflow-hidden cursor-default">
       <canvas
         ref={canvasRef}
         className="w-full h-full block"
