@@ -1,0 +1,6 @@
+{
+  "name": "Ares Outpost: Mars Colony & Spice Harvester Sim",
+  "description": "Establish a thriving Martian colony: construct command hubs, life support, solar arrays, and habitats, while deploying autonomous heavy spice harvesters to navigate dust dunes and reap precious Martian melange.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
