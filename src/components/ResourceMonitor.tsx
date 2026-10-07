@@ -35,7 +35,7 @@ interface ResourceMonitorProps {
   onClose: () => void;
   history: ResourceHistoryPoint[];
   currentStats: ColonyStats;
-  initialFilter?: 'all' | 'power' | 'water' | 'oxygen';
+  initialFilter?: 'all' | 'power' | 'water' | 'oxygen' | 'food' | 'alloy' | 'ore' | 'spice' | 'credits' | 'morale' | 'health';
 }
 
 export const ResourceMonitor: React.FC<ResourceMonitorProps> = ({
@@ -45,7 +45,7 @@ export const ResourceMonitor: React.FC<ResourceMonitorProps> = ({
   currentStats,
   initialFilter = 'all',
 }) => {
-  const [selectedResource, setSelectedResource] = useState<'all' | 'power' | 'water' | 'oxygen'>(
+  const [selectedResource, setSelectedResource] = useState<'all' | 'power' | 'water' | 'oxygen' | 'food' | 'alloy' | 'ore' | 'spice' | 'credits' | 'morale' | 'health'>(
     initialFilter
   );
   const [timeSpanMinutes, setTimeSpanMinutes] = useState<number>(50); // 15, 30, or 50 game minutes

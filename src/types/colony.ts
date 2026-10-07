@@ -31,7 +31,9 @@ export type ModuleType =
   | 'research'
   | 'launchpad'
   | 'radar'
-  | 'medbay';
+  | 'medbay'
+  | 'garage'
+  | 'miner';
 
 export interface ModuleBlueprint {
   type: ModuleType;
@@ -79,7 +81,7 @@ export type HarvesterState =
   | 'broken_down'
   | 'docked';
 
-export type HarvesterModel = 'scout' | 'heavy' | 'titan';
+export type HarvesterModel = 'scout' | 'heavy' | 'titan' | 'ore_rover';
 
 export interface HarvesterModelSpec {
   model: HarvesterModel;
@@ -131,6 +133,14 @@ export interface SpicePatch {
   pulseOffset: number;
 }
 
+export interface OreDeposit {
+  id: string;
+  x: number; // grid col
+  y: number; // grid row
+  size: 'small' | 'medium' | 'large';
+  depleted: boolean;
+}
+
 export type WeatherType =
   | 'clear'
   | 'dust_veil'
@@ -145,6 +155,17 @@ export interface WeatherCondition {
   duration: number; // seconds left
   maxDuration: number;
   severity: number; // 0 to 1
+}
+
+export type RandomEventType = 'sandstorm_recovery' | 'tech_breakthrough' | 'meteor_strike';
+
+export interface RandomEvent {
+  type: RandomEventType;
+  name: string;
+  description: string;
+  duration: number; // seconds left
+  maxDuration: number;
+  effectMultiplier: number;
 }
 
 export interface TechNode {
@@ -194,6 +215,8 @@ export interface ColonyStats {
   alloy: number;
   spice: number;
   spiceCapacity: number;
+  ore: number;
+  maxOre: number;
   powerStored: number;
   powerCapacity: number;
   currentPowerProd: number;
@@ -241,4 +264,14 @@ export interface ResourceHistoryPoint {
   oxygenPct: number; // % of oxygen capacity (0 - 100)
   oxygenDelta: number; // net oxygen change in m³/s
   maxOxygen: number;
+  food: number;
+  foodPct: number;
+  foodDelta: number;
+  maxFood: number;
+  alloy: number;
+  ore: number;
+  spice: number;
+  credits: number;
+  morale: number;
+  health: number;
 }

@@ -137,8 +137,8 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     color: '#8b5cf6', // Violet
     icon: 'Home',
   },
-  refinery: {
-    type: 'refinery',
+  depot: {
+    type: 'depot',
     name: 'Spice Melange Refinery',
     category: 'industry',
     description: 'Stores and purifies raw Martian spice into high-grade galactic canisters (+600 Spice storage).',
@@ -154,8 +154,8 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     color: '#c026d3', // Fuchsia
     icon: 'Factory',
   },
-  depot: {
-    type: 'depot',
+  garage: {
+    type: 'garage',
     name: 'Harvester Garage & Bay',
     category: 'industry',
     description: 'Primary deployment hangar and offloading dock for autonomous spice harvesters.',
@@ -235,6 +235,38 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     color: '#10b981', // Emerald / Cyan medical
     icon: 'HeartPulse',
   },
+  miner: {
+    type: 'miner',
+    name: 'Ore Extraction Miner',
+    category: 'industry',
+    description: 'Automated drill rig extracting raw iron ore from subterranean deposits.',
+    costAlloy: 40,
+    costCredits: 90,
+    width: 2,
+    height: 2,
+    powerDelta: -12,
+    o2Delta: 0,
+    waterDelta: 0,
+    foodDelta: 0,
+    color: '#78350f', // Amber-900 (ore)
+    icon: 'Pickaxe',
+  },
+  refinery: {
+    type: 'refinery',
+    name: 'Ore Smelter Refinery',
+    category: 'industry',
+    description: 'Processes raw ore into high-grade structural alloy for construction.',
+    costAlloy: 50,
+    costCredits: 100,
+    width: 3,
+    height: 3,
+    powerDelta: -15,
+    o2Delta: 0,
+    waterDelta: 0,
+    foodDelta: 0,
+    color: '#94a3b8', // Slate-400 (alloy)
+    icon: 'Factory',
+  },
 };
 
 export const HARVESTER_SPECS: Record<string, HarvesterModelSpec> = {
@@ -270,6 +302,17 @@ export const HARVESTER_SPECS: Record<string, HarvesterModelSpec> = {
     speed: 1.3,
     harvestRate: 52,
     maxHealth: 450,
+  },
+  ore_rover: {
+    model: 'ore_rover',
+    name: 'Excavator Ore Rover',
+    description: 'Heavy duty crawler designed to drill, collect, and transport raw iron ore back to the Ore Refinery.',
+    costAlloy: 45,
+    costCredits: 80,
+    maxCargo: 150,
+    speed: 2.0,
+    harvestRate: 25,
+    maxHealth: 180,
   },
 };
 

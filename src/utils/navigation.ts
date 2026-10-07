@@ -36,6 +36,67 @@ export function getModuleAABB(module: ColonyModule, padding: number = 18): AABB 
 }
 
 /**
+ * Calculates the positions of power nodes on a building pad.
+ */
+export function getBuildingNodes(module: ColonyModule): Point[] {
+  const px = module.x * TILE_SIZE;
+  const py = module.y * TILE_SIZE;
+  const pw = module.width * TILE_SIZE;
+  const ph = module.height * TILE_SIZE;
+
+  const padInset = 4;
+  const rx = px + padInset;
+  const ry = py + padInset;
+  const rw = pw - padInset * 2;
+  const rh = ph - padInset * 2;
+
+  if (rw <= 0 || rh <= 0) return [{ x: px + pw / 2, y: py + ph / 2 }];
+
+  const unit = Math.min(rw, rh);
+  const rim = Math.min(5, unit * 0.08);
+  const nodeSize = Math.min(8, unit * 0.14);
+  const offset = Math.max(rim / 2, nodeSize / 2);
+  const left = rx + offset;
+  const right = rx + rw - offset;
+  const top = ry + offset;
+  const bottom = ry + rh - offset;
+  const midX = rx + rw / 2;
+  const midY = ry + rh / 2;
+
+  return [
+    { x: left, y: top },
+    { x: midX, y: top },
+    { x: right, y: top },
+    { x: right, y: midY },
+    { x: right, y: bottom },
+    { x: midX, y: bottom },
+    { x: left, y: bottom },
+    { x: left, y: midY },
+  ];
+}
+
+/**
+ * Finds the pair of closest power nodes between two modules.
+ */
+export function getClosestNodes(m1: ColonyModule, m2: ColonyModule): { n1: Point; n2: Point } {
+  const nodes1 = getBuildingNodes(m1);
+  const nodes2 = getBuildingNodes(m2);
+
+  let minD = Infinity;
+  let bestPair = { n1: nodes1[0], n2: nodes2[0] };
+  for (const n1 of nodes1) {
+    for (const n2 of nodes2) {
+      const d = Math.hypot(n1.x - n2.x, n1.y - n2.y);
+      if (d < minD) {
+        minD = d;
+        bestPair = { n1, n2 };
+      }
+    }
+  }
+  return bestPair;
+}
+
+/**
  * Checks if a 2D line segment intersects an Axis-Aligned Bounding Box (Liang-Barsky)
  */
 export function segmentIntersectsAABB(
@@ -164,10 +225,11 @@ export function getPowerLines(
     for (let j = i + 1; j < modules.length; j++) {
       const m1 = modules[i];
       const m2 = modules[j];
-      const c1x = (m1.x + m1.width / 2) * TILE_SIZE;
-      const c1y = (m1.y + m1.height / 2) * TILE_SIZE;
-      const c2x = (m2.x + m2.width / 2) * TILE_SIZE;
-      const c2y = (m2.y + m2.height / 2) * TILE_SIZE;
+      const { n1, n2 } = getClosestNodes(m1, m2);
+      const c1x = n1.x;
+      const c1y = n1.y;
+      const c2x = n2.x;
+      const c2y = n2.y;
       const dist = Math.hypot(c1x - c2x, c1y - c2y);
 
       if (dist > maxRange) continue;
@@ -265,14 +327,8 @@ export function hasClearLineOfSight(
     }
   }
 
-  // 2. Check power line crossings
-  const lines = powerLines || getPowerLines(modules);
-  for (let i = 0; i < lines.length; i++) {
-    const pl = lines[i];
-    if (distanceBetweenSegments(x1, y1, x2, y2, pl.x1, pl.y1, pl.x2, pl.y2) < linePadding) {
-      return false;
-    }
-  }
+  // 2. Power lines are elevated cables; harvesters can freely pass under them.
+  // We no longer block line of sight based on power lines.
 
   return true;
 }
@@ -288,7 +344,8 @@ export function findDockingApron(
   fromY: number,
   modules: ColonyModule[],
   clearance: number = 28,
-  powerLines?: PowerLine[]
+  powerLines?: PowerLine[],
+  currentTarget?: { x: number; y: number } | null
 ): Point {
   const cx = (depot.x + depot.width / 2) * TILE_SIZE;
   const cy = (depot.y + depot.height / 2) * TILE_SIZE;
@@ -314,15 +371,20 @@ export function findDockingApron(
     });
     if (hitBuilding) return false;
 
-    // Check power line proximity
-    const hitPowerLine = lines.some((pl) => {
-      const pt = closestPointOnSegment(cand.x, cand.y, pl.x1, pl.y1, pl.x2, pl.y2);
-      return pt.dist < clearance;
-    });
-    return !hitPowerLine;
+    // Check power line proximity - removed, harvesters can drive under them
+    return true;
   });
 
   const pool = validCandidates.length > 0 ? validCandidates : candidates;
+
+  // If we already have a target that is still a valid apron, stick to it to prevent oscillating
+  if (currentTarget) {
+    for (const p of pool) {
+      if (Math.hypot(p.x - currentTarget.x, p.y - currentTarget.y) < 1.0) {
+        return p;
+      }
+    }
+  }
 
   // Pick candidate closest to incoming vehicle
   let best = pool[0];
@@ -381,29 +443,6 @@ export function findNavigationPath(
     }
   });
 
-  // Mark tiles crossed by high-voltage power lines
-  const powerLineBlockedTiles = new Set<string>();
-  lines.forEach((pl) => {
-    const minX = Math.max(0, Math.floor((Math.min(pl.x1, pl.x2) - 14) / TILE_SIZE));
-    const maxX = Math.min(GRID_SIZE - 1, Math.floor((Math.max(pl.x1, pl.x2) + 14) / TILE_SIZE));
-    const minY = Math.max(0, Math.floor((Math.min(pl.y1, pl.y2) - 14) / TILE_SIZE));
-    const maxY = Math.min(GRID_SIZE - 1, Math.floor((Math.max(pl.y1, pl.y2) + 14) / TILE_SIZE));
-
-    for (let gx = minX; gx <= maxX; gx++) {
-      for (let gy = minY; gy <= maxY; gy++) {
-        const box = {
-          minX: gx * TILE_SIZE,
-          minY: gy * TILE_SIZE,
-          maxX: (gx + 1) * TILE_SIZE,
-          maxY: (gy + 1) * TILE_SIZE,
-        };
-        if (segmentIntersectsAABB(pl.x1, pl.y1, pl.x2, pl.y2, box)) {
-          powerLineBlockedTiles.add(`${gx},${gy}`);
-        }
-      }
-    }
-  });
-
   // A* search runner
   interface Node {
     x: number;
@@ -413,7 +452,7 @@ export function findNavigationPath(
     parent: Node | null;
   }
 
-  function runAStar(allowPowerLinePenalized: boolean): Node | null {
+  function runAStar(): Node | null {
     const openList: Node[] = [];
     const closedSet = new Set<string>();
 
@@ -473,20 +512,6 @@ export function findNavigationPath(
           continue;
         }
 
-        // Power lines check
-        let stepCost = d.cost;
-        if (powerLineBlockedTiles.has(nKey)) {
-          if (!allowPowerLinePenalized) {
-            // Strictly blocked in primary pass
-            if (!(nx === endTileX && ny === endTileY) && !(nx === startTileX && ny === startTileY)) {
-              continue;
-            }
-          } else {
-            // High penalty in fallback pass to strongly favor perimeter routing
-            stepCost += 50;
-          }
-        }
-
         // Corner cutting prevention
         if (d.dx !== 0 && d.dy !== 0) {
           if (
@@ -497,7 +522,7 @@ export function findNavigationPath(
           }
         }
 
-        const g = current.g + stepCost;
+        const g = current.g + d.cost;
         const h = Math.hypot(endTileX - nx, endTileY - ny);
         const f = g + h;
 
@@ -517,13 +542,7 @@ export function findNavigationPath(
     return goalNode;
   }
 
-  // 1st Pass: strictly avoid power lines
-  let goalNode = runAStar(false);
-
-  // 2nd Pass: if completely enclosed with zero open paths, allow penalized crossing
-  if (!goalNode) {
-    goalNode = runAStar(true);
-  }
+  let goalNode = runAStar();
 
   // Reconstruct path
   if (!goalNode) {
@@ -541,7 +560,10 @@ export function findNavigationPath(
   }
 
   if (rawPoints.length > 0) {
-    rawPoints[rawPoints.length - 1] = { x: targetX, y: targetY };
+    const last = rawPoints[rawPoints.length - 1];
+    if (Math.hypot(last.x - targetX, last.y - targetY) > 2) {
+      rawPoints.push({ x: targetX, y: targetY });
+    }
   }
 
   // 3. String-Pulling / Line-of-sight path pruning:
@@ -561,7 +583,7 @@ export function findNavigationPath(
           rawPoints[j].y,
           modules,
           lines,
-          18,
+          16,
           14
         )
       ) {
@@ -603,73 +625,8 @@ export function steerAndAvoidBuildings(
   let desiredVx = Math.cos(toTargetAngle);
   let desiredVy = Math.sin(toTargetAngle);
 
-  // 2. Sensory Whisker Obstacle Avoidance:
-  // Cast forward, left-whisker (+35°), right-whisker (-35°)
-  const whiskerDist = Math.max(30, speed * 26 * dt * 3.6);
-  const whiskers = [
-    { angle: currentAngle, weight: 1.4 },
-    { angle: currentAngle + 0.6, weight: 1.0 },
-    { angle: currentAngle - 0.6, weight: 1.0 },
-  ];
-
-  let steerRepulsionX = 0;
-  let steerRepulsionY = 0;
-
-  for (const w of whiskers) {
-    const wx = x + Math.cos(w.angle) * whiskerDist;
-    const wy = y + Math.sin(w.angle) * whiskerDist;
-
-    // A. Detect Buildings
-    for (const m of modules) {
-      const box = getModuleAABB(m, radius + 4);
-      if (segmentIntersectsAABB(x, y, wx, wy, box)) {
-        const bcx = (box.minX + box.maxX) / 2;
-        const bcy = (box.minY + box.maxY) / 2;
-        const awayAngle = Math.atan2(y - bcy, x - bcx);
-        steerRepulsionX += Math.cos(awayAngle) * w.weight * 1.6;
-        steerRepulsionY += Math.sin(awayAngle) * w.weight * 1.6;
-      }
-    }
-
-    // B. Detect Power Lines
-    for (const pl of lines) {
-      // Check if whisker segment crosses the power line or tip is too close
-      const crosses = segmentsCross(x, y, wx, wy, pl.x1, pl.y1, pl.x2, pl.y2);
-      const tipClosest = closestPointOnSegment(wx, wy, pl.x1, pl.y1, pl.x2, pl.y2);
-
-      if (crosses || tipClosest.dist < radius + 6) {
-        // Vehicle closest point on power line
-        const vehClosest = closestPointOnSegment(x, y, pl.x1, pl.y1, pl.x2, pl.y2);
-        let awayX = x - vehClosest.x;
-        let awayY = y - vehClosest.y;
-        const awayDist = Math.hypot(awayX, awayY);
-
-        if (awayDist > 0.001) {
-          awayX /= awayDist;
-          awayY /= awayDist;
-        } else {
-          // If perfectly on line, push perpendicular to power line
-          const ldx = pl.x2 - pl.x1;
-          const ldy = pl.y2 - pl.y1;
-          const llen = Math.hypot(ldx, ldy) || 1;
-          awayX = -ldy / llen;
-          awayY = ldx / llen;
-        }
-
-        steerRepulsionX += awayX * w.weight * 1.8;
-        steerRepulsionY += awayY * w.weight * 1.8;
-      }
-    }
-  }
-
-  // Combine desired direction with obstacle whisker avoidance
-  let combinedVx = desiredVx + steerRepulsionX;
-  let combinedVy = desiredVy + steerRepulsionY;
-  const combinedLen = Math.hypot(combinedVx, combinedVy);
-  if (combinedLen > 0.001) {
-    combinedVx /= combinedLen;
-    combinedVy /= combinedLen;
-  }
+  let combinedVx = desiredVx;
+  let combinedVy = desiredVy;
 
   // Smooth turn toward combined direction
   const targetTurnAngle = Math.atan2(combinedVy, combinedVx);
@@ -687,8 +644,11 @@ export function steerAndAvoidBuildings(
 
   // 3. Strict Physical Collision Resolution & Wall Sliding:
   // A. Prevent penetration inside any building's padded bounding box
+  // We cap the physical radius to 16 so it never intersects the center of adjacent A* tiles (20px).
+  const safeRadius = Math.min(radius, 16);
+  
   for (const m of modules) {
-    const box = getModuleAABB(m, radius);
+    const box = getModuleAABB(m, safeRadius);
 
     if (nextX > box.minX && nextX < box.maxX && nextY > box.minY && nextY < box.maxY) {
       const dLeft = nextX - box.minX;
@@ -710,37 +670,21 @@ export function steerAndAvoidBuildings(
     }
   }
 
-  // B. Prevent driving over / penetrating high-voltage power lines
-  const powerClearance = radius + 6;
-  for (const pl of lines) {
-    const pt = closestPointOnSegment(nextX, nextY, pl.x1, pl.y1, pl.x2, pl.y2);
-    if (pt.dist < powerClearance) {
-      const overlap = powerClearance - pt.dist;
-      let nx = nextX - pt.x;
-      let ny = nextY - pt.y;
-      const ndist = Math.hypot(nx, ny);
-
-      if (ndist > 0.001) {
-        nx /= ndist;
-        ny /= ndist;
-      } else {
-        const ldx = pl.x2 - pl.x1;
-        const ldy = pl.y2 - pl.y1;
-        const llen = Math.hypot(ldx, ldy) || 1;
-        nx = -ldy / llen;
-        ny = ldx / llen;
-      }
-
-      nextX += nx * overlap;
-      nextY += ny * overlap;
-    }
-  }
-
   // Keep within world boundaries
   nextX = Math.max(radius, Math.min(WORLD_WIDTH - radius, nextX));
   nextY = Math.max(radius, Math.min(WORLD_HEIGHT - radius, nextY));
 
-  return { nextX, nextY, nextAngle };
+  // Final Angle Snapping: If wall-sliding physically redirected the rover,
+  // ensure the visual chassis perfectly aligns with the actual physical movement vector.
+  // This completely eliminates diagonal "drifting" against straight walls.
+  const actualDx = nextX - x;
+  const actualDy = nextY - y;
+  let finalAngle = nextAngle;
+  if (Math.hypot(actualDx, actualDy) > 0.001) {
+    finalAngle = Math.atan2(actualDy, actualDx);
+  }
+
+  return { nextX, nextY, nextAngle: finalAngle };
 }
 
 // Export alias for semantic clarity

@@ -1,5 +1,5 @@
 import { GRID_SIZE, TILE_SIZE, WORLD_HEIGHT, WORLD_WIDTH } from './constants';
-import { SpicePatch } from '../types/colony';
+import { OreDeposit, SpicePatch } from '../types/colony';
 
 export interface Crater {
   x: number;
@@ -25,6 +25,7 @@ export interface MarsTerrainData {
   rocks: Rock[];
   dunes: DuneRidge[];
   spicePatches: SpicePatch[];
+  oreDeposits: OreDeposit[];
 }
 
 export function generateMarsTerrain(): MarsTerrainData {
@@ -32,6 +33,7 @@ export function generateMarsTerrain(): MarsTerrainData {
   const rocks: Rock[] = [];
   const dunes: DuneRidge[] = [];
   const spicePatches: SpicePatch[] = [];
+  const oreDeposits: OreDeposit[] = [];
 
   // Generate 28-36 craters across the enlarged map
   const craterCount = 30;
@@ -120,8 +122,19 @@ export function generateMarsTerrain(): MarsTerrainData {
       pulseOffset: Math.random() * Math.PI * 2,
     });
   });
+  
+  // Spawn initial Ore Deposits
+  for(let i=0; i<15; i++) {
+    oreDeposits.push({
+        id: `ore_${i}_${Date.now()}`,
+        x: Math.floor(Math.random() * (GRID_SIZE - 4)) + 2,
+        y: Math.floor(Math.random() * (GRID_SIZE - 4)) + 2,
+        size: Math.random() > 0.7 ? 'large' : Math.random() > 0.4 ? 'medium' : 'small',
+        depleted: false
+    })
+  }
 
-  return { craters, rocks, dunes, spicePatches };
+  return { craters, rocks, dunes, spicePatches, oreDeposits };
 }
 
 /**

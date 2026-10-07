@@ -14,8 +14,11 @@ import {
   ModuleType,
   ResourceHistoryPoint,
   SpicePatch,
+  OreDeposit,
   TechNode,
   WeatherCondition,
+  RandomEvent,
+  RandomEventType,
 } from './types/colony';
 import {
   GRID_SIZE,
@@ -47,6 +50,7 @@ import { TradeRocketModal } from './components/TradeRocketModal';
 import { TutorialModal } from './components/TutorialModal';
 import { ColonyLog } from './components/ColonyLog';
 import { ResourceMonitor } from './components/ResourceMonitor';
+import { CustomAssetsModal } from './components/CustomAssetsModal';
 
 function generateInitialResourceHistory(initialStats: ColonyStats): ResourceHistoryPoint[] {
   const history: ResourceHistoryPoint[] = [];
@@ -105,6 +109,16 @@ function generateInitialResourceHistory(initialStats: ColonyStats): ResourceHist
       oxygenPct: Math.round((oxygen / Math.max(1, initialStats.maxOxygen)) * 1000) / 10,
       oxygenDelta: initialStats.currentO2Delta,
       maxOxygen: initialStats.maxOxygen,
+      food: initialStats.food,
+      foodPct: Math.round((initialStats.food / Math.max(1, initialStats.maxFood)) * 1000) / 10,
+      foodDelta: initialStats.currentFoodDelta,
+      maxFood: initialStats.maxFood,
+      alloy: initialStats.alloy,
+      ore: initialStats.ore,
+      spice: initialStats.spice,
+      credits: initialStats.credits,
+      morale: initialStats.morale,
+      health: initialStats.colonistHealth || 100,
     });
   }
   return history;
@@ -114,6 +128,7 @@ export default function App() {
   // Terrain & World
   const [terrain] = useState(() => generateMarsTerrain());
   const [spicePatches, setSpicePatches] = useState<SpicePatch[]>(() => terrain.spicePatches);
+  const [oreDeposits] = useState<OreDeposit[]>(() => terrain.oreDeposits);
 
   // Colony Modules
   const [modules, setModules] = useState<ColonyModule[]>([
@@ -299,6 +314,9 @@ export default function App() {
     severity: 0,
   });
 
+  // Random Events
+  const [randomEvent, setRandomEvent] = useState<RandomEvent | null>(null);
+
   // Colony Stats & Resources
   const [stats, setStats] = useState<ColonyStats>({
     sol: 1,
@@ -308,6 +326,8 @@ export default function App() {
     alloy: 140,
     spice: 45,
     spiceCapacity: 600,
+    ore: 0,
+    maxOre: 500,
     powerStored: 350,
     powerCapacity: 400,
     currentPowerProd: 65,
@@ -345,6 +365,7 @@ export default function App() {
   const [isTechTreeOpen, setIsTechTreeOpen] = useState<boolean>(false);
   const [isTradeRocketOpen, setIsTradeRocketOpen] = useState<boolean>(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
+  const [isCustomAssetsOpen, setIsCustomAssetsOpen] = useState<boolean>(false);
   const [isResourceMonitorOpen, setIsResourceMonitorOpen] = useState<boolean>(false);
   const [resourceMonitorFilter, setResourceMonitorFilter] = useState<'all' | 'power' | 'water' | 'oxygen'>('all');
   const [resourceHistory, setResourceHistory] = useState<ResourceHistoryPoint[]>(() =>
@@ -524,6 +545,18 @@ export default function App() {
           if (bp.foodDelta > 0) foodGen += bp.foodDelta * mult;
           if (bp.techRate) techGen += bp.techRate * mult;
         });
+
+        // Apply Random Event Effects
+        if (randomEvent) {
+          if (randomEvent.type === 'tech_breakthrough') {
+            powerCons *= randomEvent.effectMultiplier;
+          } else if (randomEvent.type === 'meteor_strike') {
+            powerProd *= randomEvent.effectMultiplier;
+            o2Gen *= randomEvent.effectMultiplier;
+            waterGen *= randomEvent.effectMultiplier;
+            foodGen *= randomEvent.effectMultiplier;
+          }
+        }
 
         // Life support consumption by colonists
         const o2Cons = prevStats.population * 1.5;
@@ -895,6 +928,16 @@ export default function App() {
             oxygenPct: Math.round((newO2 / Math.max(1, prevStats.maxOxygen)) * 1000) / 10,
             oxygenDelta: Math.round((o2Gen - o2Cons) * 10) / 10,
             maxOxygen: prevStats.maxOxygen,
+            food: Math.round(newFood * 10) / 10,
+            foodPct: Math.round((newFood / Math.max(1, prevStats.maxFood)) * 1000) / 10,
+            foodDelta: Math.round((foodGen - foodCons) * 10) / 10,
+            maxFood: prevStats.maxFood,
+            alloy: Math.round(prevStats.alloy * 10) / 10,
+            ore: Math.round(prevStats.ore * 10) / 10,
+            spice: Math.round(prevStats.spice * 10) / 10,
+            credits: Math.round(prevStats.credits * 10) / 10,
+            morale: Math.round(newMorale * 10) / 10,
+            health: Math.round(newHealth * 10) / 10,
           };
 
           setResourceHistory((prev) => {
@@ -999,19 +1042,69 @@ export default function App() {
         return { ...prevWeather, duration: nextDur };
       });
 
+      // 3. Random Event Generator Tick
+      setRandomEvent((prevEvent) => {
+        if (prevEvent) {
+          const nextDur = prevEvent.duration - dt;
+          if (nextDur <= 0) {
+            addLog('info', 'Event Concluded', `${prevEvent.name} has ended.`);
+            return null;
+          }
+          return { ...prevEvent, duration: nextDur };
+        }
+
+        // 0.1% chance per tick to trigger an event
+        if (Math.random() < 0.001) {
+          const roll = Math.random();
+          let newEvent: RandomEvent;
+          if (roll < 0.33) {
+            newEvent = {
+              type: 'sandstorm_recovery',
+              name: 'Sandstorm Recovery',
+              description: 'Surface cleanup crews finding leftover spice deposits.',
+              duration: 60,
+              maxDuration: 60,
+              effectMultiplier: 1.5, // +50% spice income
+            };
+            addLog('success', 'Sandstorm Recovery', 'Cleanup crews found new spice deposits!');
+          } else if (roll < 0.66) {
+            newEvent = {
+              type: 'tech_breakthrough',
+              name: 'Tech Breakthrough',
+              description: 'Engineering team optimized power grids.',
+              duration: 120,
+              maxDuration: 120,
+              effectMultiplier: 0.5, // -50% power consumption
+            };
+            addLog('success', 'Tech Breakthrough', 'Engineers optimized power grid usage!');
+          } else {
+            newEvent = {
+              type: 'meteor_strike',
+              name: 'Meteor Strike',
+              description: 'Impact damaged infrastructure efficiency.',
+              duration: 40,
+              maxDuration: 40,
+              effectMultiplier: 0.8, // -20% overall efficiency
+            };
+            addLog('danger', 'Meteor Strike!', 'Impact damaged colony infrastructure!');
+          }
+          return newEvent;
+        }
+        return null;
+      });
+
       // 3. Harvester Autonomous Roam & Harvest Tick
       setHarvesters((prevHarvesters) => {
         return prevHarvesters.map((h) => {
           let updated = { ...h };
 
           // Determine home depot/command position for return using exterior docking apron
-          const depot =
-            modules.find((m) => m.id === h.homeDepotId) ||
-            modules.find((m) => m.type === 'depot') ||
-            modules.find((m) => m.type === 'command') ||
-            modules[0];
+          const isOre = h.model === 'ore_rover';
+          const depot = isOre 
+            ? (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'refinery') || modules[0])
+            : (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command') || modules[0]);
           const depotDock = depot
-            ? findDockingApron(depot, h.x, h.y, modules, 28, powerLines)
+            ? findDockingApron(depot, h.x, h.y, modules, 28, powerLines, (h.targetX !== null && h.targetY !== null) ? { x: h.targetX, y: h.targetY } : null)
             : { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
           const depotX = depotDock.x;
           const depotY = depotDock.y;
@@ -1030,10 +1123,13 @@ export default function App() {
             h.maxCargo * (hasTech('titan_holds') ? 1.5 : 1.0)
           );
 
+          // Sandstorm Recovery effect
+          const currentHarvestRate = h.harvestRate * (randomEvent && randomEvent.type === 'sandstorm_recovery' ? randomEvent.effectMultiplier : 1.0);
+
           // State Machine
           if (h.autoHarvest) {
             // Check if cargo full
-            if (updated.cargo >= effectiveMaxCargo && updated.state !== 'unloading') {
+            if (updated.cargo >= effectiveMaxCargo && updated.state !== 'unloading' && updated.state !== 'returning_to_depot') {
               updated.state = 'returning_to_depot';
               updated.targetX = depotX;
               updated.targetY = depotY;
@@ -1042,7 +1138,9 @@ export default function App() {
 
             // IDLE: Seek closest spice patch with spice available
             if (updated.state === 'idle') {
-              const availablePatches = spicePatches.filter((p) => p.amount > 10);
+              const availablePatches = isOre 
+                ? oreDeposits.filter(p => !p.depleted).map(p => ({...p, x: p.x * 48 + 24, y: p.y * 48 + 24, amount: 100})) // adapter for ore to world coords
+                : spicePatches.filter((p) => p.amount > 10);
               if (availablePatches.length > 0) {
                 // Find nearest
                 let nearest = availablePatches[0];
@@ -1064,8 +1162,14 @@ export default function App() {
 
             // MOVING TO SPICE
             if (updated.state === 'moving_to_spice') {
-              const targetSpice = spicePatches.find((sp) => sp.id === updated.targetSpiceId);
-              if (!targetSpice || targetSpice.amount <= 0) {
+              let targetSpice: { x: number, y: number } | undefined;
+              if (isOre) {
+                const ore = oreDeposits.find(d => d.id === updated.targetSpiceId && !d.depleted);
+                if (ore) targetSpice = { ...ore, x: ore.x * 48 + 24, y: ore.y * 48 + 24 };
+              } else {
+                targetSpice = spicePatches.find((sp) => sp.id === updated.targetSpiceId && sp.amount > 0);
+              }
+              if (!targetSpice) {
                 // Pick another or return
                 updated.state = 'idle';
                 updated.targetSpiceId = null;
@@ -1103,7 +1207,7 @@ export default function App() {
                       : { x: targetSpice.x, y: targetSpice.y };
 
                   if (
-                    Math.hypot(currentGoal.x - updated.x, currentGoal.y - updated.y) < 26 &&
+                    Math.hypot(currentGoal.x - updated.x, currentGoal.y - updated.y) < 8 &&
                     updated.waypoints &&
                     updated.waypoints.length > 1
                   ) {
@@ -1151,7 +1255,14 @@ export default function App() {
 
             // HARVESTING SPICE
             if (updated.state === 'harvesting') {
-              const targetSpice = spicePatches.find((sp) => sp.id === updated.targetSpiceId);
+              let targetSpice: { id: string, amount: number } | undefined;
+              if (isOre) {
+                const ore = oreDeposits.find(d => d.id === updated.targetSpiceId);
+                if (ore && !ore.depleted) targetSpice = { id: ore.id, amount: 100000 }; // Ore doesn't deplete by amount
+              } else {
+                targetSpice = spicePatches.find((sp) => sp.id === updated.targetSpiceId);
+              }
+              
               if (!targetSpice || targetSpice.amount <= 0) {
                 // Spice patch dried up
                 updated.state = 'idle';
@@ -1160,18 +1271,20 @@ export default function App() {
               } else {
                 const minedAmount = Math.min(
                   targetSpice.amount,
-                  Math.min(effectiveMaxCargo - updated.cargo, updated.harvestRate * dt)
+                  Math.min(effectiveMaxCargo - updated.cargo, currentHarvestRate * dt)
                 );
                 updated.cargo += minedAmount;
 
                 // Decrement from patch
-                setSpicePatches((prevPatches) =>
-                  prevPatches.map((p) =>
-                    p.id === targetSpice.id
-                      ? { ...p, amount: Math.max(0, p.amount - minedAmount) }
-                      : p
-                  )
-                );
+                if (!isOre) {
+                  setSpicePatches((prevPatches) =>
+                    prevPatches.map((p) =>
+                      p.id === targetSpice?.id
+                        ? { ...p, amount: Math.max(0, p.amount - minedAmount) }
+                        : p
+                    )
+                  );
+                }
 
                 // Play occasional pulse sound
                 if (Math.random() < 0.2) {
@@ -1220,7 +1333,7 @@ export default function App() {
                     : { x: depotX, y: depotY };
 
                 if (
-                  Math.hypot(currentGoal.x - updated.x, currentGoal.y - updated.y) < 26 &&
+                  Math.hypot(currentGoal.x - updated.x, currentGoal.y - updated.y) < 8 &&
                   updated.waypoints &&
                   updated.waypoints.length > 1
                 ) {
@@ -1268,19 +1381,20 @@ export default function App() {
             if (updated.state === 'unloading') {
               updated.unloadingTimer -= dt;
               if (updated.unloadingTimer <= 0) {
-                // Deposit spice into colony stockpile!
+                // Deposit spice/ore into colony stockpile!
                 const delivered = updated.cargo;
                 setStats((prevStats) => ({
                   ...prevStats,
-                  spice: Math.min(prevStats.spiceCapacity, prevStats.spice + delivered),
-                  totalSpiceMined: prevStats.totalSpiceMined + delivered,
+                  spice: isOre ? prevStats.spice : Math.min(prevStats.spiceCapacity, prevStats.spice + delivered),
+                  ore: isOre ? prevStats.ore + delivered : prevStats.ore,
+                  totalSpiceMined: isOre ? prevStats.totalSpiceMined : prevStats.totalSpiceMined + delivered,
                 }));
 
                 sound.playSpiceDelivered();
                 addLog(
                   'success',
-                  'Spice Delivered',
-                  `${updated.name} delivered ${Math.round(delivered)}kg Spice Melange to refinery.`
+                  isOre ? 'Ore Delivered' : 'Spice Delivered',
+                  `${updated.name} delivered ${Math.round(delivered)}kg ${isOre ? 'Raw Ore' : 'Spice Melange'} to ${isOre ? 'Ore Refinery' : 'refinery'}.`
                 );
 
                 updated.totalSpiceDelivered += delivered;
@@ -1311,7 +1425,7 @@ export default function App() {
                     : { x: updated.targetX, y: updated.targetY };
 
                 if (
-                  Math.hypot(currentGoal.x - updated.x, currentGoal.y - updated.y) < 26 &&
+                  Math.hypot(currentGoal.x - updated.x, currentGoal.y - updated.y) < 8 &&
                   updated.waypoints &&
                   updated.waypoints.length > 1
                 ) {
@@ -1388,6 +1502,14 @@ export default function App() {
       return;
     }
 
+    if (buildPlacingType === 'miner') {
+      const isNearOre = oreDeposits.some(d => !d.depleted && Math.hypot(d.x - gridX, d.y - gridY) < 5);
+      if (!isNearOre) {
+        addLog('warning', 'Mining Restriction', 'Ore Miner must be placed near an ore deposit!');
+        return;
+      }
+    }
+
     // Deduct resources
     setStats((prev) => ({
       ...prev,
@@ -1425,10 +1547,10 @@ export default function App() {
     if (stats.alloy < spec.costAlloy || stats.credits < spec.costCredits) return;
 
     // Find depot or command exterior docking apron
-    const depot =
-      modules.find((m) => m.type === 'depot') ||
-      modules.find((m) => m.type === 'command') ||
-      modules[0];
+    const isOre = model === 'ore_rover';
+    const depot = isOre 
+      ? (modules.find((m) => m.type === 'refinery') || modules[0])
+      : (modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command') || modules[0]);
     const dock = depot
       ? findDockingApron(depot, WORLD_WIDTH / 2 + 120, WORLD_HEIGHT / 2, modules, 28, powerLines)
       : { x: WORLD_WIDTH / 2 + 50, y: WORLD_HEIGHT / 2 };
@@ -1476,13 +1598,12 @@ export default function App() {
     setHarvesters((prev) =>
       prev.map((h) => {
         if (h.id === harvesterId) {
-          const depot =
-            modules.find((m) => m.id === h.homeDepotId) ||
-            modules.find((m) => m.type === 'depot') ||
-            modules.find((m) => m.type === 'command') ||
-            modules[0];
+          const isOre = h.model === 'ore_rover';
+          const depot = isOre 
+            ? (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'refinery') || modules[0])
+            : (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command') || modules[0]);
           const dock = depot
-            ? findDockingApron(depot, h.x, h.y, modules, 28, powerLines)
+            ? findDockingApron(depot, h.x, h.y, modules, 28, powerLines, (h.targetX !== null && h.targetY !== null) ? { x: h.targetX, y: h.targetY } : null)
             : { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
           return {
             ...h,
@@ -1706,6 +1827,7 @@ export default function App() {
         onOpenTechTree={() => setIsTechTreeOpen(true)}
         onOpenTradeRocket={() => setIsTradeRocketOpen(true)}
         onOpenTutorial={() => setIsTutorialOpen(true)}
+        onOpenCustomAssets={() => setIsCustomAssetsOpen(true)}
         onOpenResourceMonitor={(filter) => {
           setResourceMonitorFilter(filter || 'all');
           setIsResourceMonitorOpen(true);
@@ -1720,6 +1842,7 @@ export default function App() {
         harvesters={harvesters}
         powerLines={powerLines}
         spicePatches={spicePatches}
+        oreDeposits={oreDeposits}
         weather={weather}
         timeOfDay={stats.timeOfDay}
         selectedModule={selectedModule}
@@ -1851,6 +1974,12 @@ export default function App() {
         history={resourceHistory}
         currentStats={stats}
         initialFilter={resourceMonitorFilter}
+      />
+
+      {/* Custom PNG Graphics & Sprites Manager Modal */}
+      <CustomAssetsModal
+        isOpen={isCustomAssetsOpen}
+        onClose={() => setIsCustomAssetsOpen(false)}
       />
     </div>
   );

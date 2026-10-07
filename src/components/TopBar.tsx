@@ -16,6 +16,7 @@ import {
   Flame,
   HeartPulse,
   HelpCircle,
+  Image as ImageIcon,
   Pause,
   Play,
   Rocket,
@@ -37,6 +38,7 @@ interface TopBarProps {
   onOpenTechTree: () => void;
   onOpenTradeRocket: () => void;
   onOpenTutorial: () => void;
+  onOpenCustomAssets: () => void;
   onOpenResourceMonitor: (filter?: 'all' | 'power' | 'water' | 'oxygen') => void;
   onCycleWeather?: () => void;
 }
@@ -51,6 +53,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenTechTree,
   onOpenTradeRocket,
   onOpenTutorial,
+  onOpenCustomAssets,
   onOpenResourceMonitor,
   onCycleWeather,
 }) => {
@@ -172,6 +175,16 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="hidden sm:inline">GUIDE</span>
           </button>
 
+          {/* Custom Graphics / Sprites Manager */}
+          <button
+            onClick={onOpenCustomAssets}
+            className="flex items-center gap-1 bg-stone-900 hover:bg-stone-800 border border-stone-700 px-2.5 py-1 rounded-md text-xs text-stone-300 transition-colors"
+            title="Manage Custom Building PNG Sprites & Textures"
+          >
+            <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">SPRITES</span>
+          </button>
+
           {/* Audio Synthesizer Mute Toggle */}
           <button
             onClick={onToggleMute}
@@ -228,17 +241,24 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Lower Row: Tactical Resource Dash */}
-      <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 font-mono text-xs">
+      <div className="flex flex-wrap justify-center sm:justify-between gap-1.5 font-mono text-xs w-full">
         {/* Power Grid */}
         <div
           onClick={() => onOpenResourceMonitor('power')}
-          className={`flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-yellow-500/70 hover:bg-stone-900 ${
+          className={`relative group flex-1 min-w-[80px] flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-yellow-500/70 hover:bg-stone-900 ${
             isPowerBlackout
               ? 'border-red-500 bg-red-950/70 text-red-200 animate-critical-pulse'
               : 'bg-stone-900/90 border-stone-800 text-stone-200'
           }`}
-          title={`Click to open Resource Monitor (Power Grid) | Generation: ${Math.round(stats.currentPowerProd)} kW | Consumption: ${Math.round(stats.currentPowerCons)} kW | Battery: ${Math.round(stats.powerStored)}/${stats.powerCapacity} kW`}
         >
+          {/* Custom Tooltip */}
+          <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
+            <div className="font-bold text-yellow-400 mb-1">Power Grid</div>
+            <div className="flex justify-between"><span>Generation:</span> <span>{Math.round(stats.currentPowerProd)} kW</span></div>
+            <div className="flex justify-between"><span>Consumption:</span> <span>{Math.round(stats.currentPowerCons)} kW</span></div>
+            <div className="flex justify-between border-t border-stone-700 mt-1 pt-1"><span>Battery:</span> <span>{Math.round(stats.powerStored)}/{stats.powerCapacity} kW</span></div>
+            <p className="mt-2 text-stone-400 text-[10px]">Produced by Solar Arrays & RTGs.</p>
+          </div>
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans">
               <Zap className="w-3 h-3 text-yellow-400" /> POWER
@@ -262,13 +282,20 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Oxygen (with subtle shake & pulse animation when critical) */}
         <div
           onClick={() => onOpenResourceMonitor('oxygen')}
-          className={`flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-cyan-500/70 hover:bg-stone-900 ${
+          className={`relative group flex-1 min-w-[80px] flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-cyan-500/70 hover:bg-stone-900 ${
             isO2Critical
               ? 'border-red-500 bg-red-950/80 text-red-200 animate-critical-vitals'
               : 'bg-stone-900/90 border-stone-800 text-stone-200'
           }`}
-          title={`Click to open Resource Monitor (Oxygen) | Reserves: ${Math.round(stats.oxygen)}/${stats.maxOxygen} m³ | Delta: ${stats.currentO2Delta >= 0 ? '+' : ''}${Math.round(stats.currentO2Delta)}/s ${isO2Critical ? 'CRITICAL RESERVE ALERT' : ''}`}
         >
+          {/* Custom Tooltip */}
+          <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
+            <div className="font-bold text-cyan-400 mb-1">Oxygen Atmosphere</div>
+            <div className="flex justify-between"><span>Current:</span> <span>{Math.round(stats.oxygen)}/{stats.maxOxygen} m³</span></div>
+            <div className="flex justify-between"><span>Delta:</span> <span>{stats.currentO2Delta >= 0 ? '+' : ''}{Math.round(stats.currentO2Delta)}/s</span></div>
+            {isO2Critical && <div className="border-t border-stone-700 mt-1 pt-1 text-red-400 font-bold">CRITICAL RESERVE ALERT</div>}
+            <p className="mt-2 text-stone-400 text-[10px]">Produced by Scrubbers & Bio-Domes. Consumed by Habitats.</p>
+          </div>
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans font-bold">
               {isO2Critical ? (
@@ -301,13 +328,20 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Water (with subtle shake & pulse animation when critical) */}
         <div
           onClick={() => onOpenResourceMonitor('water')}
-          className={`flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-blue-500/70 hover:bg-stone-900 ${
+          className={`relative group flex-1 min-w-[80px] flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-blue-500/70 hover:bg-stone-900 ${
             isWaterCritical
               ? 'border-red-500 bg-red-950/80 text-red-200 animate-critical-vitals'
               : 'bg-stone-900/90 border-stone-800 text-stone-200'
           }`}
-          title={`Click to open Resource Monitor (Water) | Reserves: ${Math.round(stats.water)}/${stats.maxWater} L | Delta: ${stats.currentWaterDelta >= 0 ? '+' : ''}${Math.round(stats.currentWaterDelta)}/s ${isWaterCritical ? 'CRITICAL DEHYDRATION ALERT' : ''}`}
         >
+          {/* Custom Tooltip */}
+          <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
+            <div className="font-bold text-blue-400 mb-1">Water Reserves</div>
+            <div className="flex justify-between"><span>Current:</span> <span>{Math.round(stats.water)}/{stats.maxWater} L</span></div>
+            <div className="flex justify-between"><span>Delta:</span> <span>{stats.currentWaterDelta >= 0 ? '+' : ''}{Math.round(stats.currentWaterDelta)}/s</span></div>
+            {isWaterCritical && <div className="border-t border-stone-700 mt-1 pt-1 text-red-400 font-bold">CRITICAL DEHYDRATION ALERT</div>}
+            <p className="mt-2 text-stone-400 text-[10px]">Extracted by Moisture Vaporators. Consumed by Habitats & Bio-Domes.</p>
+          </div>
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans font-bold">
               {isWaterCritical ? (
@@ -339,13 +373,21 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Food (with subtle shake & pulse animation when critical) */}
         <div
-          className={`flex flex-col border px-2.5 py-1 rounded transition-all ${
+          onClick={() => onOpenResourceMonitor('all')}
+          className={`relative group flex-1 min-w-[80px] flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-emerald-500/70 hover:bg-stone-900 ${
             isFoodCritical
               ? 'border-red-500 bg-red-950/80 text-red-200 animate-critical-vitals'
               : 'bg-stone-900/90 border-stone-800 text-stone-200'
           }`}
-          title={`Food reserves: ${Math.round(stats.food)}/${stats.maxFood} | Delta: ${stats.currentFoodDelta >= 0 ? '+' : ''}${Math.round(stats.currentFoodDelta)}/s ${isFoodCritical ? 'CRITICAL MALNUTRITION ALERT' : ''}`}
         >
+          {/* Custom Tooltip */}
+          <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
+            <div className="font-bold text-emerald-400 mb-1">Food Reserves</div>
+            <div className="flex justify-between"><span>Current:</span> <span>{Math.round(stats.food)}/{stats.maxFood}</span></div>
+            <div className="flex justify-between"><span>Delta:</span> <span>{stats.currentFoodDelta >= 0 ? '+' : ''}{Math.round(stats.currentFoodDelta)}/s</span></div>
+            {isFoodCritical && <div className="border-t border-stone-700 mt-1 pt-1 text-red-400 font-bold">CRITICAL MALNUTRITION ALERT</div>}
+            <p className="mt-2 text-stone-400 text-[10px]">Grown in Hydroponic Bio-Domes. Consumed by Habitats.</p>
+          </div>
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans font-bold">
               {isFoodCritical ? (
@@ -378,7 +420,8 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Colonists / Pop */}
         <div
-          className="flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded"
+          onClick={() => onOpenResourceMonitor('all')}
+          className="relative group flex-1 min-w-[80px] flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded cursor-pointer hover:border-purple-500/70 hover:bg-stone-900 transition-colors"
           title={`Colonists: ${stats.population}/${stats.maxPopulation} | Morale: ${Math.round(stats.morale)}%`}
         >
           <div className="flex items-center justify-between text-[10px] text-stone-400">
@@ -401,7 +444,8 @@ export const TopBar: React.FC<TopBarProps> = ({
           const isStrained = health < 70;
           return (
             <div
-              className={`flex flex-col border px-2.5 py-1 rounded transition-colors ${
+              onClick={() => onOpenResourceMonitor('all')}
+              className={`relative group flex-1 min-w-[80px] flex flex-col border px-2.5 py-1 rounded cursor-pointer hover:border-emerald-500/70 hover:bg-stone-900 transition-colors ${
                 isCrit
                   ? 'bg-red-950/90 border-red-500 shadow-md animate-pulse'
                   : isStrained
@@ -465,9 +509,15 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Construction Alloy */}
         <div
-          className="flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded"
-          title="Structural Alloy for building modules and heavy harvesters"
+          onClick={() => onOpenResourceMonitor('all')}
+          className="relative group flex-1 min-w-[80px] flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded cursor-pointer hover:border-orange-500/70 hover:bg-stone-900 transition-colors"
         >
+          {/* Custom Tooltip */}
+          <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
+            <div className="font-bold text-orange-400 mb-1">Structural Alloy</div>
+            <p>Structural Alloy for building modules and heavy harvesters.</p>
+            <p className="mt-2 text-stone-400 text-[10px]">Produced by Ore Smelter Refineries from Ore.</p>
+          </div>
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans">
               <Battery className="w-3 h-3 text-orange-400" /> ALLOY
@@ -480,11 +530,40 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
         </div>
 
+        {/* Raw Iron Ore */}
+        <div
+          onClick={() => onOpenResourceMonitor('all')}
+          className="relative group flex-1 min-w-[80px] flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded cursor-pointer hover:border-amber-500/70 hover:bg-stone-900 transition-colors"
+        >
+          {/* Custom Tooltip */}
+          <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
+            <div className="font-bold text-amber-900 mb-1">Raw Iron Ore</div>
+            <p>Raw iron ore extracted from the Martian crust.</p>
+            <p className="mt-2 text-stone-400 text-[10px]">Mined by Ore Extraction Miners.</p>
+          </div>
+          <div className="flex items-center justify-between text-[10px] text-stone-400">
+            <span className="flex items-center gap-1 font-sans">
+              <Atom className="w-3 h-3 text-amber-900" /> ORE
+            </span>
+            <span className="text-amber-900 font-semibold">RAW</span>
+          </div>
+          <div className="flex items-center justify-between font-bold mt-0.5">
+            <span className="text-amber-800">{Math.round(stats.ore)}</span>
+            <span className="text-stone-500 text-[10px]">UNITS</span>
+          </div>
+        </div>
+
         {/* SPICE MELANGE (Key Feature!) */}
         <div
-          className="flex flex-col bg-gradient-to-r from-purple-950/80 to-fuchsia-950/60 border border-fuchsia-600/70 px-2.5 py-1 rounded shadow-lg glow-purple"
-          title={`Raw Martian Melange: ${Math.round(stats.spice)}/${stats.spiceCapacity} kg | Refine or trade for credits`}
+          className="relative group flex flex-col bg-gradient-to-r from-purple-950/80 to-fuchsia-950/60 border border-fuchsia-600/70 px-2.5 py-1 rounded shadow-lg glow-purple"
         >
+          {/* Custom Tooltip */}
+          <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
+            <div className="font-bold text-fuchsia-400 mb-1">Martian Spice Melange</div>
+            <div className="flex justify-between"><span>Current:</span> <span>{Math.round(stats.spice)}/{stats.spiceCapacity} kg</span></div>
+            <p className="mt-1 text-stone-400">Refine or trade for credits.</p>
+            <p className="mt-2 text-stone-400 text-[10px]">Mined by Harvesters. Stored in Refineries.</p>
+          </div>
           <div className="flex items-center justify-between text-[10px] text-fuchsia-300">
             <span className="flex items-center gap-1 font-sans font-bold">
               <Zap className="w-3 h-3 text-fuchsia-400" /> SPICE
@@ -499,9 +578,14 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Galactic Credits */}
         <div
-          className="flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded"
-          title="Galactic Colony Credits (₡). Earned by selling Spice to Earth or completing milestones."
+          className="relative group flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded"
         >
+          {/* Custom Tooltip */}
+          <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
+            <div className="font-bold text-amber-400 mb-1">Galactic Credits</div>
+            <p>Galactic Colony Credits (₡). Earned by selling Spice to Earth or completing milestones.</p>
+            <p className="mt-2 text-stone-400 text-[10px]">Earned by trading refined spice.</p>
+          </div>
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans">
               <Coins className="w-3 h-3 text-amber-400" /> CREDITS
