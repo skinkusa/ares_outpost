@@ -1342,7 +1342,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       });
 
       // =====================================================================
-      // 7. HIGH-VOLTAGE POWER LINES WITH ENERGY BLOOM & STRUCTURAL PYLONS
+      // 7. HIGH-VOLTAGE POWER LINE TRENCHES (Ground Hazards)
       // =====================================================================
       const activePowerLines = powerLines || getPowerLines(modules);
       for (let i = 0; i < activePowerLines.length; i++) {
@@ -1365,76 +1365,9 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)';
         ctx.lineWidth = 11;
         ctx.stroke();
-
-        // 3. High-voltage ambient electromagnetic bloom
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
-        ctx.lineWidth = 7;
-        ctx.stroke();
-
-        // 4. Heavy insulated casing
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = 'rgba(30, 41, 59, 0.95)';
-        ctx.lineWidth = 3.5;
-        ctx.stroke();
-
-        // 5. Glowing superconducting core
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = 'rgba(125, 211, 252, 0.9)';
-        ctx.lineWidth = 1.8;
-        ctx.stroke();
-
-        // 6. High-voltage energy packet with radial bloom
-        const pulseT = (time * 1.35 + i * 0.42) % 1;
-        const dotX = x1 + (x2 - x1) * pulseT;
-        const dotY = y1 + (y2 - y1) * pulseT;
-
-        const packetGlow = ctx.createRadialGradient(dotX, dotY, 1, dotX, dotY, 10);
-        packetGlow.addColorStop(0, '#ffffff');
-        packetGlow.addColorStop(0.35, '#38bdf8');
-        packetGlow.addColorStop(0.8, 'rgba(56, 189, 248, 0.4)');
-        packetGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
-        ctx.beginPath();
-        ctx.arc(dotX, dotY, 10, 0, Math.PI * 2);
-        ctx.fillStyle = packetGlow;
-        ctx.fill();
-
-        // 7. Structural Transmission Pylons / Insulator Towers
-        const numPylons = length > 220 ? 2 : length > 120 ? 1 : 0;
-        for (let p = 1; p <= numPylons; p++) {
-          const ptFrac = p / (numPylons + 1);
-          const px = x1 + (x2 - x1) * ptFrac;
-          const py = y1 + (y2 - y1) * ptFrac;
-
-          // Pylon heavy concrete foundation base
-          ctx.beginPath();
-          ctx.arc(px, py, 6, 0, Math.PI * 2);
-          ctx.fillStyle = '#0f172a';
-          ctx.fill();
-          ctx.strokeStyle = '#475569';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-
-          // Ceramic insulator cap
-          ctx.beginPath();
-          ctx.arc(px, py, 3, 0, Math.PI * 2);
-          ctx.fillStyle = '#38bdf8';
-          ctx.fill();
-
-          // Flashing high-voltage hazard beacon
-          const beaconFlash = (Math.sin(time * 3.5 + px * 0.08) + 1) * 0.5;
-          ctx.beginPath();
-          ctx.arc(px, py - 4, 2, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(239, 68, 68, ${0.35 + beaconFlash * 0.65})`;
-          ctx.fill();
-        }
       }
+
+
 
       // =====================================================================
       // 8. TIRE TRACKS WITH DYNAMIC FADING GLOW & DUST KICK PARTICLES
@@ -2040,6 +1973,83 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           drawColonist(ctx, w, workerTime);
         }
       });
+
+      // =====================================================================
+      // 10.8. ELEVATED HIGH-VOLTAGE POWER CABLES & PYLONS
+      // =====================================================================
+      for (let i = 0; i < activePowerLines.length; i++) {
+        const line = activePowerLines[i];
+        const { x1, y1, x2, y2, length } = line;
+
+        // 3. High-voltage ambient electromagnetic bloom
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
+        ctx.lineWidth = 7;
+        ctx.stroke();
+
+        // 4. Heavy insulated casing
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(30, 41, 59, 0.95)';
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+
+        // 5. Glowing superconducting core
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(125, 211, 252, 0.9)';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        // 6. High-voltage energy packet with radial bloom
+        const pulseT = (time * 1.35 + i * 0.42) % 1;
+        const dotX = x1 + (x2 - x1) * pulseT;
+        const dotY = y1 + (y2 - y1) * pulseT;
+
+        const packetGlow = ctx.createRadialGradient(dotX, dotY, 1, dotX, dotY, 10);
+        packetGlow.addColorStop(0, '#ffffff');
+        packetGlow.addColorStop(0.35, '#38bdf8');
+        packetGlow.addColorStop(0.8, 'rgba(56, 189, 248, 0.4)');
+        packetGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, 10, 0, Math.PI * 2);
+        ctx.fillStyle = packetGlow;
+        ctx.fill();
+
+        // 7. Structural Transmission Pylons / Insulator Towers
+        const numPylons = length > 220 ? 2 : length > 120 ? 1 : 0;
+        for (let p = 1; p <= numPylons; p++) {
+          const ptFrac = p / (numPylons + 1);
+          const px = x1 + (x2 - x1) * ptFrac;
+          const py = y1 + (y2 - y1) * ptFrac;
+
+          // Pylon heavy concrete foundation base
+          ctx.beginPath();
+          ctx.arc(px, py, 6, 0, Math.PI * 2);
+          ctx.fillStyle = '#0f172a';
+          ctx.fill();
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Ceramic insulator cap
+          ctx.beginPath();
+          ctx.arc(px, py, 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fill();
+
+          // Flashing high-voltage hazard beacon
+          const beaconFlash = (Math.sin(time * 3.5 + px * 0.08) + 1) * 0.5;
+          ctx.beginPath();
+          ctx.arc(px, py - 4, 2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(239, 68, 68, ${0.35 + beaconFlash * 0.65})`;
+          ctx.fill();
+        }
+      }
 
       // =====================================================================
       // 11. ATMOSPHERIC DRIFT PARTICLES (Swirling Martian Dust)

@@ -1,0 +1,25 @@
+      // =====================================================================
+      // 7. HIGH-VOLTAGE POWER LINE TRENCHES (Ground Hazards)
+      // =====================================================================
+      const activePowerLines = powerLines || getPowerLines(modules);
+      for (let i = 0; i < activePowerLines.length; i++) {
+        const line = activePowerLines[i];
+        const { x1, y1, x2, y2, length } = line;
+
+        // 1. Ground safety hazard bed / conduit trench
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.7)';
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // 2. High-voltage hazard border stripes (amber/slate)
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)';
+        ctx.lineWidth = 11;
+        ctx.stroke();
+      }
