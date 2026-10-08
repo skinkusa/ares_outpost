@@ -373,7 +373,7 @@ export default function App() {
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
   const [isCustomAssetsOpen, setIsCustomAssetsOpen] = useState<boolean>(false);
   const [isResourceMonitorOpen, setIsResourceMonitorOpen] = useState<boolean>(false);
-  const [resourceMonitorFilter, setResourceMonitorFilter] = useState<'all' | 'power' | 'water' | 'oxygen'>('all');
+  const [resourceMonitorFilter, setResourceMonitorFilter] = useState<'all' | 'power' | 'water' | 'oxygen' | 'food' | 'alloy' | 'ore' | 'spice' | 'credits' | 'crew' | 'health'>('all');
   const [resourceHistory, setResourceHistory] = useState<ResourceHistoryPoint[]>(() =>
     generateInitialResourceHistory(stats)
   );

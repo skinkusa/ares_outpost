@@ -39,7 +39,7 @@ interface TopBarProps {
   onOpenTradeRocket: () => void;
   onOpenTutorial: () => void;
   onOpenCustomAssets: () => void;
-  onOpenResourceMonitor: (filter?: 'all' | 'power' | 'water' | 'oxygen') => void;
+  onOpenResourceMonitor: (filter?: 'all' | 'power' | 'water' | 'oxygen' | 'food' | 'alloy' | 'ore' | 'spice' | 'credits' | 'crew' | 'health') => void;
   onCycleWeather?: () => void;
 }
 
@@ -373,7 +373,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Food (with subtle shake & pulse animation when critical) */}
         <div
-          onClick={() => onOpenResourceMonitor('all')}
+          onClick={() => onOpenResourceMonitor('food')}
           className={`relative group flex-1 min-w-[80px] flex flex-col border px-2.5 py-1 rounded transition-all cursor-pointer hover:border-emerald-500/70 hover:bg-stone-900 ${
             isFoodCritical
               ? 'border-red-500 bg-red-950/80 text-red-200 animate-critical-vitals'
@@ -420,7 +420,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Colonists / Pop */}
         <div
-          onClick={() => onOpenResourceMonitor('all')}
+          onClick={() => onOpenResourceMonitor('crew')}
           className="relative group flex-1 min-w-[80px] flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded cursor-pointer hover:border-purple-500/70 hover:bg-stone-900 transition-colors"
           title={`Colonists: ${stats.population}/${stats.maxPopulation} | Morale: ${Math.round(stats.morale)}%\n(Import new Specialist Crew via the Earth Trade Shuttle)`}
         >
@@ -444,7 +444,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           const isStrained = health < 70;
           return (
             <div
-              onClick={() => onOpenResourceMonitor('all')}
+              onClick={() => onOpenResourceMonitor('health')}
               className={`relative group flex-1 min-w-[80px] flex flex-col border px-2.5 py-1 rounded cursor-pointer hover:border-emerald-500/70 hover:bg-stone-900 transition-colors ${
                 isCrit
                   ? 'bg-red-950/90 border-red-500 shadow-md animate-pulse'
@@ -509,7 +509,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Construction Alloy */}
         <div
-          onClick={() => onOpenResourceMonitor('all')}
+          onClick={() => onOpenResourceMonitor('alloy')}
           className="relative group flex-1 min-w-[80px] flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded cursor-pointer hover:border-orange-500/70 hover:bg-stone-900 transition-colors"
         >
           {/* Custom Tooltip */}
@@ -532,7 +532,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Raw Iron Ore */}
         <div
-          onClick={() => onOpenResourceMonitor('all')}
+          onClick={() => onOpenResourceMonitor('ore')}
           className="relative group flex-1 min-w-[80px] flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded cursor-pointer hover:border-amber-500/70 hover:bg-stone-900 transition-colors"
         >
           {/* Custom Tooltip */}
@@ -555,7 +555,8 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* SPICE (Key Feature!) */}
         <div
-          className="relative group flex flex-col bg-gradient-to-r from-purple-950/80 to-fuchsia-950/60 border border-fuchsia-600/70 px-2.5 py-1 rounded shadow-lg glow-purple"
+          onClick={() => onOpenResourceMonitor('spice')}
+          className="relative group flex flex-col bg-gradient-to-r from-purple-950/80 to-fuchsia-950/60 border border-fuchsia-600/70 px-2.5 py-1 rounded shadow-lg glow-purple cursor-pointer"
         >
           {/* Custom Tooltip */}
           <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
