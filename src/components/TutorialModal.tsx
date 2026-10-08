@@ -102,7 +102,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 4. Earth Commerce & Terraforming
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Export spice to Earth corporations via the <strong>Trade Shuttle</strong> for Galactic Credits (₡). Fund Science Labs to unlock high-yield technologies, culminating in the <strong>Atmospheric Genesis Engine</strong>!
+                Export spice to Earth corporations via the <strong>Trade Shuttle</strong> for Galactic Credits (₡). You can use credits to requisition supplies, titanium alloy, and most importantly, <strong>Specialist Crew</strong> to increase your colony's population! Fund Science Labs to unlock high-yield technologies, culminating in the <strong>Atmospheric Genesis Engine</strong>!
               </p>
             </div>
           </div>

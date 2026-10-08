@@ -422,7 +422,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div
           onClick={() => onOpenResourceMonitor('all')}
           className="relative group flex-1 min-w-[80px] flex flex-col bg-stone-900/90 border border-stone-800 px-2.5 py-1 rounded cursor-pointer hover:border-purple-500/70 hover:bg-stone-900 transition-colors"
-          title={`Colonists: ${stats.population}/${stats.maxPopulation} | Morale: ${Math.round(stats.morale)}%`}
+          title={`Colonists: ${stats.population}/${stats.maxPopulation} | Morale: ${Math.round(stats.morale)}%\n(Import new Specialist Crew via the Earth Trade Shuttle)`}
         >
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans">
