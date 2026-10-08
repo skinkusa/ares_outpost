@@ -228,6 +228,8 @@ export interface ColonyStats {
   alloy: number;
   spice: number;
   spiceCapacity: number;
+  autoExportSpice?: boolean;
+  autoExportThreshold?: number;
   ore: number;
   maxOre: number;
   powerStored: number;

@@ -330,6 +330,8 @@ export default function App() {
     alloy: 140,
     spice: 45,
     spiceCapacity: 600,
+    autoExportSpice: false,
+    autoExportThreshold: 100,
     ore: 0,
     maxOre: 500,
     powerStored: 350,
@@ -979,8 +981,36 @@ export default function App() {
           });
         }
 
+        // Auto Export Spice Logic
+        const hasLaunchpad = modules.some((m) => m.type === 'launchpad' && m.isActive);
+        let finalSpice = prevStats.spice;
+        let finalCredits = prevStats.credits;
+        let finalTotalEarned = prevStats.totalCreditsEarned;
+        
+        if (hasLaunchpad && prevStats.autoExportSpice) {
+          const threshold = prevStats.autoExportThreshold || 100;
+          if (finalSpice >= threshold && threshold > 0) {
+            // Sell exactly 'threshold' amount or all of it? Let's sell chunks of threshold.
+            // Or just sell all of it if it hits the threshold.
+            const amountToSell = Math.floor(finalSpice);
+            const tariff = 1.0; // Launchpad means 1.0 tariff
+            const mult = hasTech('spice_centrifuge') ? 1.4 : 1.0;
+            const pricePerKg = 2.5 * mult * tariff;
+            const revenue = Math.round(amountToSell * pricePerKg);
+            
+            finalSpice -= amountToSell;
+            finalCredits += revenue;
+            finalTotalEarned += revenue;
+            
+            addLog('spice', 'Auto-Export Complete', `Automated Shuttle launched ${amountToSell}kg Spice for +₡${revenue}!`);
+          }
+        }
+
         return {
           ...prevStats,
+          spice: finalSpice,
+          credits: finalCredits,
+          totalCreditsEarned: finalTotalEarned,
           sol: newSol,
           timeOfDay: newTime,
           powerStored: newPowerStored,
@@ -2107,6 +2137,10 @@ export default function App() {
         spicePriceMultiplier={hasTech('spice_centrifuge') ? 1.4 : 1.0}
         onSellSpice={handleSellSpice}
         onImportSupply={handleImportSupply}
+        autoExportSpice={stats.autoExportSpice || false}
+        autoExportThreshold={stats.autoExportThreshold || 100}
+        onToggleAutoExport={() => setStats(s => ({ ...s, autoExportSpice: !s.autoExportSpice }))}
+        onChangeAutoExportThreshold={(val) => setStats(s => ({ ...s, autoExportThreshold: val }))}
       />
 
       {/* Tutorial & Mission Briefing Modal */}

@@ -21,6 +21,10 @@ interface TradeRocketModalProps {
   spicePriceMultiplier: number; // default 1.0, upgraded via tech
   onSellSpice: (amount: number) => void;
   onImportSupply: (type: 'crew' | 'alloy' | 'supplies') => void;
+  autoExportSpice: boolean;
+  autoExportThreshold: number;
+  onToggleAutoExport: () => void;
+  onChangeAutoExportThreshold: (val: number) => void;
 }
 
 export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
@@ -32,6 +36,10 @@ export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
   spicePriceMultiplier,
   onSellSpice,
   onImportSupply,
+  autoExportSpice,
+  autoExportThreshold,
+  onToggleAutoExport,
+  onChangeAutoExportThreshold,
 }) => {
   const [spiceToSell, setSpiceToSell] = useState<number>(100);
 
@@ -69,6 +77,48 @@ export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto flex flex-col gap-6">
+          {/* Automated Export (Requires Launchpad) */}
+          {hasLaunchpad && (
+            <div className="bg-stone-900/80 border border-stone-800 p-3 rounded-lg flex items-center justify-between">
+              <div>
+                <h4 className="text-amber-400 font-title font-bold text-xs flex items-center gap-1.5">
+                  <Rocket className="w-3.5 h-3.5" /> AUTOMATED LOGISTICS
+                </h4>
+                <p className="text-[10px] text-stone-400 mt-0.5">
+                  Automatically launch shuttle when cargo reaches threshold.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-stone-500 font-mono">THRESHOLD:</span>
+                  <select
+                    value={autoExportThreshold}
+                    onChange={(e) => onChangeAutoExportThreshold(Number(e.target.value))}
+                    disabled={!autoExportSpice}
+                    className="bg-stone-950 border border-stone-800 rounded px-2 py-1 text-xs text-stone-300 font-mono focus:outline-none focus:border-amber-700/50 disabled:opacity-50"
+                  >
+                    <option value={50}>50kg</option>
+                    <option value={100}>100kg</option>
+                    <option value={250}>250kg</option>
+                    <option value={500}>500kg</option>
+                  </select>
+                </div>
+                <button
+                  onClick={onToggleAutoExport}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                    autoExportSpice ? 'bg-amber-600' : 'bg-stone-800'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                      autoExportSpice ? 'translate-x-4' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Launchpad Status Callout */}
           {!hasLaunchpad && (
             <div className="p-3 bg-amber-950/40 border border-amber-600/60 rounded-lg text-xs text-amber-200 flex items-center gap-3 font-mono">
