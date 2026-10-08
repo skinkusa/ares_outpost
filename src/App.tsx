@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import {
   ColonyEventLog,
+  ColonistWorker,
   ColonyModule,
   ColonyStats,
   Harvester,
@@ -273,6 +274,7 @@ export default function App() {
   const powerLines = useMemo(() => getPowerLines(modules), [modules]);
 
   // Initial Harvesters
+  const [workers, setWorkers] = useState<ColonistWorker[]>([]);
   const [harvesters, setHarvesters] = useState<Harvester[]>([
     {
       id: 'harvester_alpha',
@@ -1867,6 +1869,7 @@ export default function App() {
         terrain={terrain}
         modules={modules}
         harvesters={harvesters}
+        workers={workers}
         powerLines={powerLines}
         spicePatches={spicePatches}
         oreDeposits={oreDeposits}

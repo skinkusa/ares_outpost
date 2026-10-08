@@ -56,6 +56,18 @@ export interface ModuleBlueprint {
   icon: string;
 }
 
+export interface ColonistWorker {
+  id: string;
+  x: number;
+  y: number;
+  targetX: number | null;
+  targetY: number | null;
+  waypoints: { x: number; y: number }[];
+  angle: number;
+  state: 'idle' | 'walking';
+  timer: number;
+}
+
 export interface ColonyModule {
   id: string;
   type: ModuleType;
