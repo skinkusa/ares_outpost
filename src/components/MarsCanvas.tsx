@@ -3193,6 +3193,52 @@ function drawCommandCenter(ctx: CanvasRenderingContext2D, px: number, py: number
   ellipse(50, 29, 7, 4, c.accent);
   ellipse(50, 28, 5, 2.5, c.roof);
 
+  // Rotating search radar on the dome.
+  box(48.6, 24, 2.8, 5, c.roof);
+  ellipse(50, 28.5, 3.4, 1.5, c.wall);
+  ctx.save();
+  ctx.translate(50, 26);
+  ctx.scale(1, 0.55);
+  ctx.rotate(timeMs * 0.001);
+  ctx.beginPath();
+  ctx.arc(0, 0, 8, 0, Math.PI * 2);
+  ctx.fillStyle = c.accent;
+  ctx.fill();
+  ctx.strokeStyle = c.outline;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#0c4a6e';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.arc(0, 0, 6, -0.7, 0.15);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(165, 243, 252, 0.35)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.arc(0, 0, 6, -0.18, 0.18);
+  ctx.closePath();
+  ctx.fillStyle = '#e0f2fe';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(7.2, 0);
+  ctx.strokeStyle = c.highlight;
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(7.2, 0, 1, 0, Math.PI * 2);
+  ctx.fillStyle = c.amber;
+  ctx.fill();
+  ctx.strokeStyle = c.outline;
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.restore();
+  ellipse(50, 26, 1.3, 0.7, c.highlight);
+
   // Front wall accents.
   light(32, 58, 8, 3, c.amber);
   light(60, 58, 8, 3, c.amber);
