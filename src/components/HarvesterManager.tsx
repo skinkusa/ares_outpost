@@ -31,6 +31,7 @@ interface HarvesterManagerProps {
   onRecallHarvester: (harvesterId: string) => void;
   onScrapHarvester: (harvesterId: string) => void;
   onToggleAutoHarvest: (harvesterId: string) => void;
+  onToggleMiningTarget: (harvesterId: string) => void;
   onFocusHarvester: (harvester: Harvester) => void;
 }
 
@@ -45,6 +46,7 @@ export const HarvesterManager: React.FC<HarvesterManagerProps> = ({
   onRecallHarvester,
   onScrapHarvester,
   onToggleAutoHarvest,
+  onToggleMiningTarget,
   onFocusHarvester,
 }) => {
   const [selectedDeployModel, setSelectedDeployModel] = useState<HarvesterModel>('heavy');
@@ -298,6 +300,18 @@ export const HarvesterManager: React.FC<HarvesterManagerProps> = ({
                         </div>
 
                         <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => onToggleMiningTarget(h.id)}
+                            className={`px-2 py-1 rounded text-[10px] font-bold flex items-center gap-1 font-mono transition-colors border ${
+                              h.miningTarget === 'ore'
+                                ? 'bg-amber-950 border-amber-700/60 text-amber-400 hover:bg-amber-900'
+                                : 'bg-fuchsia-950 border-fuchsia-700/60 text-fuchsia-400 hover:bg-fuchsia-900'
+                            }`}
+                            title={`Mining: ${h.miningTarget.toUpperCase()}. Click to re-assign target.`}
+                          >
+                            <span>MINE: {h.miningTarget.toUpperCase()}</span>
+                          </button>
+
                           <button
                             onClick={() => onFocusHarvester(h)}
                             className="px-2 py-1 bg-stone-800 hover:bg-stone-700 text-cyan-300 rounded text-xs flex items-center gap-1 font-mono transition-colors"

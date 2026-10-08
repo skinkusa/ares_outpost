@@ -294,6 +294,7 @@ export default function App() {
       targetSpiceId: null,
       homeDepotId: 'mod_depot_1',
       autoHarvest: true,
+      miningTarget: 'spice',
       tireHistory: [],
       laserPulseTimer: 0,
       unloadingTimer: 0,
@@ -1099,7 +1100,7 @@ export default function App() {
           let updated = { ...h };
 
           // Determine home depot/command position for return using exterior docking apron
-          const isOre = h.model === 'ore_rover';
+          const isOre = h.miningTarget === 'ore';
           const depot = isOre 
             ? (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'refinery') || modules[0])
             : (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command') || modules[0]);
@@ -1582,6 +1583,7 @@ export default function App() {
       targetSpiceId: null,
       homeDepotId: depot?.id || '',
       autoHarvest: true,
+      miningTarget: isOre ? 'ore' : 'spice',
       tireHistory: [],
       laserPulseTimer: 0,
       unloadingTimer: 0,
@@ -1598,7 +1600,7 @@ export default function App() {
     setHarvesters((prev) =>
       prev.map((h) => {
         if (h.id === harvesterId) {
-          const isOre = h.model === 'ore_rover';
+          const isOre = h.miningTarget === 'ore';
           const depot = isOre 
             ? (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'refinery') || modules[0])
             : (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command') || modules[0]);
@@ -1624,6 +1626,31 @@ export default function App() {
   const handleToggleAutoHarvest = (harvesterId: string) => {
     setHarvesters((prev) =>
       prev.map((h) => (h.id === harvesterId ? { ...h, autoHarvest: !h.autoHarvest } : h))
+    );
+  };
+
+  // Toggle Mining Target
+  const handleToggleMiningTarget = (harvesterId: string) => {
+    setHarvesters((prev) =>
+      prev.map((h) => {
+        if (h.id === harvesterId) {
+          const newTarget = h.miningTarget === 'ore' ? 'spice' : 'ore';
+          const newDepot = newTarget === 'ore'
+            ? (modules.find((m) => m.type === 'refinery') || modules[0])
+            : (modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command') || modules[0]);
+          return {
+            ...h,
+            miningTarget: newTarget,
+            homeDepotId: newDepot.id,
+            state: 'idle', // Reset state so it immediately paths to the new target
+            targetSpiceId: null,
+            targetX: null,
+            targetY: null,
+            waypoints: []
+          };
+        }
+        return h;
+      })
     );
   };
 
@@ -1934,6 +1961,7 @@ export default function App() {
         onRecallHarvester={handleRecallHarvester}
         onScrapHarvester={handleScrapHarvester}
         onToggleAutoHarvest={handleToggleAutoHarvest}
+        onToggleMiningTarget={handleToggleMiningTarget}
         onFocusHarvester={(h) => {
           setSelectedHarvester(h);
           setIsHarvesterBayOpen(false);

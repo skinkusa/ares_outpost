@@ -114,6 +114,7 @@ export interface Harvester {
   targetSpiceId: string | null;
   homeDepotId: string;
   autoHarvest: boolean;
+  miningTarget: 'spice' | 'ore';
   tireHistory: Array<{ x: number; y: number; alpha: number }>;
   laserPulseTimer: number;
   unloadingTimer: number;
