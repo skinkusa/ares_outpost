@@ -4,6 +4,7 @@ import { MODULE_BLUEPRINTS } from '../utils/constants';
 import { sound } from '../utils/audio';
 import {
   Atom,
+  Building2,
   BatteryCharging,
   ChevronDown,
   ChevronUp,
@@ -12,16 +13,19 @@ import {
   Factory,
   Hammer,
   HeartPulse,
+  Leaf,
   Home,
   Layers,
   Radio,
   Rocket,
   Scan,
   ShieldAlert,
+  Snowflake,
   Sprout,
   Sun,
   Truck,
   Warehouse,
+  Wheat,
   Wind,
   Zap,
 } from 'lucide-react';
@@ -80,9 +84,13 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
       case 'fusion': return <Zap className="w-4 h-4 text-cyan-300" />;
       case 'battery': return <BatteryCharging className="w-4 h-4 text-emerald-400" />;
       case 'scrubber': return <Wind className="w-4 h-4 text-cyan-400" />;
+      case 'oxygenator': return <Leaf className="w-4 h-4 text-green-400" />;
       case 'vaporator': return <Droplets className="w-4 h-4 text-blue-400" />;
+      case 'icebore': return <Snowflake className="w-4 h-4 text-sky-300" />;
       case 'greenhouse': return <Sprout className="w-4 h-4 text-green-400" />;
+      case 'mycoculture': return <Wheat className="w-4 h-4 text-lime-300" />;
       case 'habitat': return <Home className="w-4 h-4 text-purple-400" />;
+      case 'dormitory': return <Building2 className="w-4 h-4 text-violet-300" />;
       case 'refinery': return <Factory className="w-4 h-4 text-fuchsia-400" />;
       case 'depot': return <Truck className="w-4 h-4 text-rose-400" />;
       case 'storage': return <Warehouse className="w-4 h-4 text-amber-400" />;
@@ -275,6 +283,9 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
                       )}
                       {bp.alloyCapacity && (
                         <span className="text-orange-400 font-bold">+{bp.alloyCapacity} Alloy</span>
+                      )}
+                      {bp.popCapacity && (
+                        <span className="text-violet-300 font-bold">+{bp.popCapacity} bunks</span>
                       )}
                       {bp.foodCapacity && (
                         <span className="text-emerald-400 font-bold">+{bp.foodCapacity} Food</span>

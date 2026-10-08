@@ -1,6 +1,6 @@
 import React from 'react';
 import { ColonyModule } from '../types/colony';
-import { MODULE_BLUEPRINTS } from '../utils/constants';
+import { MODULE_BLUEPRINTS, crewRequired } from '../utils/constants';
 import {
   ArrowUpCircle,
   BatteryCharging,
@@ -47,8 +47,12 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
   const levelMultiplier = 1 + (module.level - 1) * 0.5;
   const upgradeCostAlloy = Math.round(bp.costAlloy * 0.8 * module.level);
   const upgradeCostCredits = Math.round(bp.costCredits * 0.8 * module.level);
+  const crewNeed = crewRequired(module.type, module.level);
+  const staffable = crewNeed > 0;
+  const nextCrewNeed = crewRequired(module.type, module.level + 1);
+  const crewReadyForUpgrade = !staffable || module.assignedColonists + freeCrew >= nextCrewNeed;
   const canAffordUpgrade =
-    currentAlloy >= upgradeCostAlloy && currentCredits >= upgradeCostCredits && module.level < 3;
+    currentAlloy >= upgradeCostAlloy && currentCredits >= upgradeCostCredits && module.level < 3 && crewReadyForUpgrade;
 
   const repairCostAlloy = Math.round(bp.costAlloy * 0.2);
   const isDamaged = module.health < module.maxHealth;
@@ -205,6 +209,13 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
           </div>
         )}
 
+        {bp.popCapacity && (
+          <div className="bg-stone-900/80 p-2 rounded border border-stone-800 col-span-2">
+            <div className="text-[10px] text-violet-300">Crew bunks:</div>
+            <div className="text-violet-200 font-bold">+{bp.popCapacity}</div>
+          </div>
+        )}
+
         {module.type === 'medbay' && (
           <div className="bg-emerald-950/40 p-2 rounded border border-emerald-800/80 col-span-2 flex flex-col gap-1">
             <div className="flex items-center justify-between">
@@ -228,12 +239,21 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
         )}
       </div>
 
-      {['greenhouse', 'medbay', 'research', 'refinery', 'scrubber', 'vaporator'].includes(module.type) && (
+      {staffable && (
         <div className="flex items-center justify-between gap-2 bg-stone-900/70 border border-stone-800 rounded-md px-2.5 py-2">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-orange-300 font-bold">Crew</div>
             <div className="text-[10px] text-stone-500">
-              {module.assignedColonists > 0 ? 'Full output' : 'Unstaffed output is 45%'} · {freeCrew} free
+              {module.type === 'repairbay'
+                ? module.assignedColonists <= 0
+                  ? 'No techs on call'
+                  : `${module.assignedColonists} repair${module.assignedColonists === 1 ? '' : 's'} at once`
+                : module.assignedColonists >= crewNeed
+                ? 'Full output'
+                : module.assignedColonists <= 0
+                ? 'Unstaffed output is 45%'
+                : `Short crew, output is ${Math.round((0.45 + 0.55 * (module.assignedColonists / crewNeed)) * 100)}%`}
+              {' '}· {freeCrew} free
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -244,10 +264,10 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
             >
               −
             </button>
-            <span className="font-mono text-xs w-8 text-center">{module.assignedColonists}/1</span>
+            <span className="font-mono text-xs w-10 text-center">{module.assignedColonists}/{crewNeed}</span>
             <button
               onClick={() => onAssignCrew(module.id, 1)}
-              disabled={module.assignedColonists >= 1 || freeCrew <= 0}
+              disabled={module.assignedColonists >= crewNeed || freeCrew <= 0}
               className="w-6 h-6 rounded border border-stone-700 text-stone-300 disabled:opacity-30"
             >
               +
@@ -295,6 +315,7 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
           <button
             onClick={() => onUpgradeModule(module.id)}
             disabled={!canAffordUpgrade}
+            title={staffable && !crewReadyForUpgrade ? `Tier ${module.level + 1} needs ${nextCrewNeed} crew` : undefined}
             className={`w-full py-2 px-3 rounded text-xs font-title font-bold flex items-center justify-between transition-colors ${
               canAffordUpgrade
                 ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-md'
@@ -305,7 +326,7 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
               <ArrowUpCircle className="w-4 h-4" /> UPGRADE TO TIER {module.level + 1}
             </span>
             <span className="font-mono text-[10px]">
-              {upgradeCostAlloy}A / ₡{upgradeCostCredits}
+              {upgradeCostAlloy}A / ₡{upgradeCostCredits}{staffable ? ` · ${nextCrewNeed} CREW` : ''}
             </span>
           </button>
         )}

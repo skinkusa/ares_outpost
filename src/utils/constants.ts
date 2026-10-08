@@ -5,6 +5,27 @@ export const TILE_SIZE = 48; // 48 pixels per tile
 export const WORLD_WIDTH = GRID_SIZE * TILE_SIZE; // 3840 pixels
 export const WORLD_HEIGHT = GRID_SIZE * TILE_SIZE; // 3840 pixels
 
+const STAFFABLE_TYPES = new Set([
+  'greenhouse',
+  'medbay',
+  'research',
+  'refinery',
+  'scrubber',
+  'oxygenator',
+  'vaporator',
+  'icebore',
+  'greenhouse',
+  'mycoculture',
+]);
+
+/** Crew a building wants. The repair bay opens with 3 berths and gains one per upgrade. */
+export function crewRequired(type: string, level: number): number {
+  if (!STAFFABLE_TYPES.has(type)) return 0;
+  const tier = Math.max(1, level || 1);
+  if (type === 'repairbay') return 2 + tier;
+  return tier;
+}
+
 export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
   command: {
     type: 'command',
@@ -104,6 +125,22 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     color: '#06b6d4', // Cyan
     icon: 'Wind',
   },
+  oxygenator: {
+    type: 'oxygenator',
+    name: 'Algae Oxygenator',
+    category: 'life_support',
+    description: 'Glass tanks of photosynthetic algae. At noon they make about as much oxygen as a MOXIE scrubber. Output follows the sun and stops at night, and the culture drinks a little water.',
+    costAlloy: 32,
+    costCredits: 65,
+    width: 2,
+    height: 2,
+    powerDelta: -6,
+    o2Delta: 28,
+    waterDelta: -4,
+    foodDelta: 0,
+    color: '#4ade80',
+    icon: 'Leaf',
+  },
   vaporator: {
     type: 'vaporator',
     name: 'Moisture Vaporator',
@@ -119,6 +156,22 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     foodDelta: 0,
     color: '#3b82f6', // Blue
     icon: 'Droplets',
+  },
+  icebore: {
+    type: 'icebore',
+    name: 'Ice Bore',
+    category: 'life_support',
+    description: 'Drills permafrost for a steady water supply. Dust does not choke it the way it chokes a vaporator, but the drill draws more power and the yield is lower in clear weather.',
+    costAlloy: 50,
+    costCredits: 100,
+    width: 2,
+    height: 2,
+    powerDelta: -16,
+    o2Delta: 0,
+    waterDelta: 14,
+    foodDelta: 0,
+    color: '#7dd3fc',
+    icon: 'Snowflake',
   },
   greenhouse: {
     type: 'greenhouse',
@@ -136,6 +189,22 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     color: '#22c55e', // Green
     icon: 'Sprout',
   },
+  mycoculture: {
+    type: 'mycoculture',
+    name: 'Fungal Protein Farm',
+    category: 'life_support',
+    description: 'Grows fungal protein for the crew. It works in the dark and through dust, uses less water than a bio-dome, and makes no oxygen. The crop is smaller than the dome.',
+    costAlloy: 36,
+    costCredits: 75,
+    width: 2,
+    height: 2,
+    powerDelta: -8,
+    o2Delta: 0,
+    waterDelta: -3,
+    foodDelta: 11,
+    color: '#a3e635',
+    icon: 'Wheat',
+  },
   habitat: {
     type: 'habitat',
     name: 'Pressurized Habitat',
@@ -152,6 +221,23 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     popCapacity: 10,
     color: '#8b5cf6', // Violet
     icon: 'Home',
+  },
+  dormitory: {
+    type: 'dormitory',
+    name: 'Communal Habitat',
+    category: 'life_support',
+    description: 'A larger living block with bunks for 22 colonists. It draws more air, water, food, and power than the small habitat.',
+    costAlloy: 130,
+    costCredits: 260,
+    width: 4,
+    height: 4,
+    powerDelta: -20,
+    o2Delta: -16,
+    waterDelta: -12,
+    foodDelta: -12,
+    popCapacity: 22,
+    color: '#a78bfa',
+    icon: 'Building2',
   },
   depot: {
     type: 'depot',
@@ -270,6 +356,22 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     waterCapacity: 400,
     color: '#d97706',
     icon: 'Warehouse',
+  },
+  repairbay: {
+    type: 'repairbay',
+    name: 'Field Repair Bay',
+    category: 'industry',
+    description: 'Expensive workshop with a crew of 3. Each assigned colonist can run one repair at a time. The bay sends them to the worst-damaged building and pays the usual alloy. It will not start another job until a tech is free. Upgrades add one berth.',
+    costAlloy: 140,
+    costCredits: 380,
+    width: 3,
+    height: 3,
+    powerDelta: -14,
+    o2Delta: 0,
+    waterDelta: 0,
+    foodDelta: 0,
+    color: '#f59e0b',
+    icon: 'Wrench',
   },
   refinery: {
     type: 'refinery',

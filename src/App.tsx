@@ -26,6 +26,7 @@ import {
   GRID_SIZE,
   HARVESTER_SPECS,
   MODULE_BLUEPRINTS,
+  crewRequired,
   TECH_TREE,
   TILE_SIZE,
   WORLD_HEIGHT,
@@ -184,8 +185,72 @@ const STAFFABLE_BUILDINGS = new Set([
   'research',
   'refinery',
   'scrubber',
+  'oxygenator',
   'vaporator',
+  'icebore',
+  'mycoculture',
+  'repairbay',
 ]);
+
+function liveRepairSlots(modules: ColonyModule[]): number {
+  return modules
+    .filter((m) => m.type === 'repairbay' && m.constructProgress >= 100 && m.isActive && m.health > 0)
+    .reduce((sum, m) => sum + (m.assignedColonists || 0), 0);
+}
+
+function repairJobs(modules: ColonyModule[]): number {
+  return modules.filter((m) => {
+    const progress = m.repairProgress ?? 0;
+    return progress > 0 && progress < 100;
+  }).length;
+}
+
+function assignRepairWorker(
+  workers: ColonistWorker[],
+  mod: ColonyModule,
+  allModules: ColonyModule[],
+): ColonistWorker[] {
+  if (workers.some((w) => w.taskModuleId === mod.id)) return workers;
+  const cx = (mod.x + mod.width / 2) * TILE_SIZE;
+  const cy = (mod.y + mod.height / 2) * TILE_SIZE;
+  const free = workers.filter((w) => !w.taskModuleId && w.transport !== 'rover');
+  let next = workers;
+  let chosen = free
+    .slice()
+    .sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy))[0];
+  if (!chosen) {
+    const bay = allModules.find((m) => m.type === 'repairbay' && m.isActive) ?? mod;
+    chosen = {
+      id: `worker_repair_${mod.id}_${Math.random().toString(36).slice(2, 7)}`,
+      x: (bay.x + bay.width / 2) * TILE_SIZE,
+      y: (bay.y + bay.height) * TILE_SIZE + 16,
+      targetX: null,
+      targetY: null,
+      waypoints: [],
+      angle: 0,
+      state: 'idle',
+      timer: 0,
+      transport: 'walking',
+    };
+    next = [...workers, chosen];
+  }
+  const apron = findDockingApron(mod, chosen.x, chosen.y, allModules, 18, []);
+  const waypoints = findNavigationPath(chosen.x, chosen.y, apron.x, apron.y, allModules, []);
+  const chosenId = chosen.id;
+  return next.map((w) =>
+    w.id === chosenId
+      ? {
+          ...w,
+          taskModuleId: mod.id,
+          state: 'walking',
+          transport: 'walking',
+          targetX: apron.x,
+          targetY: apron.y,
+          waypoints,
+        }
+      : w
+  );
+}
 
 export default function App() {
   const [boot] = useState(() => loadColony());
@@ -383,6 +448,7 @@ export default function App() {
 
   // Initial Harvesters
   const [workers, setWorkers] = useState<ColonistWorker[]>(() => boot?.workers ?? []);
+  const repairDispatchRef = useRef(0);
   const [harvesters, setHarvesters] = useState<Harvester[]>(() => (boot?.harvesters ?? [
     {
       id: 'harvester_alpha',
@@ -662,12 +728,98 @@ export default function App() {
         });
       }
 
+      const repairUpdates = modules
+        .filter((m) => {
+          const progress = m.repairProgress ?? 0;
+          return progress > 0 && progress < 100;
+        })
+        .map((m) => {
+          const missing = 1 - m.health / Math.max(1, m.maxHealth);
+          const duration = 8 + 12 * missing;
+          const progress = Math.min(100, (m.repairProgress ?? 0) + (100 / duration) * dt);
+          return {
+            id: m.id,
+            progress,
+            done: progress >= 100,
+            name: MODULE_BLUEPRINTS[m.type]?.name ?? 'Module',
+            wasOffline: m.health <= 0,
+          };
+        });
+      if (repairUpdates.length > 0) {
+        setModules((prev) =>
+          prev.map((m) => {
+            const update = repairUpdates.find((item) => item.id === m.id);
+            if (!update) return m;
+            if (update.done) {
+              return {
+                ...m,
+                repairProgress: 0,
+                health: m.maxHealth,
+                isActive: update.wasOffline ? true : m.isActive,
+              };
+            }
+            return { ...m, repairProgress: update.progress };
+          })
+        );
+        const finishedIds = repairUpdates.filter((item) => item.done).map((item) => item.id);
+        if (finishedIds.length > 0) {
+          setWorkers((prev) =>
+            prev.map((w) =>
+              w.taskModuleId && finishedIds.includes(w.taskModuleId)
+                ? { ...w, taskModuleId: null, state: 'idle', timer: 4, waypoints: [], targetX: null, targetY: null }
+                : w
+            )
+          );
+          repairUpdates
+            .filter((item) => item.done)
+            .forEach((item) => {
+              sound.playBuild();
+              addLog('success', 'Module Repaired', `${item.name} is patched and back to full strength.`);
+            });
+        }
+      }
+
+      repairDispatchRef.current += dt;
+      if (repairDispatchRef.current >= 2.5) {
+        repairDispatchRef.current = 0;
+        const slots = liveRepairSlots(modules);
+        const jobs = repairJobs(modules);
+        if (slots > jobs) {
+          const target = modules
+            .filter((m) => {
+              const progress = m.repairProgress ?? 0;
+              return m.constructProgress >= 100 && m.health < m.maxHealth && (progress <= 0 || progress >= 100);
+            })
+            .sort((a, b) => a.health / Math.max(1, a.maxHealth) - b.health / Math.max(1, b.maxHealth))[0];
+          if (target) {
+            const cost = Math.round((MODULE_BLUEPRINTS[target.type]?.costAlloy ?? 0) * 0.2);
+            const alloy = statsRef.current?.alloy ?? 0;
+            if (alloy >= cost) {
+              setStats((prev) => ({ ...prev, alloy: prev.alloy - cost }));
+              setModules((prev) =>
+                prev.map((m) => (m.id === target.id ? { ...m, repairProgress: 0.01 } : m))
+              );
+              setWorkers((prev) => assignRepairWorker(prev, target, modules));
+              addLog(
+                'info',
+                'Repair Bay',
+                `${MODULE_BLUEPRINTS[target.type]?.name ?? 'Module'} is on the list. ${jobs + 1} of ${slots} techs are out.`
+              );
+            }
+          }
+        }
+      }
+
       arrivalClockRef.current += dt;
       if (arrivalClockRef.current >= 75) {
         arrivalClockRef.current = 0;
         if (stats.morale >= 55 && stats.population < stats.maxPopulation) {
           shuttleTurnedBackRef.current = false;
-          setStats((prev) => ({ ...prev, population: Math.min(prev.maxPopulation, prev.population + 1) }));
+          setStats((prev) => ({
+            ...prev,
+            population: Math.min(prev.maxPopulation, prev.population + 1),
+            shuttleArrivalSeq: (prev.shuttleArrivalSeq ?? 0) + 1,
+          }));
           addLog('success', 'Shuttle Arrival', 'A colonist joined the outpost. Food, water, and air use rose with them.');
         } else if (stats.morale >= 55 && stats.population >= stats.maxPopulation && !shuttleTurnedBackRef.current) {
           shuttleTurnedBackRef.current = true;
@@ -678,7 +830,7 @@ export default function App() {
       const scarBuilding = (reason: 'tremor' | 'storm' | 'meteor') => {
         const pool = modules.filter((m) => m.constructed && m.type !== 'command' && m.health > 0);
         const exposed = reason === 'storm'
-          ? pool.filter((m) => m.type === 'solar' || m.type === 'vaporator' || m.type === 'greenhouse' || m.type === 'launchpad')
+          ? pool.filter((m) => m.type === 'solar' || m.type === 'vaporator' || m.type === 'greenhouse' || m.type === 'oxygenator' || m.type === 'launchpad')
           : pool;
         const list = exposed.length > 0 ? exposed : pool;
         if (list.length === 0) return;
@@ -776,12 +928,16 @@ export default function App() {
           const integrity = mod.maxHealth > 0 ? Math.max(0, Math.min(1, mod.health / mod.maxHealth)) : 1;
           const wear = integrity >= 0.995 ? 1 : 0.5 + 0.5 * integrity;
           const rate = mult * wear;
-          const staffed = !STAFFABLE_BUILDINGS.has(mod.type) || mod.assignedColonists > 0;
-          const yieldRate = staffed ? rate : rate * 0.45;
+          const crewNeed = Math.max(1, crewRequired(mod.type, mod.level));
+          const crewHave = mod.assignedColonists || 0;
+          const staffFactor = !STAFFABLE_BUILDINGS.has(mod.type) || crewHave >= crewNeed
+            ? 1
+            : 0.45 + 0.55 * (crewHave / crewNeed);
+          const yieldRate = rate * staffFactor;
 
           if (mod.type === 'medbay') {
             medBayCount++;
-            medBayEffectiveness += mult * (staffed ? 1 : 0.45);
+            medBayEffectiveness += mult * staffFactor;
           }
 
           if (bp.powerDelta > 0) {
@@ -806,7 +962,10 @@ export default function App() {
           if (bp.waterCapacity) waterCap += bp.waterCapacity * mult;
           if (bp.popCapacity) popCap += bp.popCapacity;
 
-          if (bp.o2Delta > 0) o2Gen += bp.o2Delta * yieldRate;
+          if (bp.o2Delta > 0) {
+            const daylight = mod.type === 'oxygenator' ? sunFactor : 1;
+            o2Gen += bp.o2Delta * yieldRate * daylight;
+          }
           else if (bp.o2Delta < 0) o2Upkeep += Math.abs(bp.o2Delta) * rate;
           if (bp.waterDelta > 0) {
             const waterBonus = hasTech('deep_well_drilling') ? 1.5 : 1.0;
@@ -1836,7 +1995,70 @@ export default function App() {
       setWorkers((prevWorkers) => {
         let updatedWorkers = prevWorkers.map((w) => {
           let updated = { ...w };
-          if (updated.state === 'idle') {
+          if (updated.taskModuleId) {
+            const target = modules.find((m) => m.id === updated.taskModuleId);
+            const progress = target?.repairProgress ?? 0;
+            const jobOpen = !!target && progress > 0 && progress < 100;
+            if (!jobOpen || !target) {
+              updated.taskModuleId = null;
+              updated.state = 'idle';
+              updated.timer = 4;
+              updated.waypoints = [];
+              updated.targetX = null;
+              updated.targetY = null;
+            } else if (updated.state === 'repairing') {
+              const cx = (target.x + target.width / 2) * TILE_SIZE;
+              const cy = (target.y + target.height / 2) * TILE_SIZE;
+              updated.angle = Math.atan2(cy - updated.y, cx - updated.x);
+            } else {
+              if (!updated.waypoints || updated.waypoints.length === 0) {
+                const apron = findDockingApron(target, updated.x, updated.y, modules, 18, []);
+                updated.targetX = apron.x;
+                updated.targetY = apron.y;
+                updated.waypoints = findNavigationPath(updated.x, updated.y, apron.x, apron.y, modules, []);
+                updated.state = 'walking';
+              }
+              const currentGoal =
+                updated.waypoints && updated.waypoints.length > 0
+                  ? updated.waypoints[0]
+                  : { x: updated.targetX || updated.x, y: updated.targetY || updated.y };
+              const dist = Math.hypot(currentGoal.x - updated.x, currentGoal.y - updated.y);
+              const left = target.x * TILE_SIZE;
+              const top = target.y * TILE_SIZE;
+              const right = left + target.width * TILE_SIZE;
+              const bottom = top + target.height * TILE_SIZE;
+              const atBuilding =
+                updated.x >= left - 26 &&
+                updated.x <= right + 26 &&
+                updated.y >= top - 26 &&
+                updated.y <= bottom + 26;
+              if (atBuilding || (dist < 20 && (!updated.waypoints || updated.waypoints.length <= 1))) {
+                updated.state = 'repairing';
+                updated.waypoints = [];
+                updated.x = atBuilding ? updated.x : currentGoal.x;
+                updated.y = atBuilding ? updated.y : currentGoal.y;
+              } else if (dist < 20) {
+                updated.waypoints = updated.waypoints.slice(1);
+              } else {
+                const angle = Math.atan2(currentGoal.y - updated.y, currentGoal.x - updated.x);
+                const angleDiff = angle - updated.angle;
+                updated.angle += Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff)) * 5 * dt;
+                const speed =
+                  32 *
+                  (weather.type === 'dust_storm' && !hasTech('storm_hardening')
+                    ? 0.6
+                    : weather.type === 'dust_veil'
+                    ? 0.85
+                    : weather.type === 'seismic_tremor'
+                    ? 0.7
+                    : weather.type === 'solar_flare'
+                    ? 0.9
+                    : 1);
+                updated.x += Math.cos(updated.angle) * speed * dt;
+                updated.y += Math.sin(updated.angle) * speed * dt;
+              }
+            }
+          } else if (updated.state === 'idle') {
             updated.timer -= dt;
             if (updated.timer <= 0) {
               // Pick a random building to walk to
@@ -1912,7 +2134,9 @@ export default function App() {
         
         // Despawn logic (if population drops)
         if (updatedWorkers.length > maxWorkers) {
-           updatedWorkers = updatedWorkers.slice(0, maxWorkers);
+          const busy = updatedWorkers.filter((w) => w.taskModuleId);
+          const rest = updatedWorkers.filter((w) => !w.taskModuleId);
+          updatedWorkers = [...busy, ...rest].slice(0, Math.max(maxWorkers, busy.length));
         }
 
         return updatedWorkers;
@@ -2195,6 +2419,16 @@ export default function App() {
     const costCredits = Math.round(bp.costCredits * 0.8 * mod.level);
 
     if (stats.alloy < costAlloy || stats.credits < costCredits) return;
+    if (mod.level >= 3) return;
+
+    const staffable = STAFFABLE_BUILDINGS.has(mod.type);
+    const nextLevel = mod.level + 1;
+    const nextCrewNeed = crewRequired(mod.type, nextLevel);
+    if (staffable) {
+      const used = modules.reduce((sum, m) => sum + (m.assignedColonists || 0), 0);
+      const free = Math.max(0, stats.population - used);
+      if ((mod.assignedColonists || 0) + free < nextCrewNeed) return;
+    }
 
     setStats((prev) => ({
       ...prev,
@@ -2203,40 +2437,50 @@ export default function App() {
     }));
 
     setModules((prev) =>
-      prev.map((m) => (m.id === moduleId ? { ...m, level: m.level + 1 } : m))
+      prev.map((m) => {
+        if (m.id !== moduleId) return m;
+        const level = m.level + 1;
+        const assigned = STAFFABLE_BUILDINGS.has(m.type) ? crewRequired(m.type, level) : m.assignedColonists;
+        return { ...m, level, assignedColonists: assigned };
+      })
     );
 
-    // Update selected module to reflect changes instantly
-    setSelectedModule((prev) => (prev && prev.id === moduleId ? { ...prev, level: prev.level + 1 } : prev));
+    setSelectedModule((prev) => {
+      if (!prev || prev.id !== moduleId) return prev;
+      const level = prev.level + 1;
+      const assigned = STAFFABLE_BUILDINGS.has(prev.type) ? crewRequired(prev.type, level) : prev.assignedColonists;
+      return { ...prev, level, assignedColonists: assigned };
+    });
 
     sound.playBuild();
-    addLog('info', 'Module Upgraded', `${bp.name} upgraded to Tier ${mod.level + 1}.`);
+    const crewNote = staffable ? ` It now needs ${nextCrewNeed} crew.` : '';
+    addLog('info', 'Module Upgraded', `${bp.name} upgraded to Tier ${nextLevel}.${crewNote}`);
   };
 
   const handleRepairModule = (moduleId: string) => {
     const mod = modules.find((m) => m.id === moduleId);
-    if (!mod) return;
+    if (!mod || mod.constructProgress < 100 || mod.health >= mod.maxHealth) return;
+    const underway = mod.repairProgress ?? 0;
+    if (underway > 0 && underway < 100) return;
     const bp = MODULE_BLUEPRINTS[mod.type];
     const costAlloy = Math.round(bp.costAlloy * 0.2);
-
     if (stats.alloy < costAlloy) return;
+    const slots = liveRepairSlots(modules);
+    const hasBay = modules.some(
+      (m) => m.type === 'repairbay' && m.constructProgress >= 100 && m.isActive && m.health > 0
+    );
+    if (hasBay && mod.type !== 'repairbay' && repairJobs(modules) >= slots) {
+      addLog('warning', 'Repair Bay', 'Every assigned tech is already on a job.');
+      return;
+    }
 
     setStats((prev) => ({ ...prev, alloy: prev.alloy - costAlloy }));
     setModules((prev) =>
-      prev.map((m) => {
-        if (m.id !== moduleId) return m;
-        const wasOffline = m.health <= 0;
-        return { ...m, health: m.maxHealth, isActive: wasOffline ? true : m.isActive };
-      })
+      prev.map((m) => (m.id === moduleId ? { ...m, repairProgress: 0.01 } : m))
     );
-    setSelectedModule((prev) => {
-      if (!prev || prev.id !== moduleId) return prev;
-      const wasOffline = prev.health <= 0;
-      return { ...prev, health: prev.maxHealth, isActive: wasOffline ? true : prev.isActive };
-    });
-
-    sound.playBuild();
-    addLog('info', 'Module Repaired', `${bp.name} restored to 100% structural integrity.`);
+    setWorkers((prev) => assignRepairWorker(prev, mod, modules));
+    sound.playClick(520);
+    addLog('info', 'Repair Started', `${bp.name} is being patched. It comes back online when the work finishes.`);
   };
 
   const handleNewColony = () => {
@@ -2249,7 +2493,8 @@ export default function App() {
     setModules((prev) => {
       const target = prev.find((m) => m.id === moduleId);
       if (!target || !STAFFABLE_BUILDINGS.has(target.type)) return prev;
-      const nextCount = Math.max(0, Math.min(1, target.assignedColonists + delta));
+      const cap = crewRequired(target.type, target.level);
+      const nextCount = Math.max(0, Math.min(cap, target.assignedColonists + delta));
       if (nextCount === target.assignedColonists) return prev;
       if (delta > 0) {
         const used = prev.reduce((sum, m) => sum + (m.assignedColonists || 0), 0);

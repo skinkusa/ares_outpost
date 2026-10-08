@@ -24,9 +24,13 @@ export type ModuleType =
   | 'battery'
   | 'fusion'
   | 'scrubber'
+  | 'oxygenator'
   | 'vaporator'
+  | 'icebore'
   | 'greenhouse'
+  | 'mycoculture'
   | 'habitat'
+  | 'dormitory'
   | 'refinery'
   | 'depot'
   | 'research'
@@ -34,7 +38,8 @@ export type ModuleType =
   | 'radar'
   | 'medbay'
   | 'garage'
-  | 'storage';
+  | 'storage'
+  | 'repairbay';
 
 export interface ModuleBlueprint {
   type: ModuleType;
@@ -69,9 +74,10 @@ export interface ColonistWorker {
   targetY: number | null;
   waypoints: { x: number; y: number }[];
   angle: number;
-  state: 'idle' | 'walking';
+  state: 'idle' | 'walking' | 'repairing';
   timer: number;
   transport?: 'walking' | 'rover';
+  taskModuleId?: string | null;
 }
 
 export interface ColonyModule {
@@ -88,6 +94,7 @@ export interface ColonyModule {
   assignedColonists: number;
   constructed: boolean;
   constructProgress: number; // 0 to 100
+  repairProgress?: number; // 0 to 100 while a repair is underway
 }
 
 export type HarvesterState =
@@ -238,6 +245,7 @@ export interface ColonyStats {
   autoExportSpice?: boolean;
   autoExportThreshold?: number;
   rocketLaunchSeq?: number;
+  shuttleArrivalSeq?: number;
   ore: number;
   maxOre: number;
   powerStored: number;

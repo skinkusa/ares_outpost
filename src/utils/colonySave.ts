@@ -47,9 +47,13 @@ const MODULE_TYPES = new Set([
   'battery',
   'fusion',
   'scrubber',
+  'oxygenator',
   'vaporator',
+  'icebore',
   'greenhouse',
+  'mycoculture',
   'habitat',
+  'dormitory',
   'refinery',
   'depot',
   'research',
@@ -58,6 +62,7 @@ const MODULE_TYPES = new Set([
   'medbay',
   'garage',
   'storage',
+  'repairbay',
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -116,6 +121,25 @@ export function saveColony(save: ColonySave): void {
   } catch {
     // Private mode or a full quota leaves the last good save in place.
   }
+}
+
+export function parseColonySave(raw: string): ColonySave | null {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return isColonySave(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function downloadColonySave(save: ColonySave): void {
+  const blob = new Blob([JSON.stringify(save)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'ares-colony.json';
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export function clearColonySave(): void {

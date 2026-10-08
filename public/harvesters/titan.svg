@@ -1,0 +1,228 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="-26 -22 66 44" width="330" height="220"
+     role="img" aria-label="Titan Dread east-facing spice harvester">
+  <g stroke-linejoin="round" stroke-linecap="round">
+
+    <!-- Ground shadow -->
+    <ellipse cx="5" cy="2" rx="29" ry="17"
+             fill="#000" opacity=".24"/>
+
+    <!-- Heavy suspension crossmembers -->
+    <g fill="#475569" stroke="#111827" stroke-width=".9">
+      <rect x="-15" y="-16" width="5" height="32"/>
+      <rect x="-3" y="-16" width="5" height="32"/>
+      <rect x="10" y="-16" width="5" height="32"/>
+    </g>
+
+    <!-- Massive crawler tracks -->
+    <g fill="#1c1917" stroke="#111827" stroke-width="1.1">
+      <rect x="-22" y="-18.5" width="44" height="8" rx="2"/>
+      <rect x="-22" y="10.5" width="44" height="8" rx="2"/>
+    </g>
+
+    <!-- Individual tread links -->
+    <g fill="none" stroke="#57534e" stroke-width=".9">
+      <path d="M-20-17.5v6 M-17-17.5v6 M-14-17.5v6
+               M-11-17.5v6 M-8-17.5v6 M-5-17.5v6
+               M-2-17.5v6 M1-17.5v6 M4-17.5v6
+               M7-17.5v6 M10-17.5v6 M13-17.5v6
+               M16-17.5v6 M19-17.5v6
+               M-20 11.5v6 M-17 11.5v6 M-14 11.5v6
+               M-11 11.5v6 M-8 11.5v6 M-5 11.5v6
+               M-2 11.5v6 M1 11.5v6 M4 11.5v6
+               M7 11.5v6 M10 11.5v6 M13 11.5v6
+               M16 11.5v6 M19 11.5v6"/>
+    </g>
+
+    <!-- Track guide rails -->
+    <g fill="#292524" stroke="#78716c" stroke-width=".6">
+      <rect x="-19" y="-15.8" width="38" height="2.6" rx=".7"/>
+      <rect x="-19" y="13.2" width="38" height="2.6" rx=".7"/>
+    </g>
+
+    <!-- Drive sprockets and intermediate rollers -->
+    <g fill="#64748b" stroke="#111827" stroke-width=".6">
+      <circle cx="-18.5" cy="-14.5" r="2"/>
+      <circle cx="18.5" cy="-14.5" r="2"/>
+      <circle cx="-18.5" cy="14.5" r="2"/>
+      <circle cx="18.5" cy="14.5" r="2"/>
+      <circle cx="-9" cy="-14.5" r="1.3"/>
+      <circle cx="0" cy="-14.5" r="1.3"/>
+      <circle cx="9" cy="-14.5" r="1.3"/>
+      <circle cx="-9" cy="14.5" r="1.3"/>
+      <circle cx="0" cy="14.5" r="1.3"/>
+      <circle cx="9" cy="14.5" r="1.3"/>
+    </g>
+    <g fill="#f97316">
+      <circle cx="-18.5" cy="-14.5" r=".7"/>
+      <circle cx="18.5" cy="-14.5" r=".7"/>
+      <circle cx="-18.5" cy="14.5" r=".7"/>
+      <circle cx="18.5" cy="14.5" r=".7"/>
+    </g>
+
+    <!-- Lower hull: south-facing depth -->
+    <path d="M-19-9H13L19-5V11L13 16H-15L-19 12Z"
+          fill="#4a044e" stroke="#111827" stroke-width="1.1"/>
+
+    <!-- Main armored hull -->
+    <path d="M-19-9L-15-13H12L19-8V8L13 13H-15L-19 9Z"
+          fill="#701a75" stroke="#111827" stroke-width="1.1"/>
+
+    <!-- Armor bevels -->
+    <path d="M-15-12H12L16-9H-14Z" fill="#c026d3"/>
+    <path d="M-18-8H-15V8L-18 9Z" fill="#a21caf"/>
+    <path d="M12-12L18-7.5V7.5L13 12H10Z" fill="#581c87"/>
+    <path d="M-15 10H13L10 12H-15Z" fill="#86198f"/>
+
+    <!-- Segmented side armor -->
+    <g fill="#581c87" stroke="#111827" stroke-width=".6">
+      <path d="M-11-12H-5V-9H-11Z"/>
+      <path d="M-4-12H2V-9H-4Z"/>
+      <path d="M3-12H9V-9H3Z"/>
+      <path d="M-11 9H-5V12H-11Z"/>
+      <path d="M-4 9H2V12H-4Z"/>
+      <path d="M3 9H9V12H3Z"/>
+    </g>
+    <g stroke="#e879f9" stroke-width=".7">
+      <path d="M-10-11H-6 M-3-11H1 M4-11H8
+               M-10 10H-6 M-3 10H1 M4 10H8"/>
+    </g>
+
+    <!-- Rear engine block -->
+    <rect x="-18" y="-8.5" width="5.5" height="17"
+          rx=".6" fill="#334155" stroke="#111827" stroke-width=".8"/>
+
+    <!-- Twin cooling grilles -->
+    <g fill="#111827" stroke="#64748b" stroke-width=".5">
+      <rect x="-17.3" y="-7.5" width="4.1" height="6"/>
+      <rect x="-17.3" y="1.5" width="4.1" height="6"/>
+    </g>
+    <g stroke="#94a3b8" stroke-width=".55">
+      <path d="M-16.7-6.3h2.9 M-16.7-4.8h2.9 M-16.7-3.3h2.9
+               M-16.7 2.7h2.9 M-16.7 4.2h2.9 M-16.7 5.7h2.9"/>
+    </g>
+
+    <!-- Engine exhaust ports -->
+    <g fill="#475569" stroke="#111827" stroke-width=".6">
+      <rect x="-17.3" y="-11" width="2.5" height="2.5"/>
+      <rect x="-17.3" y="8.5" width="2.5" height="2.5"/>
+    </g>
+    <g fill="#111827">
+      <ellipse cx="-16" cy="-10.8" rx=".8" ry=".45"/>
+      <ellipse cx="-16" cy="8.7" rx=".8" ry=".45"/>
+    </g>
+
+    <!-- Large reinforced spice hopper -->
+    <rect x="-11.3" y="-8.5" width="16.3" height="17"
+          rx=".7" fill="#94a3b8" stroke="#111827" stroke-width=".9"/>
+    <rect x="-10.2" y="-7.4" width="14.1" height="14.8"
+          fill="#0f172a"/>
+
+    <!-- Spice load -->
+    <path d="M-10 7.1V-3.5L-7.6-5.3L-5-4L-2.8-6
+             L-.2-4.7L2-3.6L3.7-1.6V7.1Z" fill="#9333ea"/>
+    <path d="M-10-3.5L-7.6-5.3L-5-4L-2.8-6
+             L-.2-4.7L2-3.6L3.7-1.6L1.4-.3
+             L-1.2-1.9L-4 .3L-6.4-1Z" fill="#c084fc"/>
+    <g fill="#e9d5ff" opacity=".7">
+      <rect x="-8" y="1" width=".9" height=".8"/>
+      <rect x="-5.5" y="4.8" width="1" height=".7"/>
+      <rect x="-2.3" y="2" width=".8" height=".7"/>
+      <rect x=".8" y="5" width=".9" height=".8"/>
+      <rect x="1.5" y="-1.3" width=".7" height=".6"/>
+    </g>
+
+    <!-- Hopper ribs -->
+    <g stroke="#64748b" stroke-width=".8">
+      <path d="M-7-7.4V7.4 M-3-7.4V7.4 M1-7.4V7.4"/>
+    </g>
+
+    <!-- Hopper corner guards -->
+    <g fill="#f97316" stroke="#111827" stroke-width=".5">
+      <rect x="-11.3" y="-8.5" width="2.5" height="2.2"/>
+      <rect x="2.5" y="-8.5" width="2.5" height="2.2"/>
+      <rect x="-11.3" y="6.3" width="2.5" height="2.2"/>
+      <rect x="2.5" y="6.3" width="2.5" height="2.2"/>
+    </g>
+
+    <!-- Raised command cab -->
+    <path d="M7-7H12L15-4.5V4.5L12 7H7Z"
+          fill="#94a3b8" stroke="#111827" stroke-width=".9"/>
+    <path d="M8-5.8H11.5L13.7-3.8V3.8L11.5 5.8H8Z"
+          fill="#082f49" stroke="#111827" stroke-width=".6"/>
+    <path d="M8.8-5H11L12.8-3.4V-.7H8.8Z" fill="#38bdf8"/>
+    <path d="M9-4.4H10.8" stroke="#bae6fd" stroke-width=".7"/>
+    <path d="M8.2 0H13.5" stroke="#475569" stroke-width=".8"/>
+    <path d="M11.3-5.4V5.4" stroke="#475569" stroke-width=".6"/>
+
+    <!-- Forward armor and headlamps -->
+    <g fill="#f97316" stroke="#111827" stroke-width=".5">
+      <rect x="14.5" y="-8" width="2.5" height="2"/>
+      <rect x="14.5" y="6" width="2.5" height="2"/>
+    </g>
+    <g fill="#a5f3fc" stroke="#111827" stroke-width=".5">
+      <rect x="16.5" y="-5.8" width="1.5" height="2.7"/>
+      <rect x="16.5" y="3.1" width="1.5" height="2.7"/>
+    </g>
+    <circle cx="6.6" cy="-9.5" r="1.3" fill="#111827"/>
+    <circle cx="6.6" cy="-9.5" r=".7" fill="#22c55e"/>
+
+    <!-- Heavy hydraulic arms -->
+    <g fill="none">
+      <path d="M17-5H23 M17 5H23"
+            stroke="#111827" stroke-width="4"/>
+      <path d="M17-5H23 M17 5H23"
+            stroke="#94a3b8" stroke-width="2.4"/>
+      <path d="M19-5H22 M19 5H22"
+            stroke="#cbd5e1" stroke-width="1"/>
+    </g>
+
+    <!-- Cutting-head underside -->
+    <path d="M21-10L28-6.5L30 1.7L28 9.9L21 13.4Z"
+          fill="#475569" stroke="#111827" stroke-width=".9"/>
+
+    <!-- Broad armored cutting head -->
+    <path d="M21-11.7L28-8.2L30 0L28 8.2L21 11.7Z"
+          fill="#94a3b8" stroke="#111827" stroke-width=".9"/>
+    <path d="M22-10L27-7.2L28.7 0L27 7.2L22 10Z"
+          fill="#cbd5e1"/>
+
+    <!-- Reinforcing ribs -->
+    <g fill="none" stroke="#64748b" stroke-width="1.2">
+      <path d="M25-8.5L27 0L25 8.5"/>
+      <path d="M22-5H26 M22 5H26"/>
+    </g>
+    <g stroke="#f97316" stroke-width="1.5">
+      <path d="M21-10.5L23-9.5 M21 10.5L23 9.5"/>
+    </g>
+
+    <!-- Five oversized cutting teeth -->
+    <g fill="#94a3b8" stroke="#111827" stroke-width=".7">
+      <path d="M28-9.4L32-8.2L28-7Z"/>
+      <path d="M29-5.4L33-4.1L29-2.8Z"/>
+      <path d="M30-1.3L34 0L30 1.3Z"/>
+      <path d="M29 2.8L33 4.1L29 5.4Z"/>
+      <path d="M28 7L32 8.2L28 9.4Z"/>
+    </g>
+
+    <!-- Primary cutter motor -->
+    <circle cx="24" cy="0" r="3.3"
+            fill="#334155" stroke="#111827" stroke-width=".8"/>
+    <circle cx="24" cy="0" r="2" fill="#f97316"/>
+    <circle cx="24" cy="0" r=".9" fill="#fbbf24"/>
+    <g stroke="#94a3b8" stroke-width=".6">
+      <path d="M24-2.7V-2.2 M24 2.2V2.7
+               M21.3 0H21.8 M26.2 0H26.7"/>
+    </g>
+
+    <!-- Small hull fasteners -->
+    <g fill="#cbd5e1">
+      <circle cx="-17" cy="-8" r=".4"/>
+      <circle cx="-17" cy="8" r=".4"/>
+      <circle cx="11" cy="-11" r=".4"/>
+      <circle cx="11" cy="11" r=".4"/>
+      <circle cx="17" cy="-7" r=".4"/>
+      <circle cx="17" cy="7" r=".4"/>
+    </g>
+  </g>
+</svg>
