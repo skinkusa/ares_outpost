@@ -1547,12 +1547,11 @@ export default function App() {
               // Pick a random building to walk to
               if (modules.length > 0) {
                 const targetMod = modules[Math.floor(Math.random() * modules.length)];
-                // Target a point slightly outside the building
-                const tx = targetMod.x * 48 + 24 + (Math.random() * 40 - 20);
-                const ty = targetMod.y * 48 + 24 + (Math.random() * 40 - 20);
-                updated.targetX = tx;
-                updated.targetY = ty;
-                updated.waypoints = findNavigationPath(updated.x, updated.y, tx, ty, modules, []);
+                // Target a valid point right outside the building doors
+                const apron = findDockingApron(targetMod, updated.x, updated.y, modules, 18, []);
+                updated.targetX = apron.x;
+                updated.targetY = apron.y;
+                updated.waypoints = findNavigationPath(updated.x, updated.y, apron.x, apron.y, modules, []);
                 updated.state = 'walking';
               } else {
                 updated.timer = 5;
@@ -1677,6 +1676,7 @@ export default function App() {
     setModules((prev) => [...prev, newModule]);
     // Invalidate cached waypoints so roaming vehicles immediately route around the newly constructed building
     setHarvesters((prev) => prev.map((h) => ({ ...h, waypoints: [] })));
+    setWorkers((prev) => prev.map((w) => ({ ...w, waypoints: [] })));
     sound.playBuild();
     addLog('info', 'Construction Complete', `${bp.name} constructed in Sector [${gridX}, ${gridY}].`);
     setBuildPlacingType(null);
