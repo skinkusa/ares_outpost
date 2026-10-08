@@ -87,7 +87,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 3. Surviving Martian Dust Storms
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Watch the weather banner on the HUD. A dust veil dims solar output. A severe dust storm cuts it to a fraction and slows rovers. A <strong>Seismic & Storm Radar</strong> softens both penalties. <strong>Electrostatic Dust Deflectors</strong>, researched from the Research screen, stop the rover slow and restore most of the lost solar power. Seismic tremors uncover new spice veins. Solar flares boost solar output and spike radiation. Recall harvesters if a storm gets too rough.
+                Watch the weather banner on the HUD. A dust veil dims solar output, clogs vaporators, and unsettles the crew. A severe dust storm cuts solar power, slows rovers and crews, and scours exposed buildings. A <strong>Seismic & Storm Radar</strong> softens the solar and rover penalties. <strong>Electrostatic Dust Deflectors</strong>, researched from the Research screen, stop the rover slow and restore most of the lost solar power. Seismic tremors shake the outpost, crack buildings, and uncover new spice veins. Solar flares boost solar output, spike radiation, and drop research output. A meteor strike wounds a building and cuts production. Repair damaged modules from their panel. Recall harvesters if a storm gets too rough.
               </p>
             </div>
           </div>

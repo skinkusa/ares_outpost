@@ -18,6 +18,7 @@ import {
   OreDeposit,
   TechNode,
   WeatherCondition,
+  WeatherType,
   RandomEvent,
   RandomEventType,
 } from './types/colony';
@@ -31,6 +32,7 @@ import {
   WORLD_WIDTH,
 } from './utils/constants';
 import { generateMarsTerrain, spawnNewSpicePatch } from './utils/terrain';
+import { loadColony, mergeSavedTech } from './utils/colonySave';
 import { sound } from './utils/audio';
 import {
   findDockingApron,
@@ -125,14 +127,66 @@ function generateInitialResourceHistory(initialStats: ColonyStats): ResourceHist
   return history;
 }
 
+function cycledWeather(type: WeatherType): WeatherCondition {
+  if (type === 'dust_veil') {
+    return {
+      type,
+      name: 'Atmospheric Dust Veil',
+      description: 'Moderate airborne particulate reducing solar output.',
+      duration: 60,
+      maxDuration: 90,
+      severity: 0.35,
+    };
+  }
+  if (type === 'dust_storm') {
+    return {
+      type,
+      name: 'Severe Dust Storm',
+      description: 'Dangerous winds and heavy sand. Harvesters slowed, solar penalized.',
+      duration: 50,
+      maxDuration: 90,
+      severity: 0.85,
+    };
+  }
+  if (type === 'seismic_tremor') {
+    return {
+      type,
+      name: 'Seismic Dune Tremor',
+      description: 'Ground tremors uncovering underground spice geysers.',
+      duration: 35,
+      maxDuration: 35,
+      severity: 0.65,
+    };
+  }
+  if (type === 'solar_flare') {
+    return {
+      type,
+      name: 'Coronal Solar Flare',
+      description: 'Intense cosmic rays and ion plasma auroras. Solar output +120%, communications interference.',
+      duration: 45,
+      maxDuration: 45,
+      severity: 0.9,
+    };
+  }
+  return {
+    type: 'clear',
+    name: 'Clear Martian Skies',
+    description: 'Optimal visibility and solar radiation.',
+    duration: 120,
+    maxDuration: 120,
+    severity: 0,
+  };
+}
+
 export default function App() {
+  const [boot] = useState(() => loadColony());
   // Terrain & World
-  const [terrain] = useState(() => generateMarsTerrain());
-  const [spicePatches, setSpicePatches] = useState<SpicePatch[]>(() => terrain.spicePatches);
-  const [oreDeposits] = useState<OreDeposit[]>(() => terrain.oreDeposits);
+  const [terrain] = useState(() => boot?.terrain ?? generateMarsTerrain());
+  const [spicePatches, setSpicePatches] = useState<SpicePatch[]>(() => boot?.spicePatches ?? terrain.spicePatches);
+  const [oreDeposits] = useState<OreDeposit[]>(() => boot?.oreDeposits ?? terrain.oreDeposits);
 
   // Colony Modules
-  const [modules, setModules] = useState<ColonyModule[]>([
+  const [modules, setModules] = useState<ColonyModule[]>(() => (boot?.modules ?? [
     {
       id: 'mod_cmd',
       type: 'command',
@@ -302,36 +356,6 @@ export default function App() {
       id: 'mod_rtg_2',
       type: 'rtg',
       x: 32,
-      y: 35,
-      width: 2,
-      height: 2,
-      level: 1,
-      health: 150,
-      maxHealth: 150,
-      isActive: true,
-      assignedColonists: 0,
-      constructed: true,
-      constructProgress: 100,
-    },
-    {
-      id: 'mod_rtg_3',
-      type: 'rtg',
-      x: 32,
-      y: 38,
-      width: 2,
-      height: 2,
-      level: 1,
-      health: 150,
-      maxHealth: 150,
-      isActive: true,
-      assignedColonists: 0,
-      constructed: true,
-      constructProgress: 100,
-    },
-    {
-      id: 'mod_rtg_4',
-      type: 'rtg',
-      x: 32,
       y: 41,
       width: 2,
       height: 2,
@@ -343,14 +367,14 @@ export default function App() {
       constructed: true,
       constructProgress: 100,
     },
-  ]);
+  ]));
 
   // High-voltage power transmission lines network
   const powerLines = useMemo(() => getPowerLines(modules), [modules]);
 
   // Initial Harvesters
-  const [workers, setWorkers] = useState<ColonistWorker[]>([]);
-  const [harvesters, setHarvesters] = useState<Harvester[]>([
+  const [workers, setWorkers] = useState<ColonistWorker[]>(() => boot?.workers ?? []);
+  const [harvesters, setHarvesters] = useState<Harvester[]>(() => (boot?.harvesters ?? [
     {
       id: 'harvester_alpha',
       name: 'Harvester Alpha',
@@ -377,27 +401,29 @@ export default function App() {
       unloadingTimer: 0,
       totalSpiceDelivered: 0,
     },
-  ]);
+  ]));
 
   // Tech Tree
-  const [techNodes, setTechNodes] = useState<TechNode[]>(() => TECH_TREE);
+  const [techNodes, setTechNodes] = useState<TechNode[]>(() =>
+    boot ? mergeSavedTech(boot.techNodes) : TECH_TREE.map((node) => ({ ...node }))
+  );
 
   // Weather Condition
-  const [weather, setWeather] = useState<WeatherCondition>({
+  const [weather, setWeather] = useState<WeatherCondition>(() => (boot?.weather ?? {
     type: 'clear',
     name: 'Clear Martian Skies',
     description: 'Optimal visibility and solar radiation.',
     duration: 120,
     maxDuration: 120,
     severity: 0,
-  });
+  }));
 
   // Random Events
-  const [randomEvent, setRandomEvent] = useState<RandomEvent | null>(null);
+  const [randomEvent, setRandomEvent] = useState<RandomEvent | null>(() => boot?.randomEvent ?? null);
 
   // Colony Stats & Resources
   const statsRef = useRef<ColonyStats | null>(null);
-  const [stats, setStats] = useState<ColonyStats>({
+  const [stats, setStats] = useState<ColonyStats>(() => (boot?.stats ?? {
     sol: 1,
     timeOfDay: 0.15, // morning
     dayCycleSpeed: 0.006, // approx 2.5 minutes per day at 1x
@@ -411,11 +437,11 @@ export default function App() {
     rocketLaunchSeq: 0,
     ore: 0,
     maxOre: 500,
-    powerStored: 350,
-    powerCapacity: 400,
-    currentPowerProd: 132,
+    powerStored: 700,
+    powerCapacity: 800,
+    currentPowerProd: 165,
     currentPowerCons: 86,
-    powerNet: 46,
+    powerNet: 79,
     oxygen: 400,
     maxOxygen: 800,
     currentO2Delta: 18,
@@ -436,7 +462,7 @@ export default function App() {
     healthRecoveryRate: 0.35,
     totalSpiceMined: 45,
     totalCreditsEarned: 0,
-  });
+  }));
 
   // UI Navigation & Modals State
   const [gameSpeed, setGameSpeed] = useState<number>(1);
@@ -502,6 +528,7 @@ export default function App() {
     health: number;
     radiation: number;
   }>({ o2: 0, water: 0, food: 0, power: 0, general: 0, health: 0, radiation: 0 });
+  const hazardClockRef = useRef(0);
 
   // Prolonged Low Resource Deprivation Tracker (> 5 minutes / 300 seconds of game time)
   const prolongedLowTrackerRef = useRef<{
@@ -531,8 +558,9 @@ export default function App() {
   // Sound Engine Setup on first interaction
   useEffect(() => {
     const onFirstUserClick = () => {
-      sound.startAmbient();
-      window.removeEventListener('click', onFirstUserClick);
+      sound.startAmbient().then((started) => {
+        if (started) window.removeEventListener('click', onFirstUserClick);
+      });
     };
     window.addEventListener('click', onFirstUserClick);
     return () => window.removeEventListener('click', onFirstUserClick);
@@ -557,6 +585,51 @@ export default function App() {
 
     const interval = setInterval(() => {
       const dt = 0.1 * gameSpeed; // scaled seconds
+
+      const scarBuilding = (reason: 'tremor' | 'storm' | 'meteor') => {
+        const pool = modules.filter((m) => m.constructed && m.type !== 'command' && m.health > 0);
+        const exposed = reason === 'storm'
+          ? pool.filter((m) => m.type === 'solar' || m.type === 'vaporator' || m.type === 'greenhouse' || m.type === 'launchpad')
+          : pool;
+        const list = exposed.length > 0 ? exposed : pool;
+        if (list.length === 0) return;
+        const target = list[Math.floor(Math.random() * list.length)];
+        const hardened = reason === 'storm' && hasTech('storm_hardening');
+        const raw = reason === 'meteor' ? 24 + Math.random() * 16 : reason === 'tremor' ? 10 + Math.random() * 8 : 5 + Math.random() * 4;
+        const amount = Math.max(1, Math.round(raw * (hardened ? 0.35 : 1)));
+        const nextHealth = Math.max(0, target.health - amount);
+        const offline = nextHealth <= 0;
+        setModules((prev) => prev.map((m) => (
+          m.id === target.id ? { ...m, health: nextHealth, isActive: offline ? false : m.isActive } : m
+        )));
+        setSelectedModule((prev) => (
+          prev && prev.id === target.id
+            ? { ...prev, health: nextHealth, isActive: offline ? false : prev.isActive }
+            : prev
+        ));
+        const name = MODULE_BLUEPRINTS[target.type]?.name ?? 'Module';
+        if (offline) {
+          sound.playAlarm();
+          addLog('danger', 'Structure Offline', `${name} is too damaged to operate. Repair it to bring it back online.`);
+        } else if (reason === 'meteor') {
+          addLog('danger', 'Meteor Impact', `${name} lost ${amount} integrity in the strike.`);
+        } else if (reason === 'tremor') {
+          addLog('warning', 'Seismic Damage', `${name} lost ${amount} integrity in the tremor.`);
+        } else {
+          addLog('warning', 'Dust Abrasion', `Blowing sand scoured ${name} (${amount} integrity).`);
+        }
+      };
+
+      if (weather.type === 'seismic_tremor' || weather.type === 'dust_storm') {
+        hazardClockRef.current += dt;
+        const every = weather.type === 'seismic_tremor' ? 6.5 : 14;
+        if (hazardClockRef.current >= every) {
+          hazardClockRef.current = 0;
+          scarBuilding(weather.type === 'seismic_tremor' ? 'tremor' : 'storm');
+        }
+      } else {
+        hazardClockRef.current = 0;
+      }
 
       // 1. Advance Sol Clock & Time of Day
       setStats((prevStats) => {
@@ -611,6 +684,9 @@ export default function App() {
           const bp = MODULE_BLUEPRINTS[mod.type];
           if (!bp) return;
           const mult = 1 + (mod.level - 1) * 0.5;
+          const integrity = mod.maxHealth > 0 ? Math.max(0, Math.min(1, mod.health / mod.maxHealth)) : 1;
+          const wear = integrity >= 0.995 ? 1 : 0.5 + 0.5 * integrity;
+          const rate = mult * wear;
 
           if (mod.type === 'medbay') {
             medBayCount++;
@@ -620,15 +696,15 @@ export default function App() {
           if (bp.powerDelta > 0) {
             if (mod.type === 'solar') {
               const solarBonus = hasTech('solar_tracking') ? 1.35 : 1.0;
-              powerProd += bp.powerDelta * mult * sunFactor * solarBonus;
+              powerProd += bp.powerDelta * rate * sunFactor * solarBonus;
             } else if (mod.type === 'rtg') {
               const rtgBonus = hasTech('nuclear_enrichment') ? 1.5 : 1.0;
-              powerProd += bp.powerDelta * mult * rtgBonus;
+              powerProd += bp.powerDelta * rate * rtgBonus;
             } else {
-              powerProd += bp.powerDelta * mult;
+              powerProd += bp.powerDelta * rate;
             }
           } else {
-            powerCons += Math.abs(bp.powerDelta * mult);
+            powerCons += Math.abs(bp.powerDelta * rate);
           }
 
           if (bp.batteryCapacity) batteryCap += bp.batteryCapacity * mult;
@@ -639,25 +715,35 @@ export default function App() {
           if (bp.waterCapacity) waterCap += bp.waterCapacity * mult;
           if (bp.popCapacity) popCap += bp.popCapacity;
 
-          if (bp.o2Delta > 0) o2Gen += bp.o2Delta * mult;
-          else if (bp.o2Delta < 0) o2Upkeep += Math.abs(bp.o2Delta) * mult;
+          if (bp.o2Delta > 0) o2Gen += bp.o2Delta * rate;
+          else if (bp.o2Delta < 0) o2Upkeep += Math.abs(bp.o2Delta) * rate;
           if (bp.waterDelta > 0) {
             const waterBonus = hasTech('deep_well_drilling') ? 1.5 : 1.0;
-            waterGen += bp.waterDelta * mult * waterBonus;
+            let intake = 1;
+            if (mod.type === 'vaporator' && weather.type === 'dust_storm') {
+              intake = hasTech('storm_hardening') ? 0.85 : 0.55;
+            } else if (mod.type === 'vaporator' && weather.type === 'dust_veil') {
+              intake = 0.82;
+            }
+            waterGen += bp.waterDelta * rate * waterBonus * intake;
           } else if (bp.waterDelta < 0) {
-            let waterUse = Math.abs(bp.waterDelta) * mult;
+            let waterUse = Math.abs(bp.waterDelta) * rate;
             if (mod.type === 'greenhouse' && hasTech('hydro_recycler')) waterUse *= 0.5;
             waterUpkeep += waterUse;
           }
-          if (bp.foodDelta > 0) foodGen += bp.foodDelta * mult;
-          else if (bp.foodDelta < 0) foodUpkeep += Math.abs(bp.foodDelta) * mult;
-          if (bp.techRate) techGen += bp.techRate * mult;
+          if (bp.foodDelta > 0) foodGen += bp.foodDelta * rate;
+          else if (bp.foodDelta < 0) foodUpkeep += Math.abs(bp.foodDelta) * rate;
+          if (bp.techRate) techGen += bp.techRate * rate;
 
           if (mod.type === 'refinery') {
-            oreConsRate += 4 * mult; // Consumes 4 ore per sec
-            alloyGenRate += 2 * mult; // Produces 2 alloy per sec (2:1 ratio)
+            oreConsRate += 4 * rate; // Consumes 4 ore per sec
+            alloyGenRate += 2 * rate; // Produces 2 alloy per sec (2:1 ratio)
           }
         });
+
+        if (weather.type === 'solar_flare') {
+          techGen *= 0.35;
+        }
 
         // Apply Random Event Effects
         if (randomEvent) {
@@ -770,6 +856,12 @@ export default function App() {
         if (popCap > 0 && prevStats.population > popCap) {
           targetMorale -= 15;
         }
+
+        if (weather.type === 'dust_veil') targetMorale -= 8;
+        else if (weather.type === 'dust_storm') targetMorale -= hasTech('storm_hardening') ? 8 : 20;
+        else if (weather.type === 'seismic_tremor') targetMorale -= 16;
+        else if (weather.type === 'solar_flare') targetMorale -= 14;
+        if (randomEvent?.type === 'meteor_strike') targetMorale -= 12;
 
         // Smoothly interpolate morale towards target
         targetMorale = Math.max(5, Math.min(100, targetMorale));
@@ -1163,7 +1255,7 @@ export default function App() {
             };
           } else if (roll < 0.82) {
             sound.playAlarm();
-            addLog('danger', 'Dust Storm Alert', 'Severe Martian dust storm detected! Solar output is cut and harvesters slow.');
+            addLog('danger', 'Dust Storm Alert', 'Severe Martian dust storm detected! Solar output drops, vaporators clog, and exposed buildings scour.');
             return {
               type: 'dust_storm',
               name: 'Severe Dust Storm',
@@ -1187,7 +1279,7 @@ export default function App() {
             };
           } else {
             sound.playAlarm();
-            addLog('warning', 'Solar Flare', 'Coronal mass ejection! High radiation ion storm, solar output surge.');
+            addLog('warning', 'Solar Flare', 'Coronal mass ejection! Radiation spikes, research links drop, and solar output surges.');
             return {
               type: 'solar_flare',
               name: 'Coronal Solar Flare',
@@ -1245,7 +1337,8 @@ export default function App() {
               maxDuration: 40,
               effectMultiplier: 0.8, // -20% overall efficiency
             };
-            addLog('danger', 'Meteor Strike!', 'Impact damaged colony infrastructure!');
+            addLog('danger', 'Meteor Strike!', 'A meteor hit the outpost. Output is down and a building took structural damage.');
+            scarBuilding('meteor');
           }
           return newEvent;
         }
@@ -1276,6 +1369,12 @@ export default function App() {
           if (weather.type === 'dust_storm' && !hasTech('storm_hardening')) {
             const hasRadar = modules.some(m => m.type === 'radar' && m.isActive);
             currentSpeed *= hasRadar ? 0.85 : 0.65; // Radar gives early navigation warnings
+          } else if (weather.type === 'dust_veil') {
+            currentSpeed *= 0.9;
+          } else if (weather.type === 'seismic_tremor') {
+            currentSpeed *= 0.75;
+          } else if (weather.type === 'solar_flare') {
+            currentSpeed *= 0.85;
           }
 
           // Cargo capacity bonus from tech
@@ -1284,7 +1383,11 @@ export default function App() {
           );
 
           // Sandstorm Recovery effect
-          const currentHarvestRate = h.harvestRate * (randomEvent && randomEvent.type === 'sandstorm_recovery' ? randomEvent.effectMultiplier : 1.0);
+          let currentHarvestRate = h.harvestRate * (randomEvent && randomEvent.type === 'sandstorm_recovery' ? randomEvent.effectMultiplier : 1.0);
+          if (weather.type === 'dust_storm' && !hasTech('storm_hardening')) currentHarvestRate *= 0.7;
+          else if (weather.type === 'dust_veil') currentHarvestRate *= 0.9;
+          else if (weather.type === 'seismic_tremor') currentHarvestRate *= 0.8;
+          else if (weather.type === 'solar_flare') currentHarvestRate *= 0.85;
 
           // State Machine
           if (h.autoHarvest) {
@@ -1681,7 +1784,13 @@ export default function App() {
               const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
               updated.angle += normalizedDiff * 5 * dt;
 
-              const speed = updated.transport === 'rover' ? 38 : 14;
+              const speed = (updated.transport === 'rover' ? 38 : 14) * (
+                weather.type === 'dust_storm' && !hasTech('storm_hardening') ? 0.6
+                : weather.type === 'dust_veil' ? 0.85
+                : weather.type === 'seismic_tremor' ? 0.7
+                : weather.type === 'solar_flare' ? 0.9
+                : 1
+              );
               updated.x += Math.cos(updated.angle) * speed * dt;
               updated.y += Math.sin(updated.angle) * speed * dt;
             }
@@ -2023,9 +2132,17 @@ export default function App() {
 
     setStats((prev) => ({ ...prev, alloy: prev.alloy - costAlloy }));
     setModules((prev) =>
-      prev.map((m) => (m.id === moduleId ? { ...m, health: m.maxHealth } : m))
+      prev.map((m) => {
+        if (m.id !== moduleId) return m;
+        const wasOffline = m.health <= 0;
+        return { ...m, health: m.maxHealth, isActive: wasOffline ? true : m.isActive };
+      })
     );
-    setSelectedModule((prev) => (prev && prev.id === moduleId ? { ...prev, health: prev.maxHealth } : prev));
+    setSelectedModule((prev) => {
+      if (!prev || prev.id !== moduleId) return prev;
+      const wasOffline = prev.health <= 0;
+      return { ...prev, health: prev.maxHealth, isActive: wasOffline ? true : prev.isActive };
+    });
 
     sound.playBuild();
     addLog('info', 'Module Repaired', `${bp.name} restored to 100% structural integrity.`);
@@ -2083,6 +2200,26 @@ export default function App() {
     addLog('info', 'Order Dispatched', 'Manual navigation coordinates transmitted to rover.');
   };
 
+  const handleCycleWeather = () => {
+    const order: WeatherType[] = ['clear', 'dust_veil', 'dust_storm', 'seismic_tremor', 'solar_flare'];
+    const nextType = order[(Math.max(0, order.indexOf(weather.type)) + 1) % order.length];
+    setWeather(cycledWeather(nextType));
+    if (nextType === 'dust_veil') {
+      addLog('warning', 'Dust Veil', 'A dust veil is dimming the sun and clogging the vaporator intakes.');
+    } else if (nextType === 'dust_storm') {
+      sound.playAlarm();
+      addLog('danger', 'Dust Storm Alert', 'Severe Martian dust storm detected! Solar output drops, vaporators clog, and exposed buildings scour.');
+    } else if (nextType === 'seismic_tremor') {
+      sound.playAlarm();
+      addLog('warning', 'Seismic Tremor', 'Subterranean seismic activity detected! New spice vein geyser erupted.');
+      setSpicePatches((prev) => [...prev, spawnNewSpicePatch(prev)]);
+    } else if (nextType === 'solar_flare') {
+      sound.playAlarm();
+      addLog('warning', 'Solar Flare', 'Coronal mass ejection! Radiation spikes, research links drop, and solar output surges.');
+    }
+    sound.playClick(700);
+  };
+
   return (
     <div className="relative w-screen h-screen bg-stone-950 overflow-hidden font-sans">
       {/* HUD Top Bar */}
@@ -2102,6 +2239,7 @@ export default function App() {
           setIsResourceMonitorOpen(true);
           sound.playClick(850);
         }}
+        onCycleWeather={handleCycleWeather}
       />
 
       {/* Main 2D Martian Surface Canvas */}
@@ -2142,6 +2280,7 @@ export default function App() {
         stormHardening={hasTech('storm_hardening')}
         terraformingGenesis={hasTech('terraforming_genesis')}
         rocketLaunchSeq={stats.rocketLaunchSeq ?? 0}
+        onCycleWeather={handleCycleWeather}
       />
 
       {/* Mission Log Feed & Population Morale Dashboard */}

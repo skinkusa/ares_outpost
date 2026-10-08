@@ -1,4 +1,5 @@
 import React from 'react';
+import { SoundMenu } from './SoundMenu';
 import {
   ColonyStats,
   WeatherCondition,
@@ -185,7 +186,9 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="hidden sm:inline">SPRITES</span>
           </button>
 
-          {/* Audio Synthesizer Mute Toggle */}
+          <SoundMenu isMuted={isMuted} onToggleMute={onToggleMute} />
+
+          {/* Audio mute */}
           <button
             onClick={onToggleMute}
             className={`p-1.5 rounded-md border text-xs transition-colors ${
