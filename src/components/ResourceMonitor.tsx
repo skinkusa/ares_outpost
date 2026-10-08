@@ -260,9 +260,18 @@ export const ResourceMonitor: React.FC<ResourceMonitorProps> = ({
           </div>
         </div>
 
+        {/* Top Navigation Tabs */}
+        <div className="flex flex-wrap bg-stone-950 border-b border-stone-800 p-2 gap-2 text-xs font-title font-bold justify-center">
+          <button onClick={() => setSelectedResource('all')} className={`px-4 py-2 rounded-md transition-colors ${category === 'vitals' ? 'bg-cyan-900/80 text-cyan-200 border border-cyan-700/50' : 'text-stone-500 hover:text-stone-300'}`}>VITALS & LIFE SUPPORT</button>
+          <button onClick={() => setSelectedResource('crew')} className={`px-4 py-2 rounded-md transition-colors ${category === 'crew' ? 'bg-purple-900/80 text-purple-200 border border-purple-700/50' : 'text-stone-500 hover:text-stone-300'}`}>PERSONNEL & HEALTH</button>
+          <button onClick={() => setSelectedResource('alloy')} className={`px-4 py-2 rounded-md transition-colors ${category === 'industry' ? 'bg-orange-900/80 text-orange-200 border border-orange-700/50' : 'text-stone-500 hover:text-stone-300'}`}>INDUSTRY & RESOURCES</button>
+          <button onClick={() => setSelectedResource('credits')} className={`px-4 py-2 rounded-md transition-colors ${category === 'commerce' ? 'bg-amber-900/80 text-amber-200 border border-amber-700/50' : 'text-stone-500 hover:text-stone-300'}`}>COMMERCE & TRADE</button>
+        </div>
+
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-5">
           {/* Top Row: Predictive Trend Horizon Cards */}
+          {category === 'vitals' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 font-mono text-xs">
             {/* 1. POWER GRID CARD */}
             <div
@@ -486,6 +495,7 @@ export const ResourceMonitor: React.FC<ResourceMonitorProps> = ({
               </div>
             </div>
           </div>
+          )}
 
           {/* Interactive Chart Control Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-stone-900/70 border border-stone-800/90 p-2.5 rounded-lg text-xs">
@@ -499,6 +509,7 @@ export const ResourceMonitor: React.FC<ResourceMonitorProps> = ({
                   <button onClick={() => setSelectedResource('power')} className={`px-2.5 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${selectedResource === 'power' ? 'bg-yellow-900/80 text-yellow-200 border border-yellow-700 font-semibold' : 'text-yellow-400 hover:bg-yellow-950/40'}`}><Zap className="w-3 h-3" /> Power</button>
                   <button onClick={() => setSelectedResource('water')} className={`px-2.5 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${selectedResource === 'water' ? 'bg-blue-900/80 text-blue-200 border border-blue-700 font-semibold' : 'text-blue-400 hover:bg-blue-950/40'}`}><Droplets className="w-3 h-3" /> Water</button>
                   <button onClick={() => setSelectedResource('oxygen')} className={`px-2.5 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${selectedResource === 'oxygen' ? 'bg-cyan-900/80 text-cyan-200 border border-cyan-700 font-semibold' : 'text-cyan-400 hover:bg-cyan-950/40'}`}><Wind className="w-3 h-3" /> Oxygen</button>
+                  <button onClick={() => setSelectedResource('food')} className={`px-2.5 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${selectedResource === 'food' ? 'bg-emerald-900/80 text-emerald-200 border border-emerald-700 font-semibold' : 'text-emerald-400 hover:bg-emerald-950/40'}`}><Wind className="w-3 h-3" /> Food</button>
                 </>
               )}
               
@@ -676,6 +687,10 @@ export const ResourceMonitor: React.FC<ResourceMonitorProps> = ({
                                 <span className="flex items-center gap-1"><Wind className="w-3 h-3 text-cyan-400" /> Oxygen:</span>
                                 <span className="font-bold">{Math.round(pt.oxygen)} m³ ({Math.round(pt.oxygenPct)}%)</span>
                               </div>
+                              <div className="flex items-center justify-between text-emerald-300">
+                                <span className="flex items-center gap-1"><Activity className="w-3 h-3 text-emerald-400" /> Food:</span>
+                                <span className="font-bold">{Math.round(pt.food)} ({Math.round(pt.foodPct)}%)</span>
+                              </div>
                             </>
                           )}
                           {category === 'crew' && (
@@ -751,7 +766,7 @@ export const ResourceMonitor: React.FC<ResourceMonitorProps> = ({
                   )}
 
                   {/* Power Line */}
-                  {(selectedResource === 'all' || selectedResource === 'power') && (
+                  {(category === 'vitals' && (selectedResource === 'all' || selectedResource === 'power')) && (
                     <Line
                       type="monotone"
                       dataKey={unitMode === 'pct' ? 'powerPct' : 'powerActual'}
@@ -764,7 +779,7 @@ export const ResourceMonitor: React.FC<ResourceMonitorProps> = ({
                   )}
 
                   {/* Water Line */}
-                  {(selectedResource === 'all' || selectedResource === 'water') && (
+                  {(category === 'vitals' && (selectedResource === 'all' || selectedResource === 'water')) && (
                     <Line
                       type="monotone"
                       dataKey={unitMode === 'pct' ? 'waterPct' : 'waterActual'}
