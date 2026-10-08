@@ -28,6 +28,29 @@ export interface MarsTerrainData {
   oreDeposits: OreDeposit[];
 }
 
+// Starter buildings occupy tiles 35–48 by 35–45. Keep deposits off those streets.
+const OUTPOST_CENTER_X = 41.5 * TILE_SIZE;
+const OUTPOST_CENTER_Y = 40 * TILE_SIZE;
+const OUTPOST_CLEAR_RADIUS = 700;
+
+function isClearOfOutpost(x: number, y: number, padding = 0) {
+  return Math.hypot(x - OUTPOST_CENTER_X, y - OUTPOST_CENTER_Y) >= OUTPOST_CLEAR_RADIUS + padding;
+}
+
+function pushOutsideOutpost(x: number, y: number, padding = 0) {
+  const dx = x - OUTPOST_CENTER_X;
+  const dy = y - OUTPOST_CENTER_Y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const min = OUTPOST_CLEAR_RADIUS + padding;
+  if (dist >= min) return { x, y };
+  const scale = min / dist;
+  const margin = 160;
+  return {
+    x: Math.min(WORLD_WIDTH - margin, Math.max(margin, OUTPOST_CENTER_X + dx * scale)),
+    y: Math.min(WORLD_HEIGHT - margin, Math.max(margin, OUTPOST_CENTER_Y + dy * scale)),
+  };
+}
+
 export function generateMarsTerrain(): MarsTerrainData {
   const craters: Crater[] = [];
   const rocks: Rock[] = [];
@@ -110,11 +133,13 @@ export function generateMarsTerrain(): MarsTerrainData {
   ];
 
   initialSpiceLocations.forEach((loc, idx) => {
+    const radius = loc.richness === 'pure_vein' ? 58 : loc.richness === 'rich' ? 48 : 38;
+    const placed = pushOutsideOutpost(loc.x, loc.y, radius);
     spicePatches.push({
       id: `spice_${idx}_${Date.now()}`,
-      x: loc.x,
-      y: loc.y,
-      radius: loc.richness === 'pure_vein' ? 58 : loc.richness === 'rich' ? 48 : 38,
+      x: placed.x,
+      y: placed.y,
+      radius,
       amount: loc.amount,
       maxAmount: loc.amount,
       richness: loc.richness,
@@ -123,15 +148,28 @@ export function generateMarsTerrain(): MarsTerrainData {
     });
   });
   
-  // Spawn initial Ore Deposits
-  for(let i=0; i<15; i++) {
+  // Spawn initial Ore Deposits outside the starter outpost.
+  for (let i = 0; i < 15; i++) {
+    let x = 2;
+    let y = 2;
+    const orePadding = 28;
+    for (let attempt = 0; attempt < 50; attempt++) {
+      x = Math.floor(Math.random() * (GRID_SIZE - 4)) + 2;
+      y = Math.floor(Math.random() * (GRID_SIZE - 4)) + 2;
+      if (isClearOfOutpost((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE, orePadding)) break;
+    }
+    if (!isClearOfOutpost((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE, orePadding)) {
+      const placed = pushOutsideOutpost((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE, orePadding);
+      x = Math.min(GRID_SIZE - 3, Math.max(2, Math.floor(placed.x / TILE_SIZE)));
+      y = Math.min(GRID_SIZE - 3, Math.max(2, Math.floor(placed.y / TILE_SIZE)));
+    }
     oreDeposits.push({
-        id: `ore_${i}_${Date.now()}`,
-        x: Math.floor(Math.random() * (GRID_SIZE - 4)) + 2,
-        y: Math.floor(Math.random() * (GRID_SIZE - 4)) + 2,
-        size: Math.random() > 0.7 ? 'large' : Math.random() > 0.4 ? 'medium' : 'small',
-        depleted: false
-    })
+      id: `ore_${i}_${Date.now()}`,
+      x,
+      y,
+      size: Math.random() > 0.7 ? 'large' : Math.random() > 0.4 ? 'medium' : 'small',
+      depleted: false,
+    });
   }
 
   return { craters, rocks, dunes, spicePatches, oreDeposits };
@@ -148,9 +186,13 @@ export function spawnNewSpicePatch(existing: SpicePatch[]): SpicePatch {
   while (attempts < 30) {
     x = Math.random() * (WORLD_WIDTH - 300) + 150;
     y = Math.random() * (WORLD_HEIGHT - 300) + 150;
-    const distCenter = Math.hypot(x - WORLD_WIDTH / 2, y - WORLD_HEIGHT / 2);
-    if (distCenter > 380) break;
+    if (isClearOfOutpost(x, y, 58)) break;
     attempts++;
+  }
+  if (!isClearOfOutpost(x, y, 58)) {
+    const placed = pushOutsideOutpost(x, y, 58);
+    x = placed.x;
+    y = placed.y;
   }
 
   const richnessRoll = Math.random();

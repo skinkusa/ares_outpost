@@ -47,6 +47,7 @@ interface MarsCanvasProps {
   deepWellDrilling?: boolean;
   stormHardening?: boolean;
   terraformingGenesis?: boolean;
+  rocketLaunchSeq?: number;
 }
 
 // Particle types for sci-fi rendering
@@ -419,8 +420,13 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
   deepWellDrilling = false,
   stormHardening = false,
   terraformingGenesis = false,
+  rocketLaunchSeq = 0,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const rocketLaunchesRef = useRef<Record<string, RocketLaunchState>>({});
+  const seenRocketLaunchRef = useRef(rocketLaunchSeq);
+  const rocketLaunchSeqRef = useRef(rocketLaunchSeq);
+  rocketLaunchSeqRef.current = rocketLaunchSeq;
 
   // Camera viewport
   const [camera, setCamera] = useState({
@@ -1470,6 +1476,19 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       // =====================================================================
       // 9. MODULES WITH SCI-FI ATMOSPHERIC EMISSIVE GLOWS
       // =====================================================================
+      const nowMs = performance.now();
+      if (rocketLaunchSeqRef.current !== seenRocketLaunchRef.current) {
+        seenRocketLaunchRef.current = rocketLaunchSeqRef.current;
+        const pad =
+          modules.find((m) => m.type === 'launchpad' && m.isActive) ||
+          modules.find((m) => m.type === 'launchpad');
+        if (pad) {
+          const state = rocketLaunchesRef.current[pad.id] ?? createRocketLaunchState();
+          rocketLaunchesRef.current[pad.id] = state;
+          triggerRocketLaunch(state, nowMs);
+        }
+      }
+
       modules.forEach((mod) => {
         const bp = MODULE_BLUEPRINTS[mod.type];
         const px = mod.x * TILE_SIZE;
@@ -1536,6 +1555,11 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
             break;
           }
 
+          case 'fusion': {
+            drawFusionReactor(ctx, px, py, pw, ph, performance.now());
+            break;
+          }
+
 
 
           case 'battery': {
@@ -1579,7 +1603,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
             if (spiceCentrifuge) {
               drawHighDensitySpiceRefinement(ctx, px, py, pw, ph, performance.now());
             } else {
-              drawHarvesterGarage(ctx, px, py, pw, ph, performance.now());
+              drawDepot(ctx, px, py, pw, ph);
             }
             break;
           }
@@ -1600,7 +1624,19 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           }
 
           case 'launchpad': {
-            drawLaunchPad(ctx, px, py, pw, ph, performance.now());
+            const now = performance.now();
+            const state = rocketLaunchesRef.current[mod.id] ?? createRocketLaunchState();
+            rocketLaunchesRef.current[mod.id] = state;
+            if (
+              state.startedAt !== null &&
+              (now - state.startedAt) / 1000 >= ROCKET_CYCLE_END
+            ) {
+              const again = state.queued;
+              resetRocketLaunch(state);
+              if (again) triggerRocketLaunch(state, now);
+            }
+            drawLaunchPad(ctx, px, py, pw, ph, now);
+            drawLaunchPadRocket(ctx, px, py, pw, ph, state, now);
             break;
           }
 
@@ -1964,17 +2000,20 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
 
         let stateLabel = 'IDLE';
         let stateColor = '#94a3b8';
+        const oreRun = h.miningTarget === 'ore';
         if (h.state === 'moving_to_spice') {
-          stateLabel = 'NAV TO SPICE';
+          stateLabel = oreRun ? 'NAV TO ORE' : 'NAV TO SPICE';
           stateColor = '#38bdf8';
         } else if (h.state === 'harvesting') {
-          stateLabel = `MINING (${Math.round(h.cargo)}/${h.maxCargo})`;
-          stateColor = '#e879f9';
+          stateLabel = oreRun
+            ? `MINING ORE (${Math.round(h.cargo)}/${h.maxCargo})`
+            : `MINING (${Math.round(h.cargo)}/${h.maxCargo})`;
+          stateColor = oreRun ? '#f97316' : '#e879f9';
         } else if (h.state === 'returning_to_depot') {
-          stateLabel = 'RETURNING (FULL)';
+          stateLabel = oreRun ? 'RETURNING ORE (FULL)' : 'RETURNING (FULL)';
           stateColor = '#f59e0b';
         } else if (h.state === 'unloading') {
-          stateLabel = 'UNLOADING SPICE';
+          stateLabel = oreRun ? 'UNLOADING ORE' : 'UNLOADING SPICE';
           stateColor = '#10b981';
         }
 
@@ -4656,6 +4695,268 @@ function drawAtmosphericGenesisEngine(
       false
     );
   }
+  ctx.restore();
+}
+
+function drawFusionReactor(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  timeMs: number = 0
+) {
+  if (pw <= 0 || ph <= 0) return;
+
+  ctx.save();
+
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+
+  const c = {
+    outline: '#111827',
+    wall: '#334155',
+    metal: '#94a3b8',
+    deck: '#475569',
+    highlight: '#cbd5e1',
+    orange: '#f97316',
+    cyan: '#22d3ee',
+    plasma: '#a5f3fc'
+  };
+
+  function box(
+    x: number, y: number,
+    width: number, height: number,
+    fill: string, border = true
+  ) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, width, height);
+
+    if (border) {
+      ctx.strokeStyle = c.outline;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, width, height);
+    }
+  }
+
+  function oval(
+    x: number, y: number,
+    rx: number, ry: number,
+    fill: string, border = true
+  ) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+
+    if (border) {
+      ctx.strokeStyle = c.outline;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  function line(
+    points: number[][],
+    color: string,
+    width = 1
+  ) {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+
+  function polygon(points: number[][], fill: string) {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  function pipe(points: number[][]) {
+    line(points, c.outline, 5);
+    line(points, c.metal, 3);
+  }
+
+  function light(x: number, y: number, phase: number) {
+    box(x, y, 6, 3, c.outline);
+    const alpha = 0.65 + Math.sin(timeMs * 0.003 + phase) * 0.2;
+    box(
+      x + 0.7, y + 0.7, 4.6, 1.6,
+      `rgba(34, 211, 238, ${alpha})`,
+      false
+    );
+  }
+
+  function coolingUnit(x: number, y: number, phase: number) {
+    box(x, y + 4, 18, 22, c.wall);
+    box(x, y, 18, 22, c.metal);
+    box(x + 2, y + 2, 14, 17, c.deck);
+    box(x, y + 2, 2, 17, c.orange);
+
+    oval(x + 9, y + 9, 6, 4, c.wall);
+    oval(x + 9, y + 9, 4.8, 3.2, c.outline);
+
+    ctx.save();
+    ctx.translate(x + 9, y + 9);
+    ctx.scale(1, 0.67);
+    ctx.rotate(timeMs * 0.002 + phase);
+
+    for (let blade = 0; blade < 5; blade++) {
+      ctx.save();
+      ctx.rotate(blade * Math.PI * 2 / 5);
+      polygon(
+        [[1, -0.6], [4, -1], [4.3, 0.7], [1.5, 1]],
+        c.metal
+      );
+      ctx.restore();
+    }
+
+    ctx.restore();
+    oval(x + 9, y + 9, 1.5, 1, c.orange);
+
+    for (const offset of [4, 7, 10, 13]) {
+      line(
+        [[x + offset, y + 16], [x + offset, y + 19]],
+        c.outline,
+        0.7
+      );
+    }
+
+    light(x + 6, y + 22, phase);
+  }
+
+  box(9, 20, 84, 72, 'rgba(0, 0, 0, 0.25)', false);
+  box(7, 16, 86, 72, c.wall);
+  box(7, 16, 86, 66, c.metal);
+  box(11, 20, 78, 58, c.deck);
+
+  for (const x of [30, 50, 70]) {
+    line([[x, 21], [x, 77]], '#64748b', 0.6);
+  }
+  for (const y of [40, 60]) {
+    line([[12, y], [88, y]], '#64748b', 0.6);
+  }
+
+  pipe([[21, 48], [21, 68], [39, 68]]);
+  pipe([[79, 48], [79, 68], [61, 68]]);
+  pipe([[21, 30], [21, 24], [79, 24], [79, 30]]);
+
+  coolingUnit(12, 33, 0);
+  coolingUnit(70, 33, Math.PI / 3);
+
+  oval(50, 58, 24, 17, c.wall);
+  box(26, 47, 48, 11, c.wall, false);
+  oval(50, 47, 24, 17, c.metal);
+  oval(50, 47, 20, 14, c.deck);
+
+  box(32, 59, 8, 7, c.deck);
+  box(60, 59, 8, 7, c.deck);
+  light(33, 61, 0);
+  light(61, 61, 2);
+
+  oval(50, 44, 20, 13, c.outline);
+
+  const pulse = 0.5 + Math.sin(timeMs * 0.003) * 0.15;
+
+  ctx.beginPath();
+  ctx.ellipse(50, 44, 15, 9, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(34, 211, 238, ${pulse * 0.3})`;
+  ctx.lineWidth = 7;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(50, 44, 15, 9, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = c.cyan;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  const rotation = timeMs * 0.0012;
+
+  for (let i = 0; i < 3; i++) {
+    const start = rotation + i * Math.PI * 2 / 3;
+
+    ctx.beginPath();
+    ctx.ellipse(50, 44, 15, 9, 0, start, start + 0.45);
+    ctx.strokeStyle = c.plasma;
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+  }
+
+  oval(50, 44, 8, 5, c.wall);
+  box(42, 36, 16, 8, c.wall, false);
+  oval(50, 36, 8, 5, c.highlight);
+  oval(50, 35.5, 5.5, 3.5, c.deck);
+  oval(50, 35.5, 2.5, 1.5, c.orange);
+
+  for (let i = 0; i < 8; i++) {
+    const angle = i * Math.PI / 4;
+    const x = 50 + Math.cos(angle) * 21;
+    const y = 44 + Math.sin(angle) * 14;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan2(
+      Math.sin(angle) * 14,
+      Math.cos(angle) * 21
+    ));
+
+    box(-4, -2.5, 8, 5, c.metal);
+    box(-1.3, -2.5, 2.6, 5, c.orange, false);
+    line([[-3, -1.5], [-3, 1.5]], c.highlight, 0.7);
+
+    ctx.restore();
+  }
+
+  pipe([[50, 65], [50, 75]]);
+  box(43, 68, 14, 8, c.wall);
+  box(46, 70, 8, 4, c.orange);
+
+  box(36, 78, 28, 13, c.wall);
+  box(36, 74, 28, 12, c.metal);
+  box(40, 77, 20, 6, c.outline);
+  box(41, 78, 18, 4, '#164e63', false);
+
+  const trace: number[][] = [];
+
+  for (let i = 0; i <= 16; i++) {
+    trace.push([
+      42 + i,
+      80 + Math.sin(i * 0.8 - timeMs * 0.004) * 1.1
+    ]);
+  }
+
+  line(trace, c.cyan, 0.7);
+
+  box(40, 84, 2, 1.5, c.orange, false);
+  box(44, 84, 2, 1.5, '#22c55e', false);
+
+  for (const x of [12, 18, 24, 72, 78, 84]) {
+    box(x, 83, 3, 2, c.orange, false);
+  }
+
+  light(13, 18, 1);
+  light(81, 18, 3);
+
   ctx.restore();
 }
 
@@ -8637,6 +8938,332 @@ function drawScienceLab(ctx: CanvasRenderingContext2D, px: number, py: number, p
   ctx.restore();
 }
 
+
+type RocketLaunchState = {
+  startedAt: number | null;
+  queued: boolean;
+};
+
+function createRocketLaunchState(): RocketLaunchState {
+  return { startedAt: null, queued: false };
+}
+
+function triggerRocketLaunch(
+  state: RocketLaunchState,
+  timeMs: number
+) {
+  // Prevent repeated triggers from restarting the animation.
+  if (state.startedAt === null) {
+    state.startedAt = timeMs;
+    state.queued = false;
+  } else {
+    state.queued = true;
+  }
+}
+
+function resetRocketLaunch(state: RocketLaunchState) {
+  state.startedAt = null;
+  state.queued = false;
+}
+
+// Climb, linger off the pad, then descend onto the same ring.
+const ROCKET_IGNITION = 0.8;
+const ROCKET_ASCENT_END = 3.8;
+const ROCKET_AWAY = 4.2;
+const ROCKET_RETURN_START = ROCKET_ASCENT_END + ROCKET_AWAY;
+const ROCKET_DESCENT = 2.6;
+const ROCKET_TOUCHDOWN = ROCKET_RETURN_START + ROCKET_DESCENT;
+const ROCKET_CYCLE_END = ROCKET_TOUCHDOWN + 0.8;
+
+function drawLaunchPadRocket(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  state: RocketLaunchState,
+  timeMs: number
+) {
+  if (pw <= 0 || ph <= 0) return;
+
+  const elapsed = state.startedAt === null
+    ? -1
+    : Math.max(0, (timeMs - state.startedAt) / 1000);
+
+  if (elapsed >= ROCKET_CYCLE_END) return;
+
+  const ascending = elapsed >= 0 && elapsed < ROCKET_ASCENT_END;
+  const returning = elapsed >= ROCKET_RETURN_START && elapsed < ROCKET_CYCLE_END;
+  let lift = 0;
+  if (elapsed >= ROCKET_IGNITION && elapsed < ROCKET_RETURN_START) {
+    const flightTime = elapsed - ROCKET_IGNITION;
+    lift = 28 * flightTime * flightTime;
+  } else if (elapsed >= ROCKET_RETURN_START && elapsed < ROCKET_TOUCHDOWN) {
+    const remaining = ROCKET_TOUCHDOWN - elapsed;
+    lift = 28 * remaining * remaining;
+  }
+
+  let throttle = 0;
+  if (ascending) {
+    throttle = Math.min(1, elapsed / ROCKET_IGNITION);
+  } else if (elapsed >= ROCKET_RETURN_START && elapsed < ROCKET_TOUCHDOWN) {
+    const remaining = ROCKET_TOUCHDOWN - elapsed;
+    throttle = 0.42 + 0.58 * Math.min(1, remaining / 0.9);
+  } else if (elapsed >= ROCKET_TOUCHDOWN && elapsed < ROCKET_CYCLE_END) {
+    throttle = Math.max(0, 1 - (elapsed - ROCKET_TOUCHDOWN) / 0.7);
+  }
+  const firing = throttle > 0.02;
+
+  ctx.save();
+
+  // Exactly the same coordinate system as the pad.
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([]);
+
+  const c = {
+    outline: '#111827',
+    dark: '#334155',
+    metal: '#94a3b8',
+    suit: '#e5e7eb',
+    highlight: '#f8fafc',
+    orange: '#f97316',
+    amber: '#fbbf24'
+  };
+
+  function polygon(points: number[][], fill: string, border = true) {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+
+    if (border) {
+      ctx.strokeStyle = c.outline;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+  }
+
+  function oval(
+    x: number, y: number,
+    rx: number, ry: number,
+    fill: string, border = true
+  ) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+
+    if (border) {
+      ctx.strokeStyle = c.outline;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+  }
+
+  function box(
+    x: number, y: number,
+    width: number, height: number,
+    fill: string, border = true
+  ) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, width, height);
+
+    if (border) {
+      ctx.strokeStyle = c.outline;
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(x, y, width, height);
+    }
+  }
+
+  // Shadow shrinks and fades as the rocket rises.
+  const shadowAlpha = 0.3 * Math.exp(-lift / 35);
+
+  oval(
+    50, 46,
+    11 / (1 + lift * 0.015),
+    6 / (1 + lift * 0.015),
+    `rgba(0, 0, 0, ${shadowAlpha})`,
+    false
+  );
+
+  // Warm light on the deck during ignition.
+  if (firing) {
+    const glow = ctx.createRadialGradient(50, 45, 1, 50, 45, 17);
+    glow.addColorStop(0, `rgba(251, 191, 36, ${throttle * 0.4})`);
+    glow.addColorStop(1, 'rgba(249, 115, 22, 0)');
+
+    ctx.beginPath();
+    ctx.ellipse(50, 45, 17, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = glow;
+    ctx.fill();
+  }
+
+  // Ground smoke: deterministic particles, no per-frame random values.
+  // Each puff lasts 2.2 seconds and spreads away from the pad center.
+  // The same burst plays again when the landing burn starts.
+  function drawGroundSmoke(origin: number) {
+    const ageBase = elapsed - origin;
+    if (ageBase < 0) return;
+    for (let i = 0; i < 46; i++) {
+      const birth = i * 0.08;
+      const age = ageBase - birth;
+      const lifetime = 2.2;
+
+      if (age < 0 || age >= lifetime) continue;
+
+      const progress = age / lifetime;
+      const direction = i * 2.399963;
+      const distance = 4 + progress * (18 + (i % 4) * 3);
+      const x = 50 + Math.cos(direction) * distance;
+      const y = 45 + Math.sin(direction) * distance * 0.48;
+      const radius = 2 + progress * 5;
+      const alpha = Math.sin(progress * Math.PI) * 0.32;
+
+      oval(
+        x, y - progress * 2,
+        radius, radius * 0.65,
+        `rgba(203, 213, 225, ${alpha})`,
+        false
+      );
+    }
+  }
+
+  if (elapsed >= 0) drawGroundSmoke(0);
+  if (returning) drawGroundSmoke(ROCKET_RETURN_START);
+
+  // Fade out at the top of the climb, then fade back in as it descends.
+  let rocketAlpha = 1;
+  if (elapsed >= 0 && elapsed < ROCKET_RETURN_START) {
+    rocketAlpha = Math.max(0, Math.min(1, (ROCKET_ASCENT_END - elapsed) / 0.4));
+  } else if (returning && elapsed < ROCKET_RETURN_START + 0.45) {
+    rocketAlpha = (elapsed - ROCKET_RETURN_START) / 0.45;
+  }
+
+  if (rocketAlpha > 0) {
+    ctx.save();
+    ctx.globalAlpha *= rocketAlpha;
+
+    const vibration = firing
+      ? Math.sin(timeMs * 0.065) * 0.12 * throttle
+      : 0;
+
+    // Engine nozzle rests over the center of the landing ring.
+    ctx.translate(50 + vibration, 45 - lift);
+
+    // Exhaust points downward while the rocket rises vertically.
+    if (firing) {
+      const flicker =
+        Math.sin(timeMs * 0.08) * 1.5 +
+        Math.sin(timeMs * 0.137) * 0.7;
+
+      const flameLength = (6 + throttle * 15 + flicker) * throttle;
+
+      polygon(
+        [
+          [-3, -1], [3, -1],
+          [4, flameLength * 0.35],
+          [1.5, flameLength * 0.7],
+          [0, flameLength],
+          [-2, flameLength * 0.65],
+          [-4, flameLength * 0.3]
+        ],
+        '#f97316',
+        false
+      );
+
+      polygon(
+        [
+          [-2, -1], [2, -1],
+          [2.5, flameLength * 0.25],
+          [0, flameLength * 0.8],
+          [-2.5, flameLength * 0.25]
+        ],
+        '#fbbf24',
+        false
+      );
+
+      polygon(
+        [[-1.2, -1], [1.2, -1], [0, flameLength * 0.5]],
+        '#fff7ed',
+        false
+      );
+    }
+
+    // Rear fins.
+    polygon(
+      [[-5, -17], [-10, -8], [-10, -2], [-4, -6]],
+      c.metal
+    );
+    polygon(
+      [[5, -17], [10, -8], [10, -2], [4, -6]],
+      c.dark
+    );
+
+    // Engine bell.
+    polygon(
+      [[-3, -7], [3, -7], [4, -1], [-4, -1]],
+      c.dark
+    );
+    oval(0, -1, 4, 1.5, c.outline);
+
+    // Main cylindrical body.
+    box(-5, -29, 10, 22, c.suit);
+    box(2, -28, 3, 20, c.metal, false);
+    box(-4, -27, 1.5, 18, c.highlight, false);
+    oval(0, -7, 5, 2, c.metal);
+
+    // Orange structural bands.
+    box(-5, -24, 10, 2.5, c.orange);
+    box(-5, -11, 10, 2, c.orange);
+
+    // Pointed nose cone.
+    polygon(
+      [[-5, -29], [-3.5, -35], [0, -41], [3.5, -35], [5, -29]],
+      c.suit
+    );
+    polygon(
+      [[0, -41], [3.5, -35], [5, -29], [1.5, -29]],
+      c.metal,
+      false
+    );
+    polygon(
+      [[0, -40], [-2.6, -35], [-3.5, -30], [-1.8, -30]],
+      c.highlight,
+      false
+    );
+
+    // Small observation window.
+    oval(0, -27, 2.3, 2.6, c.outline);
+    oval(0, -27, 1.5, 1.8, '#164e63', false);
+    oval(-0.5, -27.6, 0.4, 0.7, '#a5f3fc', false);
+
+    // Front stabilizer fin.
+    polygon(
+      [[0, -16], [1.5, -10], [1.5, -3], [-1.5, -3], [-1.5, -10]],
+      c.orange
+    );
+
+    // Small hull markings.
+    box(-1.5, -20, 3, 4, c.dark, false);
+    box(-0.7, -19.2, 1.4, 2.4, c.amber, false);
+
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
 
 function drawLaunchPad(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;

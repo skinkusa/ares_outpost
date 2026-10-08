@@ -41,17 +41,18 @@ export const HarvesterDetailsModal: React.FC<HarvesterDetailsModalProps> = ({
 
   let stateLabel = 'IDLE';
   let stateColor = 'text-stone-400';
+  const oreRun = harvester.miningTarget === 'ore';
   if (harvester.state === 'moving_to_spice') {
-    stateLabel = 'NAVIGATING TO SPICE VEIN';
+    stateLabel = oreRun ? 'NAVIGATING TO ORE' : 'NAVIGATING TO SPICE VEIN';
     stateColor = 'text-blue-400';
   } else if (harvester.state === 'harvesting') {
-    stateLabel = 'MINING RAW SPICE';
-    stateColor = 'text-fuchsia-400';
+    stateLabel = oreRun ? 'MINING ORE' : 'MINING RAW SPICE';
+    stateColor = oreRun ? 'text-orange-400' : 'text-fuchsia-400';
   } else if (harvester.state === 'returning_to_depot') {
-    stateLabel = 'RETURNING TO BASE (CARGO FULL)';
+    stateLabel = oreRun ? 'RETURNING ORE TO SMELTER' : 'RETURNING TO BASE (CARGO FULL)';
     stateColor = 'text-amber-400';
   } else if (harvester.state === 'unloading') {
-    stateLabel = 'DISCHARGING SPICE AT DEPOT';
+    stateLabel = oreRun ? 'DISCHARGING ORE AT SMELTER' : 'DISCHARGING SPICE AT DEPOT';
     stateColor = 'text-emerald-400';
   }
 

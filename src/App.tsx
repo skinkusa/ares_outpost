@@ -254,6 +254,21 @@ export default function App() {
       constructProgress: 100,
     },
     {
+      id: 'mod_greenhouse_1',
+      type: 'greenhouse',
+      x: 45,
+      y: 42,
+      width: 3,
+      height: 3,
+      level: 1,
+      health: 140,
+      maxHealth: 140,
+      isActive: true,
+      assignedColonists: 1,
+      constructed: true,
+      constructProgress: 100,
+    },
+    {
       id: 'mod_medbay_1',
       type: 'medbay',
       x: 35,
@@ -265,6 +280,66 @@ export default function App() {
       maxHealth: 120,
       isActive: true,
       assignedColonists: 1,
+      constructed: true,
+      constructProgress: 100,
+    },
+    {
+      id: 'mod_vaporator_2',
+      type: 'vaporator',
+      x: 44,
+      y: 35,
+      width: 2,
+      height: 2,
+      level: 1,
+      health: 110,
+      maxHealth: 110,
+      isActive: true,
+      assignedColonists: 0,
+      constructed: true,
+      constructProgress: 100,
+    },
+    {
+      id: 'mod_rtg_2',
+      type: 'rtg',
+      x: 32,
+      y: 35,
+      width: 2,
+      height: 2,
+      level: 1,
+      health: 150,
+      maxHealth: 150,
+      isActive: true,
+      assignedColonists: 0,
+      constructed: true,
+      constructProgress: 100,
+    },
+    {
+      id: 'mod_rtg_3',
+      type: 'rtg',
+      x: 32,
+      y: 38,
+      width: 2,
+      height: 2,
+      level: 1,
+      health: 150,
+      maxHealth: 150,
+      isActive: true,
+      assignedColonists: 0,
+      constructed: true,
+      constructProgress: 100,
+    },
+    {
+      id: 'mod_rtg_4',
+      type: 'rtg',
+      x: 32,
+      y: 41,
+      width: 2,
+      height: 2,
+      level: 1,
+      health: 150,
+      maxHealth: 150,
+      isActive: true,
+      assignedColonists: 0,
       constructed: true,
       constructProgress: 100,
     },
@@ -333,22 +408,23 @@ export default function App() {
     spiceCapacity: 600,
     autoExportSpice: false,
     autoExportThreshold: 100,
+    rocketLaunchSeq: 0,
     ore: 0,
     maxOre: 500,
     powerStored: 350,
     powerCapacity: 400,
-    currentPowerProd: 65,
-    currentPowerCons: 40,
-    powerNet: 25,
+    currentPowerProd: 132,
+    currentPowerCons: 86,
+    powerNet: 46,
     oxygen: 400,
     maxOxygen: 800,
-    currentO2Delta: 15,
+    currentO2Delta: 18,
     water: 350,
     maxWater: 800,
-    currentWaterDelta: 12,
+    currentWaterDelta: 16,
     food: 280,
     maxFood: 600,
-    currentFoodDelta: 0,
+    currentFoodDelta: 3.6,
     techPoints: 20,
     population: 8,
     maxPopulation: 14,
@@ -1001,10 +1077,12 @@ export default function App() {
         let finalSpice = prevStats.spice;
         let finalCredits = prevStats.credits;
         let finalTotalEarned = prevStats.totalCreditsEarned;
+        let launchedRocket = false;
         
         if (hasLaunchpad && prevStats.autoExportSpice) {
           const threshold = prevStats.autoExportThreshold || 100;
           if (finalSpice >= threshold && threshold > 0) {
+            launchedRocket = true;
             // Sell exactly 'threshold' amount or all of it? Let's sell chunks of threshold.
             // Or just sell all of it if it hits the threshold.
             const amountToSell = Math.floor(finalSpice);
@@ -1018,6 +1096,7 @@ export default function App() {
             finalTotalEarned += revenue;
             
             addLog('spice', 'Auto-Export Complete', `Automated Shuttle launched ${amountToSell}kg Spice for +₡${revenue}!`);
+            sound.playRocketLaunch();
           }
         }
 
@@ -1047,6 +1126,7 @@ export default function App() {
           maxOre: oreCap,
           alloy: newAlloy,
           maxAlloy: alloyCap,
+          rocketLaunchSeq: (prevStats.rocketLaunchSeq ?? 0) + (launchedRocket ? 1 : 0),
           maxPopulation: popCap,
           morale: newMorale,
           colonistHealth: newHealth,
@@ -1833,6 +1913,9 @@ export default function App() {
       spice: prev.spice - amount,
       credits: prev.credits + revenue,
       totalCreditsEarned: prev.totalCreditsEarned + revenue,
+      rocketLaunchSeq: hasLaunchpad
+        ? (prev.rocketLaunchSeq ?? 0) + 1
+        : prev.rocketLaunchSeq,
     }));
 
     sound.playRocketLaunch();
@@ -2058,6 +2141,7 @@ export default function App() {
         deepWellDrilling={hasTech('deep_well_drilling')}
         stormHardening={hasTech('storm_hardening')}
         terraformingGenesis={hasTech('terraforming_genesis')}
+        rocketLaunchSeq={stats.rocketLaunchSeq ?? 0}
       />
 
       {/* Mission Log Feed & Population Morale Dashboard */}

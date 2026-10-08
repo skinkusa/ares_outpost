@@ -22,6 +22,7 @@ export type ModuleType =
   | 'solar'
   | 'rtg'
   | 'battery'
+  | 'fusion'
   | 'scrubber'
   | 'vaporator'
   | 'greenhouse'
@@ -236,6 +237,7 @@ export interface ColonyStats {
   spiceCapacity: number;
   autoExportSpice?: boolean;
   autoExportThreshold?: number;
+  rocketLaunchSeq?: number;
   ore: number;
   maxOre: number;
   powerStored: number;

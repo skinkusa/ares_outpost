@@ -72,7 +72,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 2. Power Grid & Life Support
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Solar arrays produce power in daylight and nothing at night. <strong>Battery Substations</strong> store the surplus. <strong>RTG Nuclear Cells</strong> run day and night. Crew consume oxygen, water, and food on their own. <strong>MOXIE Scrubbers</strong> make oxygen, <strong>Vaporators</strong> make water, and <strong>Hydroponic Bio-Domes</strong> make food but drink water. Habitats and medical bays draw extra life support. A blackout collapses morale, and <strong>Medical Bays</strong> heal the crew and cut radiation dose.
+                Solar arrays produce power in daylight and nothing at night. <strong>Battery Substations</strong> store the surplus. <strong>RTG Nuclear Cells</strong> run day and night. Crew consume oxygen, water, and food on their own. <strong>MOXIE Scrubbers</strong> make oxygen, <strong>Vaporators</strong> make water, and <strong>Hydroponic Bio-Domes</strong> make food but drink water. The outpost starts with a bio-dome beside the habitat, and that dome is what keeps the crew fed. Habitats and medical bays draw extra life support. A blackout collapses morale, and <strong>Medical Bays</strong> heal the crew and cut radiation dose.
               </p>
             </div>
           </div>

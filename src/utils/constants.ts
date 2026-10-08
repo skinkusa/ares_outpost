@@ -72,6 +72,22 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     color: '#10b981', // Emerald
     icon: 'BatteryCharging',
   },
+  fusion: {
+    type: 'fusion',
+    name: 'Fusion Reactor',
+    category: 'power',
+    description: 'Compact tokamak. Steady high output through night and dust storms, well beyond an RTG cell.',
+    costAlloy: 160,
+    costCredits: 420,
+    width: 4,
+    height: 4,
+    powerDelta: 150,
+    o2Delta: 0,
+    waterDelta: 0,
+    foodDelta: 0,
+    color: '#22d3ee',
+    icon: 'Zap',
+  },
   scrubber: {
     type: 'scrubber',
     name: 'MOXIE O2 Scrubber',

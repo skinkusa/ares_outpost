@@ -77,6 +77,7 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
       case 'command': return <Radio className="w-4 h-4 text-sky-400" />;
       case 'solar': return <Sun className="w-4 h-4 text-amber-400" />;
       case 'rtg': return <Zap className="w-4 h-4 text-orange-400" />;
+      case 'fusion': return <Zap className="w-4 h-4 text-cyan-300" />;
       case 'battery': return <BatteryCharging className="w-4 h-4 text-emerald-400" />;
       case 'scrubber': return <Wind className="w-4 h-4 text-cyan-400" />;
       case 'vaporator': return <Droplets className="w-4 h-4 text-blue-400" />;

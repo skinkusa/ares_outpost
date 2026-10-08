@@ -229,18 +229,21 @@ export const HarvesterManager: React.FC<HarvesterManagerProps> = ({
 
                   let stateBadgeColor = 'bg-stone-800 text-stone-300';
                   let stateLabel = 'IDLE';
+                  const oreRun = h.miningTarget === 'ore';
                   if (h.state === 'moving_to_spice') {
                     stateBadgeColor = 'bg-blue-950 text-blue-300 border-blue-700/60';
-                    stateLabel = 'NAVIGATING TO SPICE';
+                    stateLabel = oreRun ? 'NAVIGATING TO ORE' : 'NAVIGATING TO SPICE';
                   } else if (h.state === 'harvesting') {
-                    stateBadgeColor = 'bg-fuchsia-950 text-fuchsia-300 border-fuchsia-600/70 animate-pulse';
-                    stateLabel = 'MINING SPICE';
+                    stateBadgeColor = oreRun
+                      ? 'bg-orange-950 text-orange-300 border-orange-600/70 animate-pulse'
+                      : 'bg-fuchsia-950 text-fuchsia-300 border-fuchsia-600/70 animate-pulse';
+                    stateLabel = oreRun ? 'MINING ORE' : 'MINING SPICE';
                   } else if (h.state === 'returning_to_depot') {
                     stateBadgeColor = 'bg-amber-950 text-amber-300 border-amber-600/60';
-                    stateLabel = 'RETURNING (FULL)';
+                    stateLabel = oreRun ? 'RETURNING ORE (FULL)' : 'RETURNING (FULL)';
                   } else if (h.state === 'unloading') {
                     stateBadgeColor = 'bg-emerald-950 text-emerald-300 border-emerald-600/60';
-                    stateLabel = 'UNLOADING CARGO';
+                    stateLabel = oreRun ? 'UNLOADING ORE' : 'UNLOADING CARGO';
                   }
 
                   return (
