@@ -490,8 +490,9 @@ export default function App() {
         if (newTime <= 0.5) {
           sunFactor = Math.sin((newTime / 0.5) * Math.PI);
         }
+        const hasRadar = modules.some(m => m.type === 'radar' && m.isActive);
         if (weather.type === 'dust_storm') {
-          sunFactor *= hasTech('storm_hardening') ? 0.6 : 0.25;
+          sunFactor *= hasTech('storm_hardening') ? 0.6 : (hasRadar ? 0.4 : 0.25);
         } else if (weather.type === 'dust_veil') {
           sunFactor *= 0.75;
         } else if (weather.type === 'solar_flare') {
@@ -1124,7 +1125,7 @@ export default function App() {
           const isOre = h.miningTarget === 'ore';
           const depot = isOre 
             ? (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'refinery') || modules[0])
-            : (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command') || modules[0]);
+            : (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'garage') || modules.find((m) => m.type === 'command') || modules[0]);
           const depotDock = depot
             ? findDockingApron(depot, h.x, h.y, modules, 28, powerLines, (h.targetX !== null && h.targetY !== null) ? { x: h.targetX, y: h.targetY } : null)
             : { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
@@ -1137,7 +1138,8 @@ export default function App() {
           // Speed modifiers (dust storm slow, tech upgrades)
           let currentSpeed = h.speed * (hasTech('rover_turbo') ? 1.35 : 1.0);
           if (weather.type === 'dust_storm' && !hasTech('storm_hardening')) {
-            currentSpeed *= 0.65;
+            const hasRadar = modules.some(m => m.type === 'radar' && m.isActive);
+            currentSpeed *= hasRadar ? 0.85 : 0.65; // Radar gives early navigation warnings
           }
 
           // Cargo capacity bonus from tech
@@ -1624,7 +1626,7 @@ export default function App() {
           const isOre = h.miningTarget === 'ore';
           const depot = isOre 
             ? (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'refinery') || modules[0])
-            : (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command') || modules[0]);
+            : (modules.find((m) => m.id === h.homeDepotId) || modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'garage') || modules.find((m) => m.type === 'command') || modules[0]);
           const dock = depot
             ? findDockingApron(depot, h.x, h.y, modules, 28, powerLines, (h.targetX !== null && h.targetY !== null) ? { x: h.targetX, y: h.targetY } : null)
             : { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
@@ -1691,8 +1693,10 @@ export default function App() {
   // Sell Spice Melange
   const handleSellSpice = (amount: number) => {
     if (amount <= 0 || stats.spice < amount) return;
+    const hasLaunchpad = modules.some((m) => m.type === 'launchpad' && m.isActive);
+    const tariff = hasLaunchpad ? 1.0 : 0.85;
     const mult = hasTech('spice_centrifuge') ? 1.4 : 1.0;
-    const pricePerKg = 2.5 * mult;
+    const pricePerKg = 2.5 * mult * tariff;
     const revenue = Math.round(amount * pricePerKg);
 
     setStats((prev) => ({

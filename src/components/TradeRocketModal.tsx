@@ -38,7 +38,8 @@ export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
   if (!isOpen) return null;
 
   const hasLaunchpad = modules.some((m) => m.type === 'launchpad' && m.isActive);
-  const basePricePerKg = 2.5 * spicePriceMultiplier;
+  const tariff = hasLaunchpad ? 1.0 : 0.85;
+  const basePricePerKg = 2.5 * spicePriceMultiplier * tariff;
   const currentSellRevenue = Math.round(spiceToSell * basePricePerKg);
 
   return (

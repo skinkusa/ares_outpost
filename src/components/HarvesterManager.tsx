@@ -56,7 +56,8 @@ export const HarvesterManager: React.FC<HarvesterManagerProps> = ({
   const depots = modules.filter((m) => m.type === 'depot');
   const oreRefineries = modules.filter((m) => m.type === 'refinery');
   const commandOutposts = modules.filter((m) => m.type === 'command');
-  const hasBase = depots.length > 0 || commandOutposts.length > 0;
+  const garages = modules.filter((m) => m.type === 'garage');
+  const hasBase = depots.length > 0 || commandOutposts.length > 0 || garages.length > 0;
   const hasRefinery = oreRefineries.length > 0;
   const isOre = selectedDeployModel === 'ore_rover';
   const hasRequiredBase = isOre ? hasRefinery : hasBase;
