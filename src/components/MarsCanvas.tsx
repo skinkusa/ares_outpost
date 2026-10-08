@@ -1482,25 +1482,15 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
 
         // Ground Glow Aura per building type
         if (mod.isActive) {
-          let auraColor = 'rgba(56, 189, 248, 0.15)';
-          let auraRadius = pw * 0.8;
-          if (mod.type === 'greenhouse') {
-            auraColor = 'rgba(34, 197, 94, 0.22)'; // Lush emerald
-            auraRadius = pw * 0.95;
-          } else if (mod.type === 'rtg') {
-            auraColor = 'rgba(249, 115, 22, 0.28)'; // Nuclear thermal orange
-            auraRadius = pw * 0.9;
-          } else if (mod.type === 'battery') {
-            auraColor = 'rgba(16, 185, 129, 0.2)'; // Emerald charge
-          } else if (mod.type === 'refinery') {
-            auraColor = 'rgba(192, 38, 211, 0.25)'; // Spice purple furnace
-            auraRadius = pw * 1.0;
-          } else if (mod.type === 'command') {
-            auraColor = 'rgba(3, 105, 161, 0.25)'; // Sky blue bunker
-          } else if (mod.type === 'medbay') {
-            auraColor = 'rgba(16, 185, 129, 0.28)'; // Emerald bio-luminescence
-            auraRadius = pw * 0.95;
-          }
+          const roleAura: Record<string, string> = {
+            command: 'rgba(56, 189, 248, 0.25)',
+            power: 'rgba(251, 191, 36, 0.28)',
+            life_support: 'rgba(34, 211, 238, 0.25)',
+            industry: 'rgba(249, 115, 22, 0.25)',
+            research: 'rgba(167, 139, 250, 0.25)',
+          };
+          let auraColor = roleAura[bp?.category ?? ''] ?? 'rgba(56, 189, 248, 0.15)';
+          let auraRadius = pw * 0.85;
 
           const moduleAura = ctx.createRadialGradient(cx, cy, pw * 0.2, cx, cy, auraRadius);
           moduleAura.addColorStop(0, auraColor);
@@ -1528,7 +1518,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         // Specific Building Visuals (Procedural Vector Art)
         switch (mod.type) {
             case 'command': {
-            drawCommandCenter(ctx, px, py, pw, ph);
+            drawCommandCenter(ctx, px, py, pw, ph, performance.now());
             break;
           }
 
@@ -1536,20 +1526,20 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
             if (solarTracking) {
               drawSunTrackingGimbal(ctx, px, py, pw, ph, sunAngle, performance.now());
             } else {
-              drawSolarArray(ctx, px, py, pw, ph, time);
+              drawSolarArray(ctx, px, py, pw, ph, performance.now());
             }
             break;
           }
 
           case 'rtg': {
-            drawNuclearGenerator(ctx, px, py, pw, ph);
+            drawNuclearGenerator(ctx, px, py, pw, ph, performance.now());
             break;
           }
 
 
 
           case 'battery': {
-            drawBatterySubstation(ctx, px, py, pw, ph);
+            drawBatterySubstation(ctx, px, py, pw, ph, performance.now());
             break;
           }
 
@@ -1557,7 +1547,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
             if (terraformingGenesis) {
               drawAtmosphericGenesisEngine(ctx, px, py, pw, ph, performance.now());
             } else {
-              drawScrubber(ctx, px, py, pw, ph, time);
+              drawScrubber(ctx, px, py, pw, ph, performance.now());
             }
             break;
           }
@@ -1566,7 +1556,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
             if (deepWellDrilling) {
               drawSubPermafrostThermalWells(ctx, px, py, pw, ph, performance.now());
             } else {
-              drawVaporator(ctx, px, py, pw, ph);
+              drawVaporator(ctx, px, py, pw, ph, performance.now());
             }
             break;
           }
@@ -1575,13 +1565,13 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
             if (hydroRecycler) {
               drawClosedLoopMoistureReclamation(ctx, px, py, pw, ph, performance.now());
             } else {
-              drawHydroponicBioDome(ctx, px, py, pw, ph);
+              drawHydroponicBioDome(ctx, px, py, pw, ph, performance.now());
             }
             break;
           }
 
           case 'habitat': {
-            drawHabitat(ctx, px, py, pw, ph);
+            drawHabitat(ctx, px, py, pw, ph, performance.now());
             break;
           }
 
@@ -1589,28 +1579,28 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
             if (spiceCentrifuge) {
               drawHighDensitySpiceRefinement(ctx, px, py, pw, ph, performance.now());
             } else {
-              drawHarvesterGarage(ctx, px, py, pw, ph);
+              drawHarvesterGarage(ctx, px, py, pw, ph, performance.now());
             }
             break;
           }
 
           case 'refinery': {
-            drawSpiceRefinery(ctx, px, py, pw, ph);
+            drawSpiceRefinery(ctx, px, py, pw, ph, performance.now());
             break;
           }
 
           case 'garage': {
-            drawHarvesterGarage(ctx, px, py, pw, ph);
+            drawHarvesterGarage(ctx, px, py, pw, ph, performance.now());
             break;
           }
 
           case 'research': {
-            drawScienceLab(ctx, px, py, pw, ph);
+            drawScienceLab(ctx, px, py, pw, ph, performance.now());
             break;
           }
 
           case 'launchpad': {
-            drawLaunchPad(ctx, px, py, pw, ph);
+            drawLaunchPad(ctx, px, py, pw, ph, performance.now());
             break;
           }
 
@@ -1618,18 +1608,18 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
             if (stormHardening) {
               drawElectrostaticDustDeflectors(ctx, px, py, pw, ph, performance.now());
             } else {
-              drawSeismicStormRadar(ctx, px, py, pw, ph);
+              drawSeismicStormRadar(ctx, px, py, pw, ph, performance.now());
             }
             break;
           }
 
           case 'medbay': {
-            drawMedicalBay(ctx, px, py, pw, ph, time);
+            drawMedicalBay(ctx, px, py, pw, ph, performance.now());
             break;
           }
 
-          case 'miner': {
-            drawOreExtractionMiner(ctx, px, py, pw, ph);
+          case 'storage': {
+            drawStorageDepot(ctx, px, py, pw, ph, performance.now());
             break;
           }
       }
@@ -3046,7 +3036,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
 // HARVESTER RENDERING HELPERS
 // ------------------------------------------------------------
 
-function drawCommandCenter(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawCommandCenter(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -3065,9 +3055,9 @@ function drawCommandCenter(ctx: CanvasRenderingContext2D, px: number, py: number
     wall: '#334155',
     roof: '#94a3b8',
     highlight: '#cbd5e1',
-    accent: '#3b82f6',
+    accent: '#38bdf8',
     amber: '#fbbf24',
-    cyan: '#22d3ee',
+    cyan: '#38bdf8',
     glass: '#164e63'
   };
 
@@ -3104,8 +3094,11 @@ function drawCommandCenter(ctx: CanvasRenderingContext2D, px: number, py: number
 
   function light(x: number, y: number, w: number, h: number, fill = c.cyan) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = fill;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function vent(x: number, y: number, w: number, h: number) {
@@ -3247,8 +3240,8 @@ function drawSolarArray(ctx: CanvasRenderingContext2D, px: number, py: number, p
     wall: '#334155',
     metal: '#94a3b8',
     highlight: '#cbd5e1',
-    accent: '#eab308',
-    cyan: '#22d3ee'
+    accent: '#fbbf24',
+    cyan: '#fbbf24'
   };
 
   function box(x: number, y: number, w: number, h: number, fill: string) {
@@ -3272,8 +3265,11 @@ function drawSolarArray(ctx: CanvasRenderingContext2D, px: number, py: number, p
 
   function light(x: number, y: number, w: number, h: number) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(time * 0.003 + x) * 0.35;
     ctx.fillStyle = c.cyan;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function polygon(points: number[][], fill: string | CanvasGradient | CanvasPattern) {
@@ -3422,8 +3418,8 @@ function drawSunTrackingGimbal(
   ctx.lineCap = 'round';
   ctx.setLineDash([]);
   const outline = '#111827';
-  const orange = '#ea580c';
-  const cyan = '#22d3ee';
+  const orange = '#fbbf24';
+  const cyan = '#fbbf24';
   function box(
     x: number,
     y: number,
@@ -3630,8 +3626,8 @@ function drawHighDensitySpiceRefinement(
   ctx.lineCap = 'round';
   ctx.setLineDash([]);
   const outline = '#111827';
-  const orange = '#ea580c';
-  const cyan = '#22d3ee';
+  const orange = '#f97316';
+  const cyan = '#f97316';
   function box(
     x: number,
     y: number,
@@ -3835,7 +3831,7 @@ function drawClosedLoopMoistureReclamation(
   ctx.setLineDash([]);
   const outline = '#111827';
   const cyan = '#22d3ee';
-  const orange = '#ea580c';
+  const orange = '#22d3ee';
   function box(
     x: number, y: number,
     width: number, height: number,
@@ -4226,8 +4222,8 @@ function drawElectrostaticDustDeflectors(
   ctx.lineCap = 'round';
   ctx.setLineDash([]);
   const outline = '#111827';
-  const cyan = '#22d3ee';
-  const orange = '#ea580c';
+  const cyan = '#38bdf8';
+  const orange = '#38bdf8';
   function box(
     x: number, y: number,
     width: number, height: number,
@@ -4424,7 +4420,7 @@ function drawAtmosphericGenesisEngine(
   ctx.setLineDash([]);
   const outline = '#111827';
   const cyan = '#22d3ee';
-  const orange = '#ea580c';
+  const orange = '#22d3ee';
   function box(
     x: number, y: number,
     width: number, height: number,
@@ -4617,7 +4613,7 @@ function drawAtmosphericGenesisEngine(
   ctx.restore();
 }
 
-function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -4636,8 +4632,8 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
     wall: '#334155',
     metal: '#94a3b8',
     highlight: '#cbd5e1',
-    orange: '#ea580c',
-    cyan: '#22d3ee',
+    orange: '#fbbf24',
+    cyan: '#fbbf24',
     amber: '#fbbf24'
   };
 
@@ -4671,8 +4667,11 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
 
   function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = fill;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function vent(x: number, y: number, w: number, h: number) {
@@ -4987,7 +4986,7 @@ function drawScrubber(ctx: CanvasRenderingContext2D, px: number, py: number, pw:
     wall: '#334155',
     metal: '#94a3b8',
     highlight: '#cbd5e1',
-    accent: '#a3e635',
+    accent: '#22d3ee',
     cyan: '#22d3ee'
   };
 
@@ -5021,8 +5020,11 @@ function drawScrubber(ctx: CanvasRenderingContext2D, px: number, py: number, pw:
 
   function light(x: number, y: number, w: number, h: number) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(time * 0.003 + x) * 0.35;
     ctx.fillStyle = c.cyan;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function vent(x: number, y: number, w: number, h: number) {
@@ -5066,6 +5068,7 @@ function drawScrubber(ctx: CanvasRenderingContext2D, px: number, py: number, pw:
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(1, 0.72);
+    ctx.rotate(time * 0.0012);
 
     for (let i = 0; i < 6; i++) {
       ctx.save();
@@ -5144,7 +5147,7 @@ function drawScrubber(ctx: CanvasRenderingContext2D, px: number, py: number, pw:
   ctx.restore();
 }
 
-function drawVaporator(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawVaporator(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -5163,7 +5166,7 @@ function drawVaporator(ctx: CanvasRenderingContext2D, px: number, py: number, pw
     wall: '#334155',
     metal: '#94a3b8',
     highlight: '#cbd5e1',
-    accent: '#0ea5e9',
+    accent: '#22d3ee',
     cyan: '#22d3ee',
     water: '#075985'
   };
@@ -5198,8 +5201,11 @@ function drawVaporator(ctx: CanvasRenderingContext2D, px: number, py: number, pw
 
   function light(x: number, y: number, w: number, h: number) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = c.cyan;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   // Compact equipment base with visible front thickness.
@@ -5501,7 +5507,7 @@ function drawGreenhouse(ctx: CanvasRenderingContext2D, px: number, py: number, p
   ctx.restore();
 }
 
-function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -5520,7 +5526,7 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
     wall: '#334155',
     roof: '#94a3b8',
     highlight: '#cbd5e1',
-    orange: '#ea580c',
+    orange: '#22d3ee',
     cyan: '#22d3ee',
     glass: '#164e63'
   };
@@ -5546,8 +5552,11 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
 
   function light(x: any, y: any, w: any, h: any) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = c.cyan;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function vent(x: number, y: number, w: number, h: number) {
@@ -5872,6 +5881,322 @@ function drawRefinery(ctx: CanvasRenderingContext2D, px: number, py: number, pw:
 
   box(33, 88, 7, 5, c.accent);
   box(62, 88, 7, 5, c.accent);
+
+  ctx.restore();
+}
+
+function drawStorageDepot(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  timeMs: number = 0
+) {
+  if (pw <= 0 || ph <= 0) return;
+
+  ctx.save();
+
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+
+  const outline = '#111827';
+  const orange = '#ea580c';
+  const cyan = '#22d3ee';
+
+  function box(
+    x: number, y: number,
+    width: number, height: number,
+    fill: string, border = true
+  ) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, width, height);
+
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, width, height);
+    }
+  }
+
+  function line(
+    x1: number, y1: number,
+    x2: number, y2: number,
+    color: string, width = 1
+  ) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+
+  function oval(
+    x: number, y: number,
+    rx: number, ry: number,
+    fill: string, border = true
+  ) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  function polygon(points: number[][], fill: string) {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  function pipe(points: number[][], color = '#94a3b8') {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  }
+
+  function statusLight(
+    x: number, y: number,
+    rgb: string, phase: number
+  ) {
+    box(x, y, 4, 3, outline);
+    const alpha = 0.65 + Math.sin(timeMs * 0.003 + phase) * 0.2;
+    box(x + 0.7, y + 0.7, 2.6, 1.6, `rgba(${rgb}, ${alpha})`, false);
+  }
+
+  function silo(
+    x: number, y: number,
+    kind: 'spice' | 'water',
+    phase: number
+  ) {
+    const water = kind === 'water';
+
+    // Reinforced feet and cylindrical body.
+    box(x - 6, y + 21, 3, 6, '#334155');
+    box(x + 3, y + 21, 3, 6, '#334155');
+    oval(x, y + 22, 8, 4, '#334155');
+    box(x - 8, y, 16, 22, '#64748b');
+    box(x - 6.5, y + 2, 2, 17, '#94a3b8', false);
+    oval(x, y + 21, 8, 3, '#475569');
+
+    // Inspection window.
+    box(x - 3, y + 4, 6, 13, outline);
+    box(
+      x - 2, y + 5, 4, 11,
+      water ? '#164e63' : '#78350f',
+      false
+    );
+
+    if (water) {
+      // Moving water surface, clipped inside the window.
+      const surface = y + 9 + Math.sin(timeMs * 0.002 + phase) * 0.5;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x - 2, y + 5, 4, 11);
+      ctx.clip();
+
+      box(x - 2, surface, 4, y + 16 - surface, '#0891b2', false);
+      line(x - 2, surface, x + 2, surface, '#67e8f9', 0.6);
+      ctx.restore();
+    } else {
+      box(x - 2, y + 8, 4, 8, '#d97706', false);
+      line(x - 1.5, y + 8, x + 1.5, y + 8, '#fbbf24', 0.7);
+    }
+
+    // Glass reflection and retaining bands.
+    box(x - 1.5, y + 5.5, 0.8, 9, '#f8fafc', false);
+    box(x - 8, y + 2, 16, 2, '#94a3b8');
+    box(x - 8, y + 18, 16, 2, '#94a3b8');
+
+    // Lid and resource-colored cap.
+    oval(x, y, 8, 3.5, '#cbd5e1');
+    oval(x, y - 0.5, 5.5, 2.2, '#475569');
+    oval(x, y - 0.5, 2.5, 1, water ? cyan : orange, false);
+
+    statusLight(
+      x - 2, y + 21,
+      water ? '34, 211, 238' : '251, 191, 36',
+      phase
+    );
+  }
+
+  function crate(x: number, y: number, color: string) {
+    box(x, y + 2, 8, 7, '#334155');
+    box(x, y, 8, 7, color);
+    line(x + 1, y + 1, x + 7, y + 6, '#94a3b8', 0.6);
+    line(x + 7, y + 1, x + 1, y + 6, '#94a3b8', 0.6);
+  }
+
+  // Raised industrial deck.
+  box(9, 18, 84, 75, 'rgba(0, 0, 0, 0.25)', false);
+  box(7, 14, 86, 75, '#334155');
+  box(7, 14, 86, 69, '#64748b');
+  box(11, 18, 78, 61, '#475569');
+
+  for (const x of [30, 50, 70]) {
+    line(x, 19, x, 78, '#64748b', 0.6);
+  }
+  for (const y of [39, 59]) {
+    line(12, y, 88, y, '#64748b', 0.6);
+  }
+
+  // Rear transfer pipes, drawn beneath the tanks.
+  pipe([[21, 25], [21, 19], [39, 19], [39, 25]], '#b45309');
+  pipe([[63, 25], [63, 19], [81, 19], [81, 25]], '#0891b2');
+  pipe([[81, 43], [88, 43], [88, 64]], '#0891b2');
+
+  // Two spice silos and two water tanks.
+  silo(21, 25, 'spice', 0);
+  silo(39, 25, 'spice', 1);
+  silo(63, 25, 'water', 2);
+  silo(81, 25, 'water', 3);
+
+  // Central warehouse front wall.
+  box(34, 57, 32, 18, '#64748b');
+
+  // Warehouse roof.
+  box(34, 51, 32, 14, '#94a3b8');
+  box(37, 54, 26, 8, '#64748b');
+  line(50, 54, 50, 62, '#475569', 0.7);
+  line(34, 51, 66, 51, '#cbd5e1', 1);
+  box(34, 51, 2.5, 14, orange);
+  box(63.5, 51, 2.5, 14, orange);
+
+  // Roof vent.
+  box(42, 55, 16, 5, '#334155');
+  for (let x = 44; x <= 56; x += 3) {
+    line(x, 56, x, 59, '#94a3b8', 0.7);
+  }
+
+  // Loading door.
+  box(40, 65, 20, 10, outline);
+  box(42, 67, 16, 7, '#1e293b', false);
+  line(41, 66, 59, 66, '#94a3b8', 1);
+  box(44, 63, 12, 1.5, cyan, false);
+
+  crate(44, 69, '#b45309');
+
+  // Ore storage hopper on the left.
+  box(13, 56, 17, 20, '#334155');
+  box(15, 71, 3, 8, '#64748b');
+  box(25, 71, 3, 8, '#64748b');
+
+  polygon(
+    [[13, 54], [30, 54], [28, 69], [24, 74], [19, 74], [15, 69]],
+    '#64748b'
+  );
+
+  // Open hopper rim.
+  box(12, 51, 19, 13, '#94a3b8');
+  box(14, 53, 15, 9, '#292524');
+
+  // Individual ore chunks.
+  polygon([[15, 59], [16, 55], [20, 54], [22, 58], [19, 61]], '#78716c');
+  polygon([[20, 59], [22, 54], [26, 55], [28, 59], [25, 61]], '#a8a29e');
+  polygon([[17, 61], [19, 58], [23, 59], [24, 62]], '#57534e');
+
+  line(13, 52, 30, 52, '#cbd5e1', 1);
+  box(13, 63, 3, 4, orange);
+  box(27, 63, 3, 4, orange);
+
+  // Ore discharge gate.
+  box(19, 73, 6, 5, outline);
+  line(20, 75, 24, 75, '#94a3b8', 0.8);
+
+  // Refrigerated food container on the right.
+  box(70, 55, 17, 23, '#334155');
+  box(70, 51, 17, 22, '#94a3b8');
+  box(72, 53, 13, 17, '#64748b');
+
+  // Green food-storage stripe.
+  box(70, 54, 3, 16, '#16a34a');
+  for (const x of [76, 80, 84]) {
+    line(x, 54, x, 69, '#94a3b8', 0.7);
+  }
+
+  // Refrigeration fan on the roof.
+  oval(79, 59, 4.5, 3, '#334155');
+  oval(79, 59, 3.5, 2.3, outline);
+
+  ctx.save();
+  ctx.translate(79, 59);
+  ctx.scale(1, 0.66);
+  ctx.rotate(timeMs * 0.0015);
+
+  for (let i = 0; i < 4; i++) {
+    ctx.save();
+    ctx.rotate(i * Math.PI / 2);
+    box(0.8, -0.6, 2.3, 1.2, '#cbd5e1', false);
+    ctx.restore();
+  }
+
+  ctx.restore();
+  oval(79, 59, 1, 0.7, '#22c55e', false);
+
+  // Refrigerated double doors and status light.
+  box(73, 73, 11, 5, '#475569');
+  line(78.5, 73, 78.5, 78, outline, 0.7);
+  statusLight(81, 68, '74, 222, 128', 4);
+
+  // Loading apron.
+  box(34, 77, 32, 11, '#334155');
+  box(36, 78, 28, 8, '#64748b');
+  line(40, 79, 40, 85, '#cbd5e1', 0.8);
+  line(60, 79, 60, 85, '#cbd5e1', 0.8);
+
+  // Resource crates awaiting collection.
+  crate(16, 81, '#78716c');
+  crate(25, 80, '#b45309');
+  crate(72, 81, '#15803d');
+  crate(81, 80, '#15803d');
+
+  // Loading console.
+  box(65, 77, 4, 10, '#334155');
+  box(63, 75, 8, 5, '#94a3b8');
+  box(65, 76, 4, 2, '#164e63', false);
+  line(65.5, 77, 68.5, 77, cyan, 0.6);
+
+  // Hazard trim and perimeter lights.
+  for (let x = 36; x <= 61; x += 5) {
+    box(x, 87, 2.5, 2, orange, false);
+  }
+
+  for (const x of [9, 87]) {
+    box(x, 16, 3, 5, outline);
+    box(x + 0.7, 17, 1.6, 3, cyan, false);
+  }
 
   ctx.restore();
 }
@@ -6649,7 +6974,7 @@ function drawMedicalBay(ctx: CanvasRenderingContext2D, px: number, py: number, p
     wall: '#334155',
     roof: '#94a3b8',
     highlight: '#cbd5e1',
-    accent: '#ef4444',
+    accent: '#22d3ee',
     cyan: '#22d3ee',
     glass: '#164e63'
   };
@@ -6675,8 +7000,11 @@ function drawMedicalBay(ctx: CanvasRenderingContext2D, px: number, py: number, p
 
   function light(x: number, y: number, w: number, h: number) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(time * 0.003 + x) * 0.35;
     ctx.fillStyle = c.cyan;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function vent(x: number, y: number, w: number, h: number) {
@@ -6692,8 +7020,11 @@ function drawMedicalBay(ctx: CanvasRenderingContext2D, px: number, py: number, p
   function medicalCross(x: number, y: number, size: number) {
     const arm = size / 3;
 
-    // Dark backing keeps the symbol legible at small sizes.
+    // Dark backing stays put so the beacon has a socket when the cross is dark.
     box(x - 1, y - 1, size + 2, size + 2, c.wall);
+    const lit = Math.floor(time / 450) % 2 === 0;
+    if (!lit) return;
+
     ctx.fillStyle = c.cyan;
     ctx.fillRect(x + arm, y, arm, size);
     ctx.fillRect(x, y + arm, size, arm);
@@ -6805,7 +7136,7 @@ function drawMedicalBay(ctx: CanvasRenderingContext2D, px: number, py: number, p
 
 
 
-function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -6824,8 +7155,8 @@ function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: numb
     wall: '#334155',
     roof: '#94a3b8',
     highlight: '#cbd5e1',
-    orange: '#ea580c',
-    cyan: '#22d3ee',
+    orange: '#f97316',
+    cyan: '#f97316',
     amber: '#fbbf24'
   };
 
@@ -6859,8 +7190,11 @@ function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: numb
 
   function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = fill;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function vent(x: number, y: number, w: number, h: number) {
@@ -7331,12 +7665,6 @@ function drawHarvester(ctx: CanvasRenderingContext2D, h: Harvester, length: numb
       hullLight: '#a21caf',
       hullDark: '#4a044e',
       accent: '#e879f9'
-    },
-    ore_rover: {
-      hull: '#c2410c', // Bright Rust
-      hullLight: '#f97316', // Orange
-      hullDark: '#7c2d12', // Dark Rust
-      accent: '#fdba74' // Light Orange
     }
   };
 
@@ -7384,7 +7712,7 @@ function drawTracks(ctx: CanvasRenderingContext2D, model: HarvesterModel, length
       5
     );
 
-  } else if (model === 'heavy' || model === 'ore_rover') {
+  } else if (model === 'heavy') {
     // Chunky segmented tracks
     drawTrack(
       ctx,
@@ -7624,7 +7952,7 @@ function drawCargoTank(ctx: CanvasRenderingContext2D, h: Harvester, length: numb
 
     ctx.save();
 
-    const isOre = h.model === 'ore_rover';
+    const isOre = h.miningTarget === 'ore';
     ctx.fillStyle = isOre 
       ? (cargoFillRatio > 0.9 ? '#fdba74' : cargoFillRatio > 0.65 ? '#f97316' : '#ea580c')
       : (cargoFillRatio > 0.9 ? '#f472b6' : cargoFillRatio > 0.65 ? '#d946ef' : '#a855f7');
@@ -7728,7 +8056,7 @@ function drawHarvesterHead(ctx: CanvasRenderingContext2D, model: HarvesterModel,
 
   const headLength =
     model === 'titan' ? 9 :
-    (model === 'heavy' || model === 'ore_rover') ? 8 :
+    model === 'heavy' ? 8 :
     6;
 
   const headWidth =
@@ -7850,7 +8178,7 @@ function drawHarvesterHead(ctx: CanvasRenderingContext2D, model: HarvesterModel,
 }
 
 
-function drawSpiceRefinery(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawSpiceRefinery(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -7869,8 +8197,8 @@ function drawSpiceRefinery(ctx: CanvasRenderingContext2D, px: number, py: number
     wall: '#334155',
     metal: '#94a3b8',
     highlight: '#cbd5e1',
-    orange: '#ea580c',
-    cyan: '#22d3ee',
+    orange: '#f97316',
+    cyan: '#f97316',
     amber: '#fbbf24'
   };
 
@@ -7904,8 +8232,11 @@ function drawSpiceRefinery(ctx: CanvasRenderingContext2D, px: number, py: number
 
   function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = fill;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function vent(x: number, y: number, w: number, h: number) {
@@ -8057,7 +8388,7 @@ function drawSpiceRefinery(ctx: CanvasRenderingContext2D, px: number, py: number
 }
 
 
-function drawScienceLab(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawScienceLab(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -8076,8 +8407,8 @@ function drawScienceLab(ctx: CanvasRenderingContext2D, px: number, py: number, p
     wall: '#334155',
     metal: '#94a3b8',
     highlight: '#cbd5e1',
-    orange: '#ea580c',
-    cyan: '#22d3ee',
+    orange: '#a78bfa',
+    cyan: '#a78bfa',
     glass: '#164e63',
     violet: '#a78bfa'
   };
@@ -8125,8 +8456,11 @@ function drawScienceLab(ctx: CanvasRenderingContext2D, px: number, py: number, p
 
   function light(x: any, y: any, w: any, h: any) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = c.cyan;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function vent(x: number, y: number, w: number, h: number) {
@@ -8258,7 +8592,7 @@ function drawScienceLab(ctx: CanvasRenderingContext2D, px: number, py: number, p
 }
 
 
-function drawLaunchPad(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawLaunchPad(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -8278,8 +8612,8 @@ function drawLaunchPad(ctx: CanvasRenderingContext2D, px: number, py: number, pw
     metal: '#94a3b8',
     deck: '#475569',
     highlight: '#cbd5e1',
-    orange: '#ea580c',
-    cyan: '#22d3ee',
+    orange: '#f97316',
+    cyan: '#f97316',
     amber: '#fbbf24'
   };
 
@@ -8326,8 +8660,11 @@ function drawLaunchPad(ctx: CanvasRenderingContext2D, px: number, py: number, pw
 
   function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = fill;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function octagon(x: any, y: any, w: any, h: any, corner: any) {
@@ -8430,7 +8767,7 @@ function drawLaunchPad(ctx: CanvasRenderingContext2D, px: number, py: number, pw
 }
 
 
-function drawSeismicStormRadar(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawSeismicStormRadar(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -8449,8 +8786,8 @@ function drawSeismicStormRadar(ctx: CanvasRenderingContext2D, px: number, py: nu
     wall: '#334155',
     metal: '#94a3b8',
     highlight: '#cbd5e1',
-    orange: '#ea580c',
-    cyan: '#22d3ee',
+    orange: '#38bdf8',
+    cyan: '#38bdf8',
     amber: '#fbbf24',
     glass: '#164e63'
   };
@@ -8498,8 +8835,11 @@ function drawSeismicStormRadar(ctx: CanvasRenderingContext2D, px: number, py: nu
 
   function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = fill;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function sensorPod(x: number, y: number) {
@@ -8571,6 +8911,9 @@ function drawSeismicStormRadar(ctx: CanvasRenderingContext2D, px: number, py: nu
   box(19, 13, 4, 7, c.orange);
   box(77, 13, 4, 7, c.orange);
 
+  const sweep = 29 + ((timeMs * 0.02) % 48);
+  line([[sweep, 15], [sweep, 22]], '#e0f2fe', 1.2);
+
   // Weather sensor and warning beacon.
   box(48, 5, 4, 5, c.wall);
   light(48, 3, 4, 4, c.amber);
@@ -8608,7 +8951,7 @@ function drawSeismicStormRadar(ctx: CanvasRenderingContext2D, px: number, py: nu
 }
 
 
-function drawHydroponicBioDome(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawHydroponicBioDome(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -8627,7 +8970,7 @@ function drawHydroponicBioDome(ctx: CanvasRenderingContext2D, px: number, py: nu
     wall: '#334155',
     metal: '#94a3b8',
     highlight: '#cbd5e1',
-    orange: '#ea580c',
+    orange: '#22d3ee',
     cyan: '#22d3ee',
     glass: '#164e63'
   };
@@ -8662,8 +9005,11 @@ function drawHydroponicBioDome(ctx: CanvasRenderingContext2D, px: number, py: nu
 
   function light(x: any, y: any, w: any, h: any) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = c.cyan;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function pipe(points: number[][]) {
@@ -8816,7 +9162,7 @@ function drawHydroponicBioDome(ctx: CanvasRenderingContext2D, px: number, py: nu
 }
 
 
-function drawBatterySubstation(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+function drawBatterySubstation(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, timeMs: number = 0) {
   if (pw <= 0 || ph <= 0) return;
 
   ctx.save();
@@ -8835,8 +9181,8 @@ function drawBatterySubstation(ctx: CanvasRenderingContext2D, px: number, py: nu
     wall: '#334155',
     metal: '#94a3b8',
     highlight: '#cbd5e1',
-    orange: '#ea580c',
-    cyan: '#22d3ee',
+    orange: '#fbbf24',
+    cyan: '#fbbf24',
     amber: '#fbbf24'
   };
 
@@ -8861,8 +9207,11 @@ function drawBatterySubstation(ctx: CanvasRenderingContext2D, px: number, py: nu
 
   function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
     box(x, y, w, h, c.outline);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(timeMs * 0.003 + x) * 0.35;
     ctx.fillStyle = fill;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+    ctx.restore();
   }
 
   function vent(x: number, y: number, w: number, h: number) {

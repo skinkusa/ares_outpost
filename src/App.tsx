@@ -328,6 +328,7 @@ export default function App() {
     dayCycleSpeed: 0.006, // approx 2.5 minutes per day at 1x
     credits: 220,
     alloy: 140,
+    maxAlloy: 400,
     spice: 45,
     spiceCapacity: 600,
     autoExportSpice: false,
@@ -514,10 +515,17 @@ export default function App() {
         let foodGen = 0;
         let techGen = 0;
         let spiceCap = 600;
+        let oreCap = 500;
+        let alloyCap = 400;
+        let foodCap = 600;
+        let waterCap = 800;
         let oreGen = 0;
         let oreConsRate = 0;
         let alloyGenRate = 0;
         let batteryCap = 0;
+        let o2Upkeep = 0;
+        let waterUpkeep = 0;
+        let foodUpkeep = 0;
         let popCap = 0;
         let medBayCount = 0;
         let medBayEffectiveness = 0;
@@ -549,19 +557,26 @@ export default function App() {
 
           if (bp.batteryCapacity) batteryCap += bp.batteryCapacity * mult;
           if (bp.spiceCapacity) spiceCap += bp.spiceCapacity * mult;
+          if (bp.oreCapacity) oreCap += bp.oreCapacity * mult;
+          if (bp.alloyCapacity) alloyCap += bp.alloyCapacity * mult;
+          if (bp.foodCapacity) foodCap += bp.foodCapacity * mult;
+          if (bp.waterCapacity) waterCap += bp.waterCapacity * mult;
           if (bp.popCapacity) popCap += bp.popCapacity;
 
           if (bp.o2Delta > 0) o2Gen += bp.o2Delta * mult;
+          else if (bp.o2Delta < 0) o2Upkeep += Math.abs(bp.o2Delta) * mult;
           if (bp.waterDelta > 0) {
             const waterBonus = hasTech('deep_well_drilling') ? 1.5 : 1.0;
             waterGen += bp.waterDelta * mult * waterBonus;
+          } else if (bp.waterDelta < 0) {
+            let waterUse = Math.abs(bp.waterDelta) * mult;
+            if (mod.type === 'greenhouse' && hasTech('hydro_recycler')) waterUse *= 0.5;
+            waterUpkeep += waterUse;
           }
           if (bp.foodDelta > 0) foodGen += bp.foodDelta * mult;
+          else if (bp.foodDelta < 0) foodUpkeep += Math.abs(bp.foodDelta) * mult;
           if (bp.techRate) techGen += bp.techRate * mult;
-          
-          if (mod.type === 'miner') {
-            oreGen += 5 * mult; // Static miner produces 5 ore per second
-          }
+
           if (mod.type === 'refinery') {
             oreConsRate += 4 * mult; // Consumes 4 ore per sec
             alloyGenRate += 2 * mult; // Produces 2 alloy per sec (2:1 ratio)
@@ -581,9 +596,9 @@ export default function App() {
         }
 
         // Life support consumption by colonists
-        const o2Cons = prevStats.population * 1.5;
-        const waterCons = prevStats.population * 1.0;
-        const foodCons = prevStats.population * 0.8;
+        const o2Cons = prevStats.population * 1.5 + o2Upkeep;
+        const waterCons = prevStats.population * 1.0 + waterUpkeep;
+        const foodCons = prevStats.population * 0.8 + foodUpkeep;
 
         const netPower = powerProd - powerCons;
         let newPowerStored = prevStats.powerStored + netPower * dt;
@@ -595,13 +610,13 @@ export default function App() {
         let actualOreConsRate = Math.min(oreConsRate, availableOreRate);
         let actualAlloyGenRate = oreConsRate > 0 ? alloyGenRate * (actualOreConsRate / oreConsRate) : 0;
         
-        let newOre = Math.min(prevStats.maxOre, Math.max(0, prevStats.ore + (oreGen - actualOreConsRate) * dt));
-        let newAlloy = prevStats.alloy + actualAlloyGenRate * dt;
+        let newOre = Math.min(oreCap, Math.max(0, prevStats.ore + (oreGen - actualOreConsRate) * dt));
+        let newAlloy = Math.min(alloyCap, Math.max(0, prevStats.alloy + actualAlloyGenRate * dt));
 
         // Oxygen & Water & Food integration
         let newO2 = Math.min(prevStats.maxOxygen, Math.max(0, prevStats.oxygen + (o2Gen - o2Cons) * dt));
-        let newWater = Math.min(prevStats.maxWater, Math.max(0, prevStats.water + (waterGen - waterCons) * dt));
-        let newFood = Math.min(prevStats.maxFood, Math.max(0, prevStats.food + (foodGen - foodCons) * dt));
+        let newWater = Math.min(waterCap, Math.max(0, prevStats.water + (waterGen - waterCons) * dt));
+        let newFood = Math.min(foodCap, Math.max(0, prevStats.food + (foodGen - foodCons) * dt));
         let newTech = prevStats.techPoints + techGen * dt;
 
         // Decrement vital warning cooldowns
@@ -951,17 +966,17 @@ export default function App() {
             powerCons: Math.round(powerCons * 10) / 10,
             powerCapacity: batteryCap,
             water: Math.round(newWater * 10) / 10,
-            waterPct: Math.round((newWater / Math.max(1, prevStats.maxWater)) * 1000) / 10,
+            waterPct: Math.round((newWater / Math.max(1, waterCap)) * 1000) / 10,
             waterDelta: Math.round((waterGen - waterCons) * 10) / 10,
-            maxWater: prevStats.maxWater,
+            maxWater: waterCap,
             oxygen: Math.round(newO2 * 10) / 10,
             oxygenPct: Math.round((newO2 / Math.max(1, prevStats.maxOxygen)) * 1000) / 10,
             oxygenDelta: Math.round((o2Gen - o2Cons) * 10) / 10,
             maxOxygen: prevStats.maxOxygen,
             food: Math.round(newFood * 10) / 10,
-            foodPct: Math.round((newFood / Math.max(1, prevStats.maxFood)) * 1000) / 10,
+            foodPct: Math.round((newFood / Math.max(1, foodCap)) * 1000) / 10,
             foodDelta: Math.round((foodGen - foodCons) * 10) / 10,
-            maxFood: prevStats.maxFood,
+            maxFood: foodCap,
             alloy: Math.round(newAlloy * 10) / 10,
             ore: Math.round(newOre * 10) / 10,
             spice: Math.round(prevStats.spice * 10) / 10,
@@ -1021,11 +1036,17 @@ export default function App() {
           oxygen: newO2,
           currentO2Delta: o2Gen - o2Cons,
           water: newWater,
+          maxWater: waterCap,
           currentWaterDelta: waterGen - waterCons,
           food: newFood,
+          maxFood: foodCap,
           currentFoodDelta: foodGen - foodCons,
           techPoints: newTech,
           spiceCapacity: spiceCap,
+          ore: newOre,
+          maxOre: oreCap,
+          alloy: newAlloy,
+          maxAlloy: alloyCap,
           maxPopulation: popCap,
           morale: newMorale,
           colonistHealth: newHealth,
@@ -1062,7 +1083,7 @@ export default function App() {
             };
           } else if (roll < 0.82) {
             sound.playAlarm();
-            addLog('danger', 'Dust Storm Alert', 'Severe Martian dust storm detected! Solar offline.');
+            addLog('danger', 'Dust Storm Alert', 'Severe Martian dust storm detected! Solar output is cut and harvesters slow.');
             return {
               type: 'dust_storm',
               name: 'Severe Dust Storm',
@@ -1445,7 +1466,7 @@ export default function App() {
                 setStats((prevStats) => ({
                   ...prevStats,
                   spice: isOre ? prevStats.spice : Math.min(prevStats.spiceCapacity, prevStats.spice + delivered),
-                  ore: isOre ? prevStats.ore + delivered : prevStats.ore,
+                  ore: isOre ? Math.min(prevStats.maxOre, prevStats.ore + delivered) : prevStats.ore,
                   totalSpiceMined: isOre ? prevStats.totalSpiceMined : prevStats.totalSpiceMined + delivered,
                 }));
 
@@ -1642,14 +1663,6 @@ export default function App() {
       return;
     }
 
-    if (buildPlacingType === 'miner') {
-      const isNearOre = oreDeposits.some(d => !d.depleted && Math.hypot(d.x - gridX, d.y - gridY) < 5);
-      if (!isNearOre) {
-        addLog('warning', 'Mining Restriction', 'Ore Miner must be placed near an ore deposit!');
-        return;
-      }
-    }
-
     // Deduct resources
     setStats((prev) => ({
       ...prev,
@@ -1688,10 +1701,7 @@ export default function App() {
     if (stats.alloy < spec.costAlloy || stats.credits < spec.costCredits) return;
 
     // Find depot or command exterior docking apron
-    const isOre = model === 'ore_rover';
-    const depot = isOre 
-      ? (modules.find((m) => m.type === 'refinery') || modules[0])
-      : (modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command') || modules[0]);
+    const depot = modules.find((m) => m.type === 'depot') || modules.find((m) => m.type === 'command') || modules[0];
     const dock = depot
       ? findDockingApron(depot, WORLD_WIDTH / 2 + 120, WORLD_HEIGHT / 2, modules, 28, powerLines)
       : { x: WORLD_WIDTH / 2 + 50, y: WORLD_HEIGHT / 2 };
@@ -1723,7 +1733,7 @@ export default function App() {
       targetSpiceId: null,
       homeDepotId: depot?.id || '',
       autoHarvest: true,
-      miningTarget: isOre ? 'ore' : 'spice',
+      miningTarget: 'spice',
       tireHistory: [],
       laserPulseTimer: 0,
       unloadingTimer: 0,
@@ -1804,7 +1814,7 @@ export default function App() {
     const refund = Math.round(spec.costAlloy * 0.5);
 
     setHarvesters((prev) => prev.filter((h) => h.id !== harvesterId));
-    setStats((prev) => ({ ...prev, alloy: prev.alloy + refund }));
+    setStats((prev) => ({ ...prev, alloy: Math.min(prev.maxAlloy, prev.alloy + refund) }));
     if (selectedHarvester?.id === harvesterId) setSelectedHarvester(null);
     addLog('info', 'Harvester Scrapped', `${target.name} decommissioned. Recovered ${refund} Alloy.`);
   };
@@ -1842,14 +1852,14 @@ export default function App() {
         ...prev,
         credits: prev.credits - 180,
         population: prev.population + 4,
-        alloy: prev.alloy + 20,
+        alloy: Math.min(prev.maxAlloy, prev.alloy + 20),
       }));
       addLog('success', 'Earth Shuttle Arrived', '+4 Specialist Crew and +20 Alloy arrived from Earth.');
     } else if (type === 'alloy' && stats.credits >= 140) {
       setStats((prev) => ({
         ...prev,
         credits: prev.credits - 140,
-        alloy: prev.alloy + 75,
+        alloy: Math.min(prev.maxAlloy, prev.alloy + 75),
       }));
       addLog('success', 'Alloy Crates Delivered', '+75 Structural Alloy delivered to supply depot.');
     } else if (type === 'supplies' && stats.credits >= 120) {
@@ -1944,7 +1954,7 @@ export default function App() {
     const bp = MODULE_BLUEPRINTS[mod.type];
     const refund = Math.round(bp.costAlloy * 0.6);
 
-    setStats((prev) => ({ ...prev, alloy: prev.alloy + refund }));
+    setStats((prev) => ({ ...prev, alloy: Math.min(prev.maxAlloy, prev.alloy + refund) }));
     setModules((prev) => prev.filter((m) => m.id !== moduleId));
     setSelectedModule(null);
     addLog('info', 'Module Deconstructed', `${bp.name} dismantled. Recovered ${refund} Alloy.`);

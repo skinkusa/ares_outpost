@@ -149,8 +149,9 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
         {bp.foodDelta !== 0 && (
           <div className="bg-stone-900/80 p-2 rounded border border-stone-800">
             <div className="text-[10px] text-stone-400">Hydroponic Crop:</div>
-            <div className="text-emerald-400 font-bold">
-              +{Math.round(bp.foodDelta * levelMultiplier)} Food/h
+            <div className={bp.foodDelta > 0 ? 'text-emerald-400 font-bold' : 'text-stone-300 font-bold'}>
+              {bp.foodDelta > 0 ? '+' : ''}
+              {Math.round(bp.foodDelta * levelMultiplier)} Food/h
             </div>
           </div>
         )}
@@ -160,6 +161,42 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
             <div className="text-[10px] text-fuchsia-400">Spice Silo Capacity:</div>
             <div className="text-fuchsia-300 font-bold">
               +{Math.round(bp.spiceCapacity * levelMultiplier)} kg
+            </div>
+          </div>
+        )}
+
+        {bp.alloyCapacity && (
+          <div className="bg-stone-900/80 p-2 rounded border border-stone-800">
+            <div className="text-[10px] text-orange-400">Alloy Storage:</div>
+            <div className="text-orange-300 font-bold">
+              +{Math.round(bp.alloyCapacity * levelMultiplier)}
+            </div>
+          </div>
+        )}
+
+        {bp.oreCapacity && (
+          <div className="bg-stone-900/80 p-2 rounded border border-stone-800">
+            <div className="text-[10px] text-amber-500">Ore Storage:</div>
+            <div className="text-amber-300 font-bold">
+              +{Math.round(bp.oreCapacity * levelMultiplier)}
+            </div>
+          </div>
+        )}
+
+        {bp.foodCapacity && (
+          <div className="bg-stone-900/80 p-2 rounded border border-stone-800">
+            <div className="text-[10px] text-emerald-400">Food Storage:</div>
+            <div className="text-emerald-300 font-bold">
+              +{Math.round(bp.foodCapacity * levelMultiplier)}
+            </div>
+          </div>
+        )}
+
+        {bp.waterCapacity && (
+          <div className="bg-stone-900/80 p-2 rounded border border-stone-800">
+            <div className="text-[10px] text-blue-400">Water Storage:</div>
+            <div className="text-blue-300 font-bold">
+              +{Math.round(bp.waterCapacity * levelMultiplier)} L
             </div>
           </div>
         )}

@@ -54,13 +54,9 @@ export const HarvesterManager: React.FC<HarvesterManagerProps> = ({
   if (!isOpen) return null;
 
   const depots = modules.filter((m) => m.type === 'depot');
-  const oreRefineries = modules.filter((m) => m.type === 'refinery');
   const commandOutposts = modules.filter((m) => m.type === 'command');
   const garages = modules.filter((m) => m.type === 'garage');
   const hasBase = depots.length > 0 || commandOutposts.length > 0 || garages.length > 0;
-  const hasRefinery = oreRefineries.length > 0;
-  const isOre = selectedDeployModel === 'ore_rover';
-  const hasRequiredBase = isOre ? hasRefinery : hasBase;
 
   const currentSpec = HARVESTER_SPECS[selectedDeployModel];
   const canAffordDeploy =
@@ -101,8 +97,8 @@ export const HarvesterManager: React.FC<HarvesterManagerProps> = ({
             </h3>
 
             {/* Model Selector Tabs */}
-            <div className="grid grid-cols-4 gap-2">
-              {(['scout', 'heavy', 'titan', 'ore_rover'] as HarvesterModel[]).map((m) => {
+            <div className="grid grid-cols-3 gap-2">
+              {(['scout', 'heavy', 'titan'] as HarvesterModel[]).map((m) => {
                 const spec = HARVESTER_SPECS[m];
                 return (
                   <button
@@ -188,20 +184,20 @@ export const HarvesterManager: React.FC<HarvesterManagerProps> = ({
 
                 <button
                   onClick={() => onDeployHarvester(selectedDeployModel)}
-                  disabled={!canAffordDeploy || !hasRequiredBase}
+                  disabled={!canAffordDeploy || !hasBase}
                   className={`px-4 py-2 rounded-lg font-title font-bold text-xs tracking-wider transition-all shadow-lg ${
-                    canAffordDeploy && hasRequiredBase
+                    canAffordDeploy && hasBase
                       ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white glow-purple active:scale-95'
                       : 'bg-stone-800 text-stone-500 cursor-not-allowed'
                   }`}
                 >
-                  {isOre ? 'DEPLOY ROVER' : 'DEPLOY HARVESTER'}
+                  DEPLOY HARVESTER
                 </button>
               </div>
 
-              {!hasRequiredBase && (
+              {!hasBase && (
                 <div className="text-[11px] text-red-400 flex items-center gap-1 mt-1 font-mono">
-                  <AlertTriangle className="w-3.5 h-3.5" /> {isOre ? "Requires Ore Refinery" : "Requires Command Outpost or Harvester Depot"}
+                  <AlertTriangle className="w-3.5 h-3.5" /> Requires Command Outpost or Harvester Depot
                 </div>
               )}
             </div>

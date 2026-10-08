@@ -21,6 +21,7 @@ import {
   Sprout,
   Sun,
   Truck,
+  Warehouse,
   Wind,
   Zap,
 } from 'lucide-react';
@@ -83,6 +84,7 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
       case 'habitat': return <Home className="w-4 h-4 text-purple-400" />;
       case 'refinery': return <Factory className="w-4 h-4 text-fuchsia-400" />;
       case 'depot': return <Truck className="w-4 h-4 text-rose-400" />;
+      case 'storage': return <Warehouse className="w-4 h-4 text-amber-400" />;
       case 'research': return <Atom className="w-4 h-4 text-indigo-400" />;
       case 'launchpad': return <Rocket className="w-4 h-4 text-amber-400" />;
       case 'radar': return <Scan className="w-4 h-4 text-teal-400" />;
@@ -257,13 +259,27 @@ export const BuildMenu: React.FC<BuildMenuProps> = ({
                         </span>
                       )}
                       {bp.foodDelta !== 0 && (
-                        <span className="text-emerald-400 font-bold">+{bp.foodDelta} Food</span>
+                        <span className={bp.foodDelta > 0 ? 'text-emerald-400 font-bold' : 'text-stone-400'}>
+                          {bp.foodDelta > 0 ? `+${bp.foodDelta}` : bp.foodDelta} Food
+                        </span>
                       )}
                       {bp.batteryCapacity && (
                         <span className="text-green-400 font-bold">+{bp.batteryCapacity} Cap</span>
                       )}
                       {bp.spiceCapacity && (
                         <span className="text-fuchsia-400 font-bold">+{bp.spiceCapacity} Spice</span>
+                      )}
+                      {bp.oreCapacity && (
+                        <span className="text-amber-400 font-bold">+{bp.oreCapacity} Ore</span>
+                      )}
+                      {bp.alloyCapacity && (
+                        <span className="text-orange-400 font-bold">+{bp.alloyCapacity} Alloy</span>
+                      )}
+                      {bp.foodCapacity && (
+                        <span className="text-emerald-400 font-bold">+{bp.foodCapacity} Food</span>
+                      )}
+                      {bp.waterCapacity && (
+                        <span className="text-blue-400 font-bold">+{bp.waterCapacity} Water</span>
                       )}
                     </div>
 

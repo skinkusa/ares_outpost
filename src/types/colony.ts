@@ -33,7 +33,7 @@ export type ModuleType =
   | 'radar'
   | 'medbay'
   | 'garage'
-  | 'miner';
+  | 'storage';
 
 export interface ModuleBlueprint {
   type: ModuleType;
@@ -52,6 +52,10 @@ export interface ModuleBlueprint {
   popCapacity?: number;
   techRate?: number;
   spiceCapacity?: number;
+  oreCapacity?: number;
+  alloyCapacity?: number;
+  foodCapacity?: number;
+  waterCapacity?: number;
   color: string;
   icon: string;
 }
@@ -94,7 +98,7 @@ export type HarvesterState =
   | 'broken_down'
   | 'docked';
 
-export type HarvesterModel = 'scout' | 'heavy' | 'titan' | 'ore_rover';
+export type HarvesterModel = 'scout' | 'heavy' | 'titan';
 
 export interface HarvesterModelSpec {
   model: HarvesterModel;
@@ -227,6 +231,7 @@ export interface ColonyStats {
   dayCycleSpeed: number;
   credits: number;
   alloy: number;
+  maxAlloy: number;
   spice: number;
   spiceCapacity: number;
   autoExportSpice?: boolean;

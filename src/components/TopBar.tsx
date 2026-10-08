@@ -340,7 +340,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             <div className="flex justify-between"><span>Current:</span> <span>{Math.round(stats.water)}/{stats.maxWater} L</span></div>
             <div className="flex justify-between"><span>Delta:</span> <span>{stats.currentWaterDelta >= 0 ? '+' : ''}{Math.round(stats.currentWaterDelta)}/s</span></div>
             {isWaterCritical && <div className="border-t border-stone-700 mt-1 pt-1 text-red-400 font-bold">CRITICAL DEHYDRATION ALERT</div>}
-            <p className="mt-2 text-stone-400 text-[10px]">Extracted by Moisture Vaporators. Consumed by Habitats & Bio-Domes.</p>
+            <p className="mt-2 text-stone-400 text-[10px]">Extracted by Moisture Vaporators. Consumed by the crew, habitats, and bio-domes. Storage Depots raise the cap.</p>
           </div>
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans font-bold">
@@ -386,7 +386,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             <div className="flex justify-between"><span>Current:</span> <span>{Math.round(stats.food)}/{stats.maxFood}</span></div>
             <div className="flex justify-between"><span>Delta:</span> <span>{stats.currentFoodDelta >= 0 ? '+' : ''}{Math.round(stats.currentFoodDelta)}/s</span></div>
             {isFoodCritical && <div className="border-t border-stone-700 mt-1 pt-1 text-red-400 font-bold">CRITICAL MALNUTRITION ALERT</div>}
-            <p className="mt-2 text-stone-400 text-[10px]">Grown in Hydroponic Bio-Domes. Consumed by Habitats.</p>
+            <p className="mt-2 text-stone-400 text-[10px]">Grown in Hydroponic Bio-Domes. Consumed by the crew and habitats. Storage Depots raise the cap.</p>
           </div>
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans font-bold">
@@ -515,8 +515,9 @@ export const TopBar: React.FC<TopBarProps> = ({
           {/* Custom Tooltip */}
           <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
             <div className="font-bold text-orange-400 mb-1">Structural Alloy</div>
-            <p>Structural Alloy for building modules and heavy harvesters.</p>
-            <p className="mt-2 text-stone-400 text-[10px]">Produced by Ore Smelter Refineries from Ore.</p>
+            <div className="flex justify-between"><span>Current:</span> <span>{Math.round(stats.alloy)}/{stats.maxAlloy}</span></div>
+            <p className="mt-1">Structural Alloy for building modules and heavy harvesters.</p>
+            <p className="mt-2 text-stone-400 text-[10px]">Produced by Ore Smelter Refineries. Storage Depots raise the cap.</p>
           </div>
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans">
@@ -526,7 +527,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
           <div className="flex items-center justify-between font-bold mt-0.5">
             <span className="text-orange-300">{Math.round(stats.alloy)}</span>
-            <span className="text-stone-500 text-[10px]">UNITS</span>
+            <span className="text-orange-400/80 text-[10px]">/{stats.maxAlloy}</span>
           </div>
         </div>
 
@@ -538,8 +539,9 @@ export const TopBar: React.FC<TopBarProps> = ({
           {/* Custom Tooltip */}
           <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
             <div className="font-bold text-amber-900 mb-1">Raw Iron Ore</div>
-            <p>Raw iron ore extracted from the Martian crust.</p>
-            <p className="mt-2 text-stone-400 text-[10px]">Mined by Ore Extraction Miners.</p>
+            <div className="flex justify-between"><span>Current:</span> <span>{Math.round(stats.ore)}/{stats.maxOre}</span></div>
+            <p className="mt-1">Raw iron ore extracted from the Martian crust.</p>
+            <p className="mt-2 text-stone-400 text-[10px]">Mined by harvesters assigned to ore. Storage Depots raise the cap.</p>
           </div>
           <div className="flex items-center justify-between text-[10px] text-stone-400">
             <span className="flex items-center gap-1 font-sans">
@@ -549,7 +551,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
           <div className="flex items-center justify-between font-bold mt-0.5">
             <span className="text-amber-800">{Math.round(stats.ore)}</span>
-            <span className="text-stone-500 text-[10px]">UNITS</span>
+            <span className="text-amber-700 text-[10px]">/{stats.maxOre}</span>
           </div>
         </div>
 

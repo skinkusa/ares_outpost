@@ -235,21 +235,25 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
     color: '#10b981', // Emerald / Cyan medical
     icon: 'HeartPulse',
   },
-  miner: {
-    type: 'miner',
-    name: 'Ore Extraction Miner',
+  storage: {
+    type: 'storage',
+    name: 'Storage Depot',
     category: 'industry',
-    description: 'Automated drill rig extracting raw iron ore from subterranean deposits.',
+    description: 'Yard of sealed crates, ration lockers, water tanks, and ore bunkers. Raises the food, water, alloy, and ore caps by 400 each.',
     costAlloy: 40,
-    costCredits: 90,
-    width: 2,
-    height: 2,
-    powerDelta: -12,
+    costCredits: 80,
+    width: 3,
+    height: 3,
+    powerDelta: -6,
     o2Delta: 0,
     waterDelta: 0,
     foodDelta: 0,
-    color: '#78350f', // Amber-900 (ore)
-    icon: 'Pickaxe',
+    oreCapacity: 400,
+    alloyCapacity: 400,
+    foodCapacity: 400,
+    waterCapacity: 400,
+    color: '#d97706',
+    icon: 'Warehouse',
   },
   refinery: {
     type: 'refinery',
@@ -302,17 +306,6 @@ export const HARVESTER_SPECS: Record<string, HarvesterModelSpec> = {
     speed: 1.3,
     harvestRate: 52,
     maxHealth: 450,
-  },
-  ore_rover: {
-    model: 'ore_rover',
-    name: 'Excavator Ore Rover',
-    description: 'Heavy duty crawler designed to drill, collect, and transport raw iron ore back to the Ore Refinery.',
-    costAlloy: 45,
-    costCredits: 80,
-    maxCargo: 150,
-    speed: 2.0,
-    harvestRate: 25,
-    maxHealth: 180,
   },
 };
 
@@ -399,7 +392,7 @@ export const TECH_TREE: TechNode[] = [
   },
   {
     id: 'terraforming_genesis',
-    name: 'Atmospheric Genesis Genesis Engine',
+    name: 'Atmospheric Genesis Engine',
     category: 'engineering',
     description: 'The pinnacle of Mars colonization: massive atmospheric scrubbers begin warming the red planet!',
     cost: 200,

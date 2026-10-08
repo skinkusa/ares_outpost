@@ -57,7 +57,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 1. Autonomous Spice Harvesters
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Deploy <strong>Scout, Heavy, or Titan</strong> harvesters from your fleet bay. They roam the Martian dunes autonomously, locate rich violet spice veins, deploy high-energy mining lasers, and return to base when their cargo holds are full to deliver their loads!
+                Deploy <strong>Scout, Heavy, or Titan</strong> harvesters from the fleet bay. They find a vein on their own, mine with lasers, and drive home when the hold is full. The fleet <strong>MINE</strong> toggle assigns each rover to spice or ore. Spice unloads at a Spice Refinery, Garage, or the Command Outpost. Ore unloads at an <strong>Ore Smelter</strong>, which turns ore into alloy. A <strong>Storage Depot</strong> raises the ore, alloy, food, and water caps. Right-click a selected rover to send it somewhere.
               </p>
             </div>
           </div>
@@ -72,7 +72,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 2. Power Grid & Life Support
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Solar arrays provide high output during daytime, but produce zero at night! Build <strong>Battery Substations</strong> to store daytime power or deploy <strong>RTG Nuclear Cells</strong> for continuous 24/7 baseload power. Keep MOXIE Scrubbers (O2) and Vaporators (H2O) powered to sustain crew morale, and build <strong>Medical Bays</strong> to purge cosmic radiation and heal injured colonists.
+                Solar arrays produce power in daylight and nothing at night. <strong>Battery Substations</strong> store the surplus. <strong>RTG Nuclear Cells</strong> run day and night. Crew consume oxygen, water, and food on their own. <strong>MOXIE Scrubbers</strong> make oxygen, <strong>Vaporators</strong> make water, and <strong>Hydroponic Bio-Domes</strong> make food but drink water. Habitats and medical bays draw extra life support. A blackout collapses morale, and <strong>Medical Bays</strong> heal the crew and cut radiation dose.
               </p>
             </div>
           </div>
@@ -87,7 +87,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 3. Surviving Martian Dust Storms
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Martian dust storms block out sunlight and slow down rovers. Monitor the weather alert banner on your HUD, recall harvesters if needed, and research <strong>Electrostatic Dust Deflectors</strong> in the Tech Lab.
+                Watch the weather banner on the HUD. A dust veil dims solar output. A severe dust storm cuts it to a fraction and slows rovers. A <strong>Seismic & Storm Radar</strong> softens both penalties. <strong>Electrostatic Dust Deflectors</strong>, researched from the Research screen, stop the rover slow and restore most of the lost solar power. Seismic tremors uncover new spice veins. Solar flares boost solar output and spike radiation. Recall harvesters if a storm gets too rough.
               </p>
             </div>
           </div>
@@ -102,7 +102,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 4. Earth Commerce & Terraforming
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Export spice to Earth corporations via the <strong>Trade Shuttle</strong> for Galactic Credits (₡). You can use credits to requisition supplies, titanium alloy, and most importantly, <strong>Specialist Crew</strong> to increase your colony's population! Fund Science Labs to unlock high-yield technologies, culminating in the <strong>Atmospheric Genesis Engine</strong>!
+                Sell spice for Galactic Credits (₡) from the trade shuttle. Without an <strong>Orbital Trade Launchpad</strong>, emergency drones take a 15% cut. A launchpad pays full price and can auto-launch when the stockpile hits a threshold. Credits buy specialist crew (+4 colonists and alloy), titanium alloy, and survival stores (food and water). <strong>Science Labs</strong> earn tech points. The last research is the <strong>Atmospheric Genesis Engine</strong>.
               </p>
             </div>
           </div>
