@@ -1513,12 +1513,8 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
         ctx.fillRect(px + 4, py + ph - 14, 10, 10);
         ctx.fillRect(px + pw - 14, py + ph - 14, 10, 10);
 
-        // Specific Building Visuals (Custom PNG Sprite or Procedural Vector Art)
-        const buildingSprite = getBuildingSprite(mod.type);
-        if (buildingSprite) {
-          ctx.drawImage(buildingSprite, px + 2, py + 2, pw - 4, ph - 4);
-        } else {
-          switch (mod.type) {
+        // Specific Building Visuals (Procedural Vector Art)
+        switch (mod.type) {
             case 'command': {
             drawCommandCenter(ctx, px, py, pw, ph);
             break;
@@ -1537,7 +1533,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
 
 
           case 'battery': {
-            drawBattery(ctx, px, py, pw, ph);
+            drawBatterySubstation(ctx, px, py, pw, ph);
             break;
           }
 
@@ -1552,7 +1548,7 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           }
 
           case 'greenhouse': {
-            drawGreenhouse(ctx, px, py, pw, ph);
+            drawHydroponicBioDome(ctx, px, py, pw, ph);
             break;
           }
 
@@ -1562,12 +1558,12 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           }
 
           case 'depot': {
-            drawDepot(ctx, px, py, pw, ph);
+            drawHarvesterGarage(ctx, px, py, pw, ph);
             break;
           }
 
           case 'refinery': {
-            drawRefinery(ctx, px, py, pw, ph, time);
+            drawSpiceRefinery(ctx, px, py, pw, ph);
             break;
           }
 
@@ -1577,17 +1573,17 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           }
 
           case 'research': {
-            drawResearchCenter(ctx, px, py, pw, ph, time);
+            drawScienceLab(ctx, px, py, pw, ph);
             break;
           }
 
           case 'launchpad': {
-            drawLaunchpad(ctx, px, py, pw, ph);
+            drawLaunchPad(ctx, px, py, pw, ph);
             break;
           }
 
           case 'radar': {
-            drawRadar(ctx, px, py, pw, ph, time);
+            drawSeismicStormRadar(ctx, px, py, pw, ph);
             break;
           }
 
@@ -1597,10 +1593,9 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           }
 
           case 'miner': {
-            drawMiner(ctx, px, py, pw, ph);
+            drawOreExtractionMiner(ctx, px, py, pw, ph);
             break;
           }
-        }
       }
 
         // Module Label & Level
@@ -3383,12 +3378,12 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
     wall: '#334155',
     metal: '#94a3b8',
     highlight: '#cbd5e1',
-    accent: '#38bdf8',
+    orange: '#ea580c',
     cyan: '#22d3ee',
     amber: '#fbbf24'
   };
 
-  function box(x: number, y: number, w: number, h: number, fill: string | CanvasGradient | CanvasPattern) {
+  function box(x: number, y: number, w: number, h: number, fill: string) {
     ctx.fillStyle = fill;
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = c.outline;
@@ -3406,9 +3401,9 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
 
   function line(points: number[][], stroke: string, width = 1) {
     ctx.beginPath();
-    ctx.moveTo(points[0][0], points[0][1]);
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
     for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i][0], points[i][1]);
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
     }
     ctx.strokeStyle = stroke;
     ctx.lineWidth = width;
@@ -3416,7 +3411,7 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
     ctx.lineWidth = 1;
   }
 
-  function light(x: number, y: number, w: number, h: number, fill = c.cyan) {
+  function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
     box(x, y, w, h, c.outline);
     ctx.fillStyle = fill;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
@@ -3455,8 +3450,8 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
     ctx.strokeStyle = c.outline;
     ctx.stroke();
 
-    ellipse(x, 49, 13, 5, c.accent);
-    ellipse(x, 19, 12, 6, c.accent);
+    ellipse(x, 49, 13, 5, c.orange);
+    ellipse(x, 19, 12, 6, c.orange);
     ellipse(x, 18, 10, 5, c.metal);
     ellipse(x, 18, 7.5, 3.5, c.outline);
 
@@ -3482,7 +3477,7 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
   // Reactor base and visible front wall.
   box(29, 53, 42, 20, c.wall);
   ellipse(50, 72, 22, 8, c.wall);
-  ellipse(50, 57, 24, 11, c.accent);
+  ellipse(50, 57, 24, 11, c.orange);
   ellipse(50, 56, 22, 9, c.metal);
 
   // Solid armored containment dome.
@@ -3516,7 +3511,7 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
   ctx.bezierCurveTo(42, 50, 58, 50, 69, 45);
   ctx.stroke();
 
-  ellipse(50, 34, 7, 4, c.accent);
+  ellipse(50, 34, 7, 4, c.orange);
   ellipse(50, 33, 5, 2.5, c.metal);
   ellipse(50, 33, 2, 1.2, c.cyan);
 
@@ -3530,8 +3525,8 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
     box(x, 60, 12, 6, c.metal);
     vent(x + 2, 68, 8, 7);
     light(x + 3, 77, 6, 3);
-    box(x, 80, 4, 3, c.accent);
-    box(x + 8, 80, 4, 3, c.accent);
+    box(x, 80, 4, 3, c.orange);
+    box(x + 8, 80, 4, 3, c.orange);
   }
 
   pipe([[26, 72], [34, 72], [34, 77]]);
@@ -3540,8 +3535,8 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
   // South-facing control entrance.
   box(37, 72, 26, 15, c.wall);
   box(36, 69, 28, 7, c.metal);
-  box(36, 69, 4, 7, c.accent);
-  box(60, 69, 4, 7, c.accent);
+  box(36, 69, 4, 7, c.orange);
+  box(60, 69, 4, 7, c.orange);
   light(43, 71, 14, 4);
 
   box(44, 78, 12, 9, c.outline);
@@ -3557,11 +3552,12 @@ function drawNuclearGenerator(ctx: CanvasRenderingContext2D, px: number, py: num
   box(40, 87, 20, 6, c.wall);
   line([[42, 89], [58, 89]], c.metal);
   line([[42, 92], [58, 92]], c.metal);
-  box(38, 87, 2, 6, c.accent);
-  box(60, 87, 2, 6, c.accent);
+  box(38, 87, 2, 6, c.orange);
+  box(60, 87, 2, 6, c.orange);
 
   ctx.restore();
 }
+
 
 function drawBattery(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
   if (pw <= 0 || ph <= 0) return;
@@ -4120,7 +4116,7 @@ function drawGreenhouse(ctx: CanvasRenderingContext2D, px: number, py: number, p
     water.addColorStop(0.45, c.cyan);
     water.addColorStop(1, '#0e7490');
 
-    box(x - 4, 65, 8, 10, water);
+    box(x - 4, 65, 8, 10, water as any);
     line([[x - 2, 66], [x - 2, 73]], '#a5f3fc');
 
     ellipse(x, 62, 7, 3.5, c.accent);
@@ -4266,7 +4262,7 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
     wall: '#334155',
     roof: '#94a3b8',
     highlight: '#cbd5e1',
-    accent: '#ef4444',
+    orange: '#ea580c',
     cyan: '#22d3ee',
     glass: '#164e63'
   };
@@ -4280,9 +4276,9 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
 
   function line(points: number[][], stroke: string, width = 1) {
     ctx.beginPath();
-    ctx.moveTo(points[0][0], points[0][1]);
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
     for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i][0], points[i][1]);
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
     }
     ctx.strokeStyle = stroke;
     ctx.lineWidth = width;
@@ -4290,7 +4286,7 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
     ctx.lineWidth = 1;
   }
 
-  function light(x: number, y: number, w: number, h: number) {
+  function light(x: any, y: any, w: any, h: any) {
     box(x, y, w, h, c.outline);
     ctx.fillStyle = c.cyan;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
@@ -4306,7 +4302,7 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
     }
   }
 
-  function roof(x: number, y: number, w: number, h: number) {
+  function roof(x: any, y: any, w: any, h: any) {
     // Chamfered roof over a visible south-facing wall.
     box(x, y + 8, w, h, c.wall);
 
@@ -4331,7 +4327,7 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
     );
   }
 
-  function wing(x: number) {
+  function wing(x: any) {
     roof(x, 31, 27, 30);
 
     // Roof ventilation and seams.
@@ -4339,8 +4335,8 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
     line([[x + 2, 49], [x + 25, 49]], '#64748b');
     line([[x + 2, 55], [x + 25, 55]], '#64748b');
 
-    box(x + 1, 33, 4, 5, c.accent);
-    box(x + 22, 33, 4, 5, c.accent);
+    box(x + 1, 33, 4, 5, c.orange);
+    box(x + 22, 33, 4, 5, c.orange);
 
     // Two rows of residential windows on the front wall.
     box(x, 61, 27, 16, c.wall);
@@ -4350,8 +4346,8 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
       }
     }
 
-    box(x + 1, 74, 4, 4, c.accent);
-    box(x + 22, 74, 4, 4, c.accent);
+    box(x + 1, 74, 4, 4, c.orange);
+    box(x + 22, 74, 4, 4, c.orange);
   }
 
   // Rear utility connections.
@@ -4381,21 +4377,21 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
   ctx.fillRect(51, 44, 5, 5);
 
   vent(43, 24, 14, 6);
-  box(35, 22, 4, 6, c.accent);
-  box(61, 22, 4, 6, c.accent);
-  box(35, 58, 4, 7, c.accent);
-  box(61, 58, 4, 7, c.accent);
+  box(35, 22, 4, 6, c.orange);
+  box(61, 22, 4, 6, c.orange);
+  box(35, 58, 4, 7, c.orange);
+  box(61, 58, 4, 7, c.orange);
 
   // Small rooftop communications aerial.
   box(59, 14, 3, 9, c.wall);
-  box(59, 12, 3, 3, c.accent);
+  box(59, 12, 3, 3, c.orange);
   line([[60.5, 16], [65, 16]], c.roof);
 
   // South-facing airlock housing.
   box(38, 65, 24, 20, c.wall);
   box(37, 62, 26, 8, c.roof);
-  box(37, 62, 4, 8, c.accent);
-  box(59, 62, 4, 8, c.accent);
+  box(37, 62, 4, 8, c.orange);
+  box(59, 62, 4, 8, c.orange);
   light(44, 64, 12, 4);
 
   box(43, 73, 14, 12, c.outline);
@@ -4409,11 +4405,12 @@ function drawHabitat(ctx: CanvasRenderingContext2D, px: number, py: number, pw: 
   for (let y = 87; y < 93; y += 2) {
     line([[42, y], [58, y]], c.roof);
   }
-  box(38, 85, 2, 8, c.accent);
-  box(60, 85, 2, 8, c.accent);
+  box(38, 85, 2, 8, c.orange);
+  box(60, 85, 2, 8, c.orange);
 
   ctx.restore();
 }
+
 
 function drawRefinery(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, time: number) {
   if (pw <= 0 || ph <= 0) return;
@@ -4601,7 +4598,7 @@ function drawRefinery(ctx: CanvasRenderingContext2D, px: number, py: number, pw:
   heat.addColorStop(1, '#9a3412');
 
   box(41, 64, 20, 11, c.outline);
-  box(43, 66, 16, 7, heat);
+  box(43, 66, 16, 7, heat as any);
   line([[48, 66], [48, 73]], c.wall, 2);
   line([[54, 66], [54, 73]], c.wall, 2);
 
@@ -4700,7 +4697,7 @@ function drawDepot(ctx: CanvasRenderingContext2D, px: number, py: number, pw: nu
     spice.addColorStop(0.45, '#f59e0b');
     spice.addColorStop(1, '#9a3412');
 
-    box(x, y, w, h, spice);
+    box(x, y, w, h, spice as any);
 
     // Fixed pattern avoids flickering between frames.
     ctx.save();
@@ -4733,7 +4730,7 @@ function drawDepot(ctx: CanvasRenderingContext2D, px: number, py: number, pw: nu
     shell.addColorStop(0.35, c.highlight);
     shell.addColorStop(1, c.wall);
 
-    box(x - 11, 25, 22, 37, shell);
+    box(x - 11, 25, 22, 37, shell as any);
     ellipse(x, 62, 11, 5, c.wall);
 
     // Amber processing chamber.
@@ -5569,7 +5566,7 @@ function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: numb
     wall: '#334155',
     roof: '#94a3b8',
     highlight: '#cbd5e1',
-    accent: '#6366f1',
+    orange: '#ea580c',
     cyan: '#22d3ee',
     amber: '#fbbf24'
   };
@@ -5583,9 +5580,9 @@ function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: numb
 
   function line(points: number[][], stroke: string, width = 1) {
     ctx.beginPath();
-    ctx.moveTo(points[0][0], points[0][1]);
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
     for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i][0], points[i][1]);
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
     }
     ctx.strokeStyle = stroke;
     ctx.lineWidth = width;
@@ -5602,7 +5599,7 @@ function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: numb
     ctx.stroke();
   }
 
-  function light(x: number, y: number, w: number, h: number, fill = c.cyan) {
+  function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
     box(x, y, w, h, c.outline);
     ctx.fillStyle = fill;
     ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
@@ -5623,7 +5620,7 @@ function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: numb
     line(points, c.roof, 3);
 
     for (let i = 0; i < points.length - 1; i++) {
-      ellipse(points[i][0], points[i][1], 2.5, 2.5, c.accent);
+      ellipse(points[i][0], points[i][1], 2.5, 2.5, c.orange);
     }
 
     const [x, y] = points[points.length - 1];
@@ -5671,8 +5668,8 @@ function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: numb
     box(x, 43, 12, 9, c.roof);
     vent(x + 2, 56, 8, 9);
     light(x + 3, 68, 6, 4);
-    box(x, 73, 4, 4, c.accent);
-    box(x + 8, 73, 4, 4, c.accent);
+    box(x, 73, 4, 4, c.orange);
+    box(x + 8, 73, 4, 4, c.orange);
   }
 
   // Articulated repair arms over the bay.
@@ -5691,11 +5688,11 @@ function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: numb
   box(20, 33, 60, 7, c.wall);
   box(19, 29, 62, 6, c.roof);
   line([[20, 30], [80, 30]], c.highlight);
-  box(19, 29, 6, 6, c.accent);
-  box(75, 29, 6, 6, c.accent);
+  box(19, 29, 6, 6, c.orange);
+  box(75, 29, 6, 6, c.orange);
 
   // Suspended hoist and open gripping hook.
-  box(44, 31, 12, 7, c.accent);
+  box(44, 31, 12, 7, c.orange);
   light(47, 33, 6, 3);
   line([[50, 38], [50, 46]], c.outline, 2);
   box(47, 45, 6, 5, c.roof);
@@ -5720,6 +5717,7 @@ function drawHarvesterGarage(ctx: CanvasRenderingContext2D, px: number, py: numb
 
   ctx.restore();
 }
+
 
 function drawBuildingPad(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
   const padInset = 4;
@@ -6592,3 +6590,1539 @@ function drawHarvesterHead(ctx: CanvasRenderingContext2D, model: HarvesterModel,
 
   ctx.restore();
 }
+
+
+function drawSpiceRefinery(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+  if (pw <= 0 || ph <= 0) return;
+
+  ctx.save();
+
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineWidth = 1;
+  ctx.lineJoin = 'round';
+
+  const c = {
+    outline: '#111827',
+    wall: '#334155',
+    metal: '#94a3b8',
+    highlight: '#cbd5e1',
+    orange: '#ea580c',
+    cyan: '#22d3ee',
+    amber: '#fbbf24'
+  };
+
+  function box(x: number, y: number, w: number, h: number, fill: string) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = c.outline;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function ellipse(x: number, y: number, rx: number, ry: number, fill: string) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function line(points: number[][], stroke: string, width = 1) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+
+  function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
+    box(x, y, w, h, c.outline);
+    ctx.fillStyle = fill;
+    ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+  }
+
+  function vent(x: number, y: number, w: number, h: number) {
+    box(x, y, w, h, c.wall);
+    for (let offset = 2; offset < h; offset += 2) {
+      line(
+        [[x + 1, y + offset], [x + w - 1, y + offset]],
+        c.outline
+      );
+    }
+  }
+
+  function pipe(points: number[][]) {
+    line(points, c.outline, 7);
+    line(points, c.metal, 5);
+  }
+
+  function spiceWindow(x: any, y: any, w: any, h: any) {
+    const spice = ctx.createLinearGradient(x, y, x + w, y + h);
+    spice.addColorStop(0, '#fde68a');
+    spice.addColorStop(0.45, '#f59e0b');
+    spice.addColorStop(1, '#9a3412');
+
+    box(x, y, w, h, spice as any);
+
+    // Fixed pattern avoids flickering between frames.
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x + 1, y + 1, w - 2, h - 2);
+    ctx.clip();
+
+    for (let row = 0; row < Math.ceil(h / 3); row++) {
+      for (let col = 0; col < Math.ceil(w / 3); col++) {
+        ctx.fillStyle = (row + col) % 3 === 0
+          ? '#fde68a'
+          : '#d97706';
+
+        ctx.fillRect(
+          x + 1 + col * 3 + (row % 2),
+          y + 1 + row * 3,
+          1.3,
+          1.3
+        );
+      }
+    }
+
+    ctx.restore();
+  }
+
+  function tank(x: any) {
+    // Cylindrical armored casing.
+    const shell = ctx.createLinearGradient(x - 11, 0, x + 11, 0);
+    shell.addColorStop(0, '#64748b');
+    shell.addColorStop(0.35, c.highlight);
+    shell.addColorStop(1, c.wall);
+
+    box(x - 11, 25, 22, 37, shell as any);
+    ellipse(x, 62, 11, 5, c.wall);
+
+    // Amber processing chamber.
+    spiceWindow(x - 7, 32, 14, 23);
+    line([[x - 5, 34], [x - 5, 52]], '#fef3c7', 0.8);
+
+    // Reinforcing bands.
+    box(x - 11, 28, 22, 4, c.orange);
+    box(x - 11, 55, 22, 4, c.orange);
+    line([[x - 7, 43], [x + 7, 43]], c.metal, 2);
+
+    // Raised lid and ventilation.
+    ellipse(x, 25, 12, 6, c.orange);
+    ellipse(x, 23, 11, 5, c.metal);
+    ellipse(x, 22, 6, 2.5, c.wall);
+    line([[x - 4, 22], [x + 4, 22]], c.metal);
+
+    light(x - 4, 61, 8, 3);
+  }
+
+  // Rear transfer manifold.
+  pipe([[24, 28], [24, 16], [76, 16], [76, 28]]);
+  box(43, 13, 5, 6, c.orange);
+  box(55, 13, 5, 6, c.orange);
+
+  // Low equipment platform.
+  box(14, 57, 72, 23, c.wall);
+  box(14, 54, 72, 19, '#475569');
+
+  tank(24);
+  tank(76);
+
+  // Tank connections, partly hidden by the processor.
+  pipe([[34, 48], [42, 48], [42, 58]]);
+  pipe([[66, 48], [58, 48], [58, 58]]);
+  box(35, 45, 4, 6, c.orange);
+  box(61, 45, 4, 6, c.orange);
+
+  // Central processing block.
+  box(37, 37, 26, 38, c.wall);
+  box(36, 30, 28, 29, c.metal);
+  line([[37, 58], [37, 31], [63, 31]], c.highlight);
+
+  box(36, 30, 4, 5, c.orange);
+  box(60, 30, 4, 5, c.orange);
+  box(36, 54, 4, 5, c.orange);
+  box(60, 54, 4, 5, c.orange);
+
+  vent(42, 35, 16, 10);
+  line([[39, 50], [61, 50]], '#64748b');
+  light(43, 52, 14, 4);
+
+  // Front processing status screen.
+  light(42, 62, 16, 7);
+  ctx.fillStyle = '#cffafe';
+  for (let i = 0; i < 4; i++) {
+    ctx.fillRect(44 + i * 3, 67 - i, 2, 1 + i);
+  }
+
+  // South-facing spice intake.
+  box(36, 72, 28, 18, c.wall);
+  box(35, 70, 30, 6, c.metal);
+  box(35, 70, 4, 6, c.orange);
+  box(61, 70, 4, 6, c.orange);
+
+  box(41, 77, 18, 10, c.outline);
+  spiceWindow(43, 79, 14, 6);
+
+  // Intake rollers.
+  for (const y of [78, 85]) {
+    box(42, y, 16, 2, c.metal);
+    box(42, y, 2, 2, c.orange);
+    box(56, y, 2, 2, c.orange);
+  }
+
+  // Warning indicators and access lip.
+  light(37, 79, 3, 5, c.amber);
+  light(60, 79, 3, 5, c.amber);
+  box(39, 90, 22, 4, c.metal);
+
+  // Side pump cabinets.
+  for (const x of [13, 75]) {
+    box(x, 69, 12, 14, c.wall);
+    box(x, 67, 12, 5, c.metal);
+    vent(x + 2, 73, 8, 5);
+    light(x + 3, 79, 6, 3);
+    box(x, 81, 4, 3, c.orange);
+    box(x + 8, 81, 4, 3, c.orange);
+  }
+
+  ctx.restore();
+}
+
+
+function drawScienceLab(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+  if (pw <= 0 || ph <= 0) return;
+
+  ctx.save();
+
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineWidth = 1;
+  ctx.lineJoin = 'round';
+
+  const c = {
+    outline: '#111827',
+    wall: '#334155',
+    metal: '#94a3b8',
+    highlight: '#cbd5e1',
+    orange: '#ea580c',
+    cyan: '#22d3ee',
+    glass: '#164e63',
+    violet: '#a78bfa'
+  };
+
+  function box(x: number, y: number, w: number, h: number, fill: string) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = c.outline;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function line(points: number[][], stroke: string, width = 1) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+
+  function polygon(points: number[][], fill: string) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function ellipse(x: number, y: number, rx: number, ry: number, fill: string) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function light(x: any, y: any, w: any, h: any) {
+    box(x, y, w, h, c.outline);
+    ctx.fillStyle = c.cyan;
+    ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+  }
+
+  function vent(x: number, y: number, w: number, h: number) {
+    box(x, y, w, h, c.wall);
+    for (let offset = 2; offset < h; offset += 2) {
+      line(
+        [[x + 1, y + offset], [x + w - 1, y + offset]],
+        c.outline
+      );
+    }
+  }
+
+  function wing(x: any) {
+    box(x, 47, 25, 28, c.wall);
+    box(x, 39, 25, 23, c.metal);
+    line(
+      [[x + 1, 61], [x + 1, 40], [x + 24, 40]],
+      c.highlight
+    );
+
+    vent(x + 7, 43, 11, 7);
+    line([[x + 2, 55], [x + 23, 55]], '#64748b');
+
+    box(x, 39, 4, 5, c.orange);
+    box(x + 21, 39, 4, 5, c.orange);
+
+    // Observation window and laboratory equipment.
+    box(x + 3, 64, 19, 8, c.outline);
+    box(x + 4, 65, 17, 6, c.glass);
+
+    line([[x + 5, 69], [x + 20, 69]], c.metal);
+
+    for (const offset of [7, 11, 15]) {
+      ctx.fillStyle = '#67e8f9';
+      ctx.fillRect(x + offset, 66, 2, 3);
+    }
+
+    line([[x + 5, 65.5], [x + 12, 65.5]], c.cyan);
+    box(x + 1, 72, 4, 4, c.orange);
+    box(x + 20, 72, 4, 4, c.orange);
+  }
+
+  // Connections behind the research wings.
+  box(27, 48, 46, 11, c.wall);
+  light(29, 51, 8, 4);
+  light(63, 51, 8, 4);
+
+  wing(8);
+  wing(67);
+
+  // Central laboratory walls and chamfered roof.
+  box(34, 30, 32, 43, c.wall);
+
+  polygon([
+    [40, 20], [60, 20],
+    [68, 28], [68, 49],
+    [60, 57], [40, 57],
+    [32, 49], [32, 28]
+  ], c.metal);
+
+  line([[33, 29], [41, 21], [59, 21]], c.highlight);
+
+  // Blue observation skylight.
+  polygon([
+    [43, 27], [57, 27],
+    [61, 32], [61, 44],
+    [57, 49], [43, 49],
+    [39, 44], [39, 32]
+  ], c.glass);
+
+  // Research bench beneath the glass.
+  box(43, 37, 14, 6, '#475569');
+  ctx.fillStyle = '#67e8f9';
+  ctx.fillRect(45, 34, 2, 5);
+  ctx.fillRect(53, 35, 2, 4);
+
+  line([[50, 27], [50, 49]], c.metal, 1.5);
+  line([[39, 38], [61, 38]], c.metal, 1.5);
+  line([[43, 28], [56, 28]], '#a5f3fc', 0.8);
+
+  vent(43, 51, 14, 4);
+
+  for (const x of [33, 63]) {
+    box(x, 27, 4, 6, c.orange);
+    box(x, 46, 4, 6, c.orange);
+  }
+
+  // Specimen chamber connection.
+  line([[67, 31], [80, 31]], c.outline, 6);
+  line([[67, 31], [80, 31]], c.metal, 4);
+
+  // Raised violet specimen chamber.
+  box(75, 15, 14, 23, c.wall);
+  box(77, 19, 10, 15, '#2e1065');
+
+  polygon([
+    [82, 21], [85, 26],
+    [83, 32], [79, 28]
+  ], c.violet);
+
+  line([[82, 22], [82, 30]], '#ede9fe');
+  ellipse(82, 37, 8, 3.5, c.orange);
+  ellipse(82, 15, 8, 4, c.orange);
+  ellipse(82, 13, 6, 3, c.metal);
+  light(80, 9, 4, 4);
+
+  // South-facing entrance canopy.
+  box(38, 65, 24, 20, c.wall);
+  box(37, 62, 26, 8, c.metal);
+  box(37, 62, 4, 8, c.orange);
+  box(59, 62, 4, 8, c.orange);
+  light(44, 64, 12, 4);
+
+  box(43, 73, 14, 12, c.outline);
+  box(44, 74, 12, 10, c.glass);
+  line([[50, 74], [50, 84]], c.metal);
+  light(45, 76, 3, 6);
+  light(52, 76, 3, 6);
+
+  // Access steps.
+  box(40, 85, 20, 8, c.wall);
+  for (let y = 87; y < 93; y += 2) {
+    line([[42, y], [58, y]], c.metal);
+  }
+  box(38, 85, 2, 8, c.orange);
+  box(60, 85, 2, 8, c.orange);
+
+  ctx.restore();
+}
+
+
+function drawLaunchPad(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+  if (pw <= 0 || ph <= 0) return;
+
+  ctx.save();
+
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineWidth = 1;
+  ctx.lineJoin = 'round';
+
+  const c = {
+    outline: '#111827',
+    wall: '#334155',
+    metal: '#94a3b8',
+    deck: '#475569',
+    highlight: '#cbd5e1',
+    orange: '#ea580c',
+    cyan: '#22d3ee',
+    amber: '#fbbf24'
+  };
+
+  function box(x: number, y: number, w: number, h: number, fill: string) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = c.outline;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function line(points: number[][], stroke: string, width = 1) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+
+  function polygon(points: number[][], fill: string) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function ellipse(x: number, y: number, rx: number, ry: number, fill: string) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
+    box(x, y, w, h, c.outline);
+    ctx.fillStyle = fill;
+    ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+  }
+
+  function octagon(x: any, y: any, w: any, h: any, corner: any) {
+    return [
+      [x + corner, y],
+      [x + w - corner, y],
+      [x + w, y + corner],
+      [x + w, y + h - corner],
+      [x + w - corner, y + h],
+      [x + corner, y + h],
+      [x, y + h - corner],
+      [x, y + corner]
+    ];
+  }
+
+  function beacon(x: any, y: any) {
+    box(x - 4, y + 2, 8, 8, c.wall);
+    ellipse(x, y + 3, 5, 2.5, c.orange);
+    box(x - 2, y - 3, 4, 6, c.metal);
+    light(x - 2, y - 4, 4, 4, c.amber);
+  }
+
+  // Visible platform thickness beneath the deck.
+  polygon(octagon(12, 21, 76, 59, 12), c.wall);
+
+  // Raised armored perimeter and recessed landing surface.
+  polygon(octagon(12, 16, 76, 59, 12), c.metal);
+  polygon(octagon(18, 21, 64, 48, 10), c.deck);
+
+  line([[13, 29], [25, 17], [75, 17]], c.highlight);
+  line([[24, 74], [76, 74], [87, 63]], c.outline, 2);
+
+  // Subtle deck panel seams.
+  line([[35, 22], [35, 68]], '#334155');
+  line([[65, 22], [65, 68]], '#334155');
+  line([[19, 45], [81, 45]], '#334155');
+
+  // Cyan landing ring, flattened to match the perspective.
+  ctx.strokeStyle = c.cyan;
+  ctx.lineWidth = 1.5;
+
+  for (let i = 0; i < 4; i++) {
+    const start = i * Math.PI / 2 + 0.18;
+    ctx.beginPath();
+    ctx.ellipse(
+      50, 45, 19, 13,
+      0, start, start + Math.PI / 2 - 0.36
+    );
+    ctx.stroke();
+  }
+
+  ctx.lineWidth = 1;
+  ellipse(50, 45, 2.5, 1.8, '#164e63');
+
+  // Landing alignment guides.
+  line([[50, 27], [50, 36]], c.cyan, 1.5);
+  line([[50, 54], [50, 63]], c.cyan, 1.5);
+  line([[25, 45], [39, 45]], c.cyan, 1.5);
+  line([[61, 45], [75, 45]], c.cyan, 1.5);
+
+  // Hazard markers along north and south edges.
+  for (const x of [29, 39, 59, 69]) {
+    box(x, 18, 5, 2, c.amber);
+    box(x, 71, 5, 2, c.amber);
+  }
+
+  // Integrated perimeter conduits.
+  for (const x of [10, 87]) {
+    box(x, 35, 3, 23, c.wall);
+    box(x, 39, 3, 4, c.orange);
+    box(x, 51, 3, 4, c.orange);
+  }
+
+  // Corner approach beacons.
+  beacon(23, 19);
+  beacon(77, 19);
+  beacon(23, 68);
+  beacon(77, 68);
+
+  // South-facing launch control cabinet.
+  box(40, 73, 20, 11, c.wall);
+  box(39, 71, 22, 5, c.metal);
+  box(39, 71, 4, 5, c.orange);
+  box(57, 71, 4, 5, c.orange);
+  light(44, 77, 12, 4);
+
+  // Short access ramp.
+  box(37, 84, 26, 10, c.wall);
+  for (let y = 86; y < 94; y += 2) {
+    line([[40, y], [60, y]], c.metal);
+  }
+
+  for (const x of [38, 61]) {
+    for (const y of [85, 89, 93]) {
+      box(x, y, 1.5, 1, c.amber);
+    }
+  }
+
+  ctx.restore();
+}
+
+
+function drawSeismicStormRadar(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+  if (pw <= 0 || ph <= 0) return;
+
+  ctx.save();
+
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineWidth = 1;
+  ctx.lineJoin = 'round';
+
+  const c = {
+    outline: '#111827',
+    wall: '#334155',
+    metal: '#94a3b8',
+    highlight: '#cbd5e1',
+    orange: '#ea580c',
+    cyan: '#22d3ee',
+    amber: '#fbbf24',
+    glass: '#164e63'
+  };
+
+  function box(x: number, y: number, w: number, h: number, fill: string) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = c.outline;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function line(points: number[][], stroke: string, width = 1) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+
+  function ellipse(x: number, y: number, rx: number, ry: number, fill: string) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function polygon(points: number[][], fill: string) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
+    box(x, y, w, h, c.outline);
+    ctx.fillStyle = fill;
+    ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+  }
+
+  function sensorPod(x: number, y: number) {
+    box(x - 6, y, 12, 10, c.wall);
+    ellipse(x, y + 9, 7, 3, c.orange);
+    ellipse(x, y, 7, 4, c.metal);
+    ellipse(x, y - 1, 3, 1.8, c.cyan);
+    light(x - 3, y + 4, 6, 3);
+  }
+
+  // Seismic cables beneath the station.
+  for (const points of [
+    [[23, 68], [37, 68], [42, 75]],
+    [[77, 68], [63, 68], [58, 75]]
+  ]) {
+    line(points, c.outline, 5);
+    line(points, c.metal, 3);
+  }
+
+  sensorPod(20, 64);
+  sensorPod(80, 64);
+
+  // Raised monitoring station.
+  box(32, 62, 36, 23, c.wall);
+  polygon([
+    [37, 55], [63, 55],
+    [69, 61], [69, 71],
+    [63, 77], [37, 77],
+    [31, 71], [31, 61]
+  ], c.metal);
+
+  line([[32, 62], [38, 56], [62, 56]], c.highlight);
+  box(32, 61, 4, 6, c.orange);
+  box(64, 61, 4, 6, c.orange);
+
+  // Braced radar mast.
+  line([[39, 61], [47, 30]], c.outline, 6);
+  line([[39, 61], [47, 30]], c.metal, 4);
+  line([[61, 61], [53, 30]], c.outline, 6);
+  line([[61, 61], [53, 30]], c.metal, 4);
+
+  line([[42, 49], [58, 49]], c.wall, 3);
+  line([[44, 40], [56, 40]], c.wall, 3);
+  box(47, 28, 6, 34, c.wall);
+  light(48, 42, 4, 11);
+
+  // Scanner pedestal.
+  ellipse(50, 30, 8, 4, c.orange);
+  box(46, 20, 8, 10, c.metal);
+
+  // Wide storm radar housing and visible lower edge.
+  box(19, 15, 62, 14, c.wall);
+  polygon([
+    [23, 10], [77, 10],
+    [82, 15], [82, 23],
+    [77, 27], [23, 27],
+    [18, 23], [18, 15]
+  ], c.metal);
+
+  box(23, 14, 54, 9, c.glass);
+
+  // Scanner grid.
+  for (let x = 29; x < 77; x += 6) {
+    line([[x, 15], [x, 22]], '#0891b2', 0.6);
+  }
+  line([[24, 18.5], [76, 18.5]], '#0891b2', 0.6);
+
+  line([[24, 14.5], [76, 14.5]], c.cyan, 0.8);
+  box(19, 13, 4, 7, c.orange);
+  box(77, 13, 4, 7, c.orange);
+
+  // Weather sensor and warning beacon.
+  box(48, 5, 4, 5, c.wall);
+  light(48, 3, 4, 4, c.amber);
+
+  line([[73, 56], [73, 36]], c.metal, 2);
+  line([[69, 38], [77, 38]], c.metal, 1.5);
+  ellipse(69, 38, 2, 1, c.orange);
+  ellipse(77, 38, 2, 1, c.orange);
+
+  // Monitoring screen.
+  light(39, 65, 22, 9);
+
+  // Seismic waveform within the display.
+  line([
+    [41, 70], [44, 70], [46, 67],
+    [48, 72], [50, 68], [52, 70],
+    [55, 70], [57, 68], [59, 70]
+  ], '#cffafe', 0.8);
+
+  // South-facing service door.
+  box(43, 78, 14, 10, c.outline);
+  box(44, 79, 12, 8, c.glass);
+  line([[50, 79], [50, 87]], c.metal);
+  light(45, 80, 3, 5);
+  light(52, 80, 3, 5);
+
+  // Access steps.
+  box(40, 88, 20, 6, c.wall);
+  line([[42, 90], [58, 90]], c.metal);
+  line([[42, 93], [58, 93]], c.metal);
+  box(38, 88, 2, 6, c.orange);
+  box(60, 88, 2, 6, c.orange);
+
+  ctx.restore();
+}
+
+
+function drawHydroponicBioDome(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+  if (pw <= 0 || ph <= 0) return;
+
+  ctx.save();
+
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineWidth = 1;
+  ctx.lineJoin = 'round';
+
+  const c = {
+    outline: '#111827',
+    wall: '#334155',
+    metal: '#94a3b8',
+    highlight: '#cbd5e1',
+    orange: '#ea580c',
+    cyan: '#22d3ee',
+    glass: '#164e63'
+  };
+
+  function box(x: number, y: number, w: number, h: number, fill: string) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = c.outline;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function ellipse(x: number, y: number, rx: number, ry: number, fill: string) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function line(points: number[][], stroke: string, width = 1) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+
+  function light(x: any, y: any, w: any, h: any) {
+    box(x, y, w, h, c.outline);
+    ctx.fillStyle = c.cyan;
+    ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+  }
+
+  function pipe(points: number[][]) {
+    line(points, c.outline, 6);
+    line(points, c.metal, 4);
+  }
+
+  function domePath() {
+    ctx.beginPath();
+    ctx.moveTo(20, 57);
+    ctx.bezierCurveTo(20, 4, 80, 4, 80, 57);
+    ctx.bezierCurveTo(71, 76, 29, 76, 20, 57);
+    ctx.closePath();
+  }
+
+  function waterTank(x: any) {
+    box(x - 6, 62, 12, 16, c.wall);
+    ellipse(x, 78, 6, 3, c.wall);
+
+    const water = ctx.createLinearGradient(x - 5, 0, x + 5, 0);
+    water.addColorStop(0, '#075985');
+    water.addColorStop(0.45, c.cyan);
+    water.addColorStop(1, '#0e7490');
+
+    box(x - 4, 65, 8, 10, water as any);
+    line([[x - 2, 66], [x - 2, 73]], '#a5f3fc');
+
+    ellipse(x, 62, 7, 3.5, c.orange);
+    ellipse(x, 60, 6, 2.5, c.metal);
+    box(x - 6, 76, 12, 3, c.orange);
+  }
+
+  // Water connections behind the dome.
+  pipe([[14, 68], [25, 68], [25, 59]]);
+  pipe([[86, 68], [75, 68], [75, 59]]);
+
+  // Raised foundation drum.
+  box(21, 57, 58, 12, c.wall);
+  ellipse(50, 68, 29, 10, c.wall);
+  ellipse(50, 58, 31, 12, c.orange);
+  ellipse(50, 57, 29, 10, c.metal);
+
+  // Interior and plants clipped to the glass silhouette.
+  ctx.save();
+  domePath();
+  ctx.clip();
+
+  const interior = ctx.createLinearGradient(0, 18, 0, 70);
+  interior.addColorStop(0, '#164e63');
+  interior.addColorStop(1, '#12352d');
+
+  ctx.fillStyle = interior;
+  ctx.fillRect(19, 12, 62, 60);
+
+  // Central service walkway.
+  box(47, 35, 6, 34, '#64748b');
+
+  // Hydroponic beds and fixed crop pattern.
+  for (const y of [37, 47, 57]) {
+    for (const x of [29, 56]) {
+      box(x, y, 15, 7, '#334155');
+      box(x + 1, y + 1, 13, 5, '#14532d');
+
+      for (let i = 0; i < 3; i++) {
+        const plantX = x + 3 + i * 4;
+        ellipse(plantX, y + 3, 2, 1.8, '#22c55e');
+        ellipse(plantX - 0.5, y + 2.3, 1, 0.8, '#86efac');
+      }
+
+      line([[x + 1, y + 6], [x + 14, y + 6]], c.cyan, 0.6);
+    }
+  }
+
+  // Transparent blue glass overlay.
+  const glass = ctx.createLinearGradient(25, 20, 75, 66);
+  glass.addColorStop(0, 'rgba(165, 243, 252, 0.30)');
+  glass.addColorStop(0.5, 'rgba(34, 211, 238, 0.10)');
+  glass.addColorStop(1, 'rgba(8, 145, 178, 0.28)');
+
+  ctx.fillStyle = glass;
+  ctx.fillRect(19, 12, 62, 60);
+
+  // Soft reflection on the northwest glass.
+  ctx.fillStyle = 'rgba(207, 250, 254, 0.28)';
+  ctx.beginPath();
+  ctx.moveTo(31, 28);
+  ctx.bezierCurveTo(35, 22, 41, 19, 45, 18);
+  ctx.lineTo(39, 33);
+  ctx.lineTo(28, 45);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+
+  // Glass outline.
+  domePath();
+  ctx.strokeStyle = c.outline;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Curved structural ribs.
+  ctx.strokeStyle = c.metal;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(50, 18);
+  ctx.bezierCurveTo(38, 25, 32, 44, 32, 68);
+  ctx.moveTo(50, 18);
+  ctx.lineTo(50, 71);
+  ctx.moveTo(50, 18);
+  ctx.bezierCurveTo(62, 25, 68, 44, 68, 68);
+  ctx.moveTo(24, 38);
+  ctx.bezierCurveTo(38, 46, 62, 46, 76, 38);
+  ctx.moveTo(20, 57);
+  ctx.bezierCurveTo(35, 68, 65, 68, 80, 57);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+
+  // Dome cap and rim indicators.
+  ellipse(50, 18, 6, 3.5, c.orange);
+  ellipse(50, 17, 4, 2, c.metal);
+  ellipse(50, 17, 1.5, 1, c.cyan);
+
+  light(25, 67, 8, 3);
+  light(67, 67, 8, 3);
+
+  waterTank(14);
+  waterTank(86);
+
+  // South-facing airlock.
+  box(38, 70, 24, 17, c.wall);
+  box(37, 68, 26, 7, c.metal);
+  box(37, 68, 4, 7, c.orange);
+  box(59, 68, 4, 7, c.orange);
+  light(44, 70, 12, 4);
+
+  box(43, 77, 14, 10, c.outline);
+  box(44, 78, 12, 8, c.glass);
+  line([[50, 78], [50, 86]], c.metal);
+  light(45, 79, 3, 6);
+  light(52, 79, 3, 6);
+
+  // Access steps.
+  box(40, 87, 20, 6, c.wall);
+  line([[42, 89], [58, 89]], c.metal);
+  line([[42, 92], [58, 92]], c.metal);
+  box(38, 87, 2, 6, c.orange);
+  box(60, 87, 2, 6, c.orange);
+
+  ctx.restore();
+}
+
+
+function drawBatterySubstation(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+  if (pw <= 0 || ph <= 0) return;
+
+  ctx.save();
+
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineWidth = 1;
+  ctx.lineJoin = 'round';
+
+  const c = {
+    outline: '#111827',
+    wall: '#334155',
+    metal: '#94a3b8',
+    highlight: '#cbd5e1',
+    orange: '#ea580c',
+    cyan: '#22d3ee',
+    amber: '#fbbf24'
+  };
+
+  function box(x: number, y: number, w: number, h: number, fill: string) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = c.outline;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function line(points: number[][], stroke: string, width = 1) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+
+  function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
+    box(x, y, w, h, c.outline);
+    ctx.fillStyle = fill;
+    ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+  }
+
+  function vent(x: number, y: number, w: number, h: number) {
+    box(x, y, w, h, c.wall);
+    for (let offset = 2; offset < h; offset += 2) {
+      line(
+        [[x + 1, y + offset], [x + w - 1, y + offset]],
+        c.outline
+      );
+    }
+  }
+
+  function conduit(points: any) {
+    line(points, c.outline, 6);
+    line(points, c.metal, 4);
+  }
+
+  function battery(x: any, y: any) {
+    // Vertical casing beneath the raised roof.
+    box(x, y + 6, 25, 23, c.wall);
+    box(x, y, 25, 22, c.metal);
+    line(
+      [[x + 1, y + 21], [x + 1, y + 1], [x + 24, y + 1]],
+      c.highlight
+    );
+
+    // Segmented casing and roof ventilation.
+    line([[x + 2, y + 14], [x + 23, y + 14]], '#64748b');
+    vent(x + 7, y + 4, 11, 7);
+
+    box(x, y, 4, 5, c.orange);
+    box(x + 21, y, 4, 5, c.orange);
+    box(x, y + 24, 4, 5, c.orange);
+    box(x + 21, y + 24, 4, 5, c.orange);
+
+    // Front-facing charge display.
+    light(x + 6, y + 23, 13, 4);
+
+    ctx.fillStyle = '#cffafe';
+    for (let i = 0; i < 4; i++) {
+      ctx.fillRect(x + 8 + i * 2.5, y + 24, 1.5, 2);
+    }
+  }
+
+  // Low support frame, with visible south-facing thickness.
+  box(15, 28, 70, 53, c.wall);
+  box(15, 24, 70, 51, '#475569');
+  line([[16, 74], [16, 25], [84, 25]], c.metal);
+
+  // Main bus between the two battery columns.
+  conduit([[50, 20], [50, 81]]);
+  conduit([[28, 36], [72, 36]]);
+  conduit([[28, 68], [72, 68]]);
+
+  // Rear electrical terminals.
+  for (const x of [43, 57]) {
+    box(x - 2, 13, 4, 10, c.metal);
+    for (const y of [14, 17, 20]) {
+      box(x - 3, y, 6, 2, c.wall);
+    }
+    box(x - 2, 11, 4, 3, c.orange);
+  }
+
+  // Rear row first, then front row.
+  for (const y of [19, 51]) {
+    battery(19, y);
+    battery(56, y);
+  }
+
+  // Central bus couplings remain visible in the aisle.
+  box(47, 30, 6, 5, c.orange);
+  box(47, 62, 6, 5, c.orange);
+  light(48, 42, 4, 8);
+
+  // Front power management cabinet.
+  box(36, 79, 28, 13, c.wall);
+  box(35, 75, 30, 7, c.metal);
+  box(35, 75, 4, 7, c.orange);
+  box(61, 75, 4, 7, c.orange);
+
+  light(42, 83, 16, 6);
+
+  // Charge bars on the control screen.
+  ctx.fillStyle = '#cffafe';
+  for (let i = 0; i < 4; i++) {
+    ctx.fillRect(
+      44 + i * 3,
+      87 - i * 0.7,
+      2,
+      1 + i * 0.7
+    );
+  }
+
+  light(37, 84, 4, 4, c.amber);
+  light(59, 84, 4, 4, c.amber);
+
+  // Grounded support feet.
+  box(17, 78, 9, 5, c.orange);
+  box(74, 78, 9, 5, c.orange);
+  box(39, 92, 22, 3, c.metal);
+
+  ctx.restore();
+}
+
+
+function drawOreExtractionMiner(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+  if (pw <= 0 || ph <= 0) return;
+
+  ctx.save();
+
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineWidth = 1;
+  ctx.lineJoin = 'round';
+
+  const c = {
+    outline: '#111827',
+    wall: '#334155',
+    metal: '#94a3b8',
+    highlight: '#cbd5e1',
+    orange: '#ea580c',
+    cyan: '#22d3ee',
+    amber: '#fbbf24'
+  };
+
+  function box(x: number, y: number, w: number, h: number, fill: string) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = c.outline;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function line(points: number[][], stroke: string, width = 1) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+
+  function ellipse(x: number, y: number, rx: number, ry: number, fill: string) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function polygon(points: number[][], fill: string) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
+    box(x, y, w, h, c.outline);
+    ctx.fillStyle = fill;
+    ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+  }
+
+  function vent(x: number, y: number, w: number, h: number) {
+    box(x, y, w, h, c.wall);
+    for (let offset = 2; offset < h; offset += 2) {
+      line(
+        [[x + 1, y + offset], [x + w - 1, y + offset]],
+        c.outline
+      );
+    }
+  }
+
+  function rock(x: any, y: any, size: any) {
+    polygon([
+      [x, y - size],
+      [x + size, y - size * 0.2],
+      [x + size * 0.6, y + size],
+      [x - size * 0.7, y + size * 0.6],
+      [x - size, y - size * 0.2]
+    ], '#64748b');
+
+    line(
+      [[x - size * 0.6, y], [x, y - size * 0.6],
+       [x + size * 0.5, y - size * 0.1]],
+      c.highlight,
+      0.7
+    );
+  }
+
+  // Raised equipment platform.
+  box(12, 53, 58, 30, c.wall);
+  box(12, 49, 58, 27, '#475569');
+  line([[13, 75], [13, 50], [69, 50]], c.metal);
+
+  // Metal-lined extraction shaft.
+  ellipse(42, 58, 18, 12, c.orange);
+  ellipse(42, 57, 16, 10, c.metal);
+  ellipse(42, 57, 12, 7, c.outline);
+
+  // Conveyor leading to the ore hopper.
+  box(59, 56, 26, 12, c.wall);
+  box(59, 53, 26, 10, c.outline);
+  for (let x = 61; x < 85; x += 4) {
+    line([[x, 54], [x, 62]], '#64748b');
+  }
+  rock(65, 58, 2);
+  rock(74, 58, 2.4);
+
+  // Ore collection hopper.
+  box(76, 43, 18, 28, c.wall);
+  box(75, 39, 20, 26, c.metal);
+  box(78, 42, 14, 19, c.outline);
+
+  for (const [x, y, size] of [
+    [82, 47, 2.5], [88, 47, 2.4],
+    [84, 53, 3], [89, 57, 2.3],
+    [81, 58, 2.2]
+  ]) {
+    rock(x, y, size);
+  }
+
+  for (const x of [75, 91]) {
+    box(x, 39, 4, 4, c.orange);
+    box(x, 61, 4, 4, c.orange);
+  }
+  light(80, 67, 10, 3);
+
+  // Rear gantry braces.
+  line([[26, 24], [34, 45]], c.outline, 5);
+  line([[26, 24], [34, 45]], c.metal, 3);
+  line([[58, 24], [50, 45]], c.outline, 5);
+  line([[58, 24], [50, 45]], c.metal, 3);
+
+  // Drill shaft.
+  box(38, 28, 8, 29, c.wall);
+  box(40, 29, 3, 27, c.metal);
+
+  // Spiral cutting flights.
+  for (let y = 35; y <= 53; y += 6) {
+    polygon([
+      [36, y], [46, y - 3],
+      [48, y], [38, y + 4]
+    ], c.metal);
+
+    line([[37, y], [46, y - 2]], c.highlight);
+  }
+
+  polygon([[38, 57], [46, 57], [42, 63]], c.metal);
+
+  // Tall gantry columns.
+  for (const x of [23, 55]) {
+    box(x, 20, 6, 43, c.wall);
+    box(x, 20, 3, 39, c.metal);
+    box(x - 1, 57, 8, 7, c.orange);
+    light(x + 1, 32, 4, 11);
+  }
+
+  // Overhead beam.
+  box(23, 20, 38, 7, c.wall);
+  box(22, 16, 40, 7, c.metal);
+  line([[23, 17], [61, 17]], c.highlight);
+  box(22, 16, 5, 7, c.orange);
+  box(57, 16, 5, 7, c.orange);
+
+  // Drill motor mounted above the shaft.
+  box(35, 13, 14, 16, c.wall);
+  box(34, 10, 16, 13, c.metal);
+  vent(38, 12, 8, 6);
+  box(35, 24, 14, 4, c.orange);
+  light(39, 20, 6, 3);
+
+  // Top warning beacon.
+  box(40, 5, 4, 5, c.wall);
+  light(40, 4, 4, 4, c.amber);
+
+  // South-facing operations cabin.
+  box(19, 70, 46, 18, c.wall);
+  box(18, 66, 48, 10, c.metal);
+  box(18, 66, 5, 10, c.orange);
+  box(61, 66, 5, 10, c.orange);
+
+  vent(25, 68, 11, 6);
+  light(43, 68, 15, 5);
+
+  box(37, 78, 14, 10, c.outline);
+  box(38, 79, 12, 8, '#164e63');
+  line([[44, 79], [44, 87]], c.metal);
+  light(39, 80, 3, 5);
+  light(46, 80, 3, 5);
+
+  // Access steps.
+  box(34, 88, 20, 6, c.wall);
+  line([[36, 90], [52, 90]], c.metal);
+  line([[36, 93], [52, 93]], c.metal);
+  box(32, 88, 2, 6, c.orange);
+  box(54, 88, 2, 6, c.orange);
+
+  ctx.restore();
+}
+
+
+function drawOreRefinery(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number) {
+  if (pw <= 0 || ph <= 0) return;
+
+  ctx.save();
+
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineWidth = 1;
+  ctx.lineJoin = 'round';
+
+  const c = {
+    outline: '#111827',
+    wall: '#334155',
+    metal: '#94a3b8',
+    highlight: '#cbd5e1',
+    orange: '#ea580c',
+    cyan: '#22d3ee',
+    amber: '#fbbf24'
+  };
+
+  function box(x: number, y: number, w: number, h: number, fill: string) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = c.outline;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function line(points: number[][], stroke: string, width = 1) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+
+  function polygon(points: number[][], fill: string) {
+    ctx.beginPath();
+    ctx.moveTo((points[0] as any)[0], (points[0] as any)[1]);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo((points[i] as any)[0], (points[i] as any)[1]);
+    }
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function ellipse(x: number, y: number, rx: number, ry: number, fill: string) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = c.outline;
+    ctx.stroke();
+  }
+
+  function light(x: number, y: number, w: number, h: number, fill: string = c.cyan) {
+    box(x, y, w, h, c.outline);
+    ctx.fillStyle = fill;
+    ctx.fillRect(x + 0.8, y + 0.8, w - 1.6, h - 1.6);
+  }
+
+  function vent(x: number, y: number, w: number, h: number) {
+    box(x, y, w, h, c.wall);
+    for (let offset = 2; offset < h; offset += 2) {
+      line(
+        [[x + 1, y + offset], [x + w - 1, y + offset]],
+        c.outline
+      );
+    }
+  }
+
+  function rock(x: any, y: any, size: any, fill: any) {
+    polygon([
+      [x, y - size],
+      [x + size, y - size * 0.3],
+      [x + size * 0.7, y + size * 0.7],
+      [x - size * 0.5, y + size],
+      [x - size, y]
+    ], fill);
+
+    line([
+      [x - size * 0.5, y],
+      [x, y - size * 0.6],
+      [x + size * 0.5, y - size * 0.2]
+    ], c.highlight, 0.7);
+  }
+
+  function bin(x: any, y: any, w: any, h: any) {
+    box(x, y + 5, w, h, c.wall);
+    box(x, y, w, h, c.metal);
+    box(x + 3, y + 3, w - 6, h - 6, c.outline);
+
+    for (const dx of [0, w - 4]) {
+      for (const dy of [0, h - 4]) {
+        box(x + dx, y + dy, 4, 4, c.orange);
+      }
+    }
+  }
+
+  // Exhaust stacks behind the processing building.
+  for (const x of [43, 59]) {
+    box(x - 4, 13, 8, 22, c.wall);
+    box(x - 3, 13, 6, 18, c.metal);
+    box(x - 4, 24, 8, 4, c.orange);
+    ellipse(x, 13, 5, 3, c.metal);
+    ellipse(x, 13, 3, 1.5, c.outline);
+  }
+
+  // Conveyor between input and output.
+  box(22, 49, 56, 13, c.wall);
+  box(23, 47, 54, 10, c.outline);
+
+  for (let x = 25; x < 77; x += 5) {
+    line([[x, 48], [x, 56]], '#64748b');
+  }
+
+  // Ore input hopper.
+  bin(7, 34, 25, 28);
+
+  const ore = [
+    [15, 43, 3.2], [23, 42, 3],
+    [19, 49, 3.5], [13, 53, 2.8],
+    [25, 54, 3], [21, 57, 2.4]
+  ];
+
+  ore.forEach(([x, y, size], i) => {
+    rock(x, y, size, i % 2 ? '#64748b' : '#78716c');
+  });
+
+  light(14, 64, 11, 4);
+
+  // Refined-metal output bin.
+  bin(71, 48, 23, 25);
+
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 2; col++) {
+      const x = 76 + col * 7;
+      const y = 54 + row * 5;
+      box(x, y, 6, 3, c.highlight);
+      line([[x + 1, y + 0.5], [x + 5, y + 0.5]], '#f1f5f9', 0.6);
+    }
+  }
+
+  light(77, 75, 11, 4);
+
+  // Main processor walls and chamfered roof.
+  box(33, 37, 36, 42, c.wall);
+
+  polygon([
+    [39, 28], [63, 28],
+    [70, 35], [70, 55],
+    [63, 62], [39, 62],
+    [32, 55], [32, 35]
+  ], c.metal);
+
+  line([[33, 36], [40, 29], [62, 29]], c.highlight);
+  line([[35, 54], [40, 59], [62, 59]], '#64748b');
+
+  for (const x of [33, 65]) {
+    for (const y of [34, 53]) {
+      box(x, y, 4, 7, c.orange);
+    }
+  }
+
+  // Raised crusher housing.
+  box(42, 35, 18, 17, c.wall);
+  box(41, 32, 20, 14, c.metal);
+  vent(45, 35, 12, 8);
+
+  // Furnace inspection window.
+  const heat = ctx.createLinearGradient(0, 66, 0, 73);
+  heat.addColorStop(0, '#fbbf24');
+  heat.addColorStop(0.5, '#f97316');
+  heat.addColorStop(1, '#9a3412');
+
+  box(41, 64, 20, 11, c.outline);
+  box(43, 66, 16, 7, heat as any);
+  line([[48, 66], [48, 73]], c.wall, 2);
+  line([[54, 66], [54, 73]], c.wall, 2);
+
+  // South-facing control cabinet.
+  box(37, 77, 28, 13, c.wall);
+  box(36, 74, 30, 6, c.metal);
+  box(36, 74, 4, 6, c.orange);
+  box(62, 74, 4, 6, c.orange);
+  light(43, 81, 16, 5);
+
+  light(38, 82, 4, 4, c.amber);
+  light(60, 82, 4, 4, c.amber);
+
+  box(33, 88, 7, 5, c.orange);
+  box(62, 88, 7, 5, c.orange);
+
+  ctx.restore();
+}
+
