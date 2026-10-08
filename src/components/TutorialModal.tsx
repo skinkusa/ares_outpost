@@ -72,7 +72,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 2. Power Grid & Life Support
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Solar arrays produce power in daylight and nothing at night. <strong>Battery Substations</strong> store the surplus. <strong>RTG Nuclear Cells</strong> run day and night. Crew consume oxygen, water, and food on their own. <strong>MOXIE Scrubbers</strong> make oxygen, <strong>Vaporators</strong> make water, and <strong>Hydroponic Bio-Domes</strong> make food but drink water. The outpost starts with a bio-dome beside the habitat, and that dome is what keeps the crew fed. Habitats and medical bays draw extra life support. A blackout collapses morale, and <strong>Medical Bays</strong> heal the crew and cut radiation dose.
+                Solar arrays produce power in daylight and nothing at night. <strong>Battery Substations</strong> store the surplus. <strong>RTG Nuclear Cells</strong> run day and night. A new building stays dark until construction finishes: 15 seconds plus 5 seconds for each tile it covers. <strong>MOXIE Scrubbers</strong>, <strong>Vaporators</strong>, <strong>Hydroponic Bio-Domes</strong>, medical bays, science labs, and ore smelters need one crew member or their output falls to 45%. Power draw stays full. A blackout collapses morale, and medical bays heal the crew and cut radiation dose. The outpost starts with a bio-dome beside the habitat, and that dome is what keeps the crew fed. The colony saves itself in this browser. <strong>NEW</strong> erases the outpost and keeps custom sprites and the audio mix.
               </p>
             </div>
           </div>
@@ -87,7 +87,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 3. Surviving Martian Dust Storms
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Watch the weather banner on the HUD. A dust veil dims solar output, clogs vaporators, and unsettles the crew. A severe dust storm cuts solar power, slows rovers and crews, and scours exposed buildings. A <strong>Seismic & Storm Radar</strong> softens the solar and rover penalties. <strong>Electrostatic Dust Deflectors</strong>, researched from the Research screen, stop the rover slow and restore most of the lost solar power. Seismic tremors shake the outpost, crack buildings, and uncover new spice veins. Solar flares boost solar output, spike radiation, and drop research output. A meteor strike wounds a building and cuts production. Repair damaged modules from their panel. Recall harvesters if a storm gets too rough.
+                Watch the weather banner on the HUD. A dust veil dims solar output, clogs vaporators, and unsettles the crew. A severe dust storm cuts solar power, slows rovers and crews, and scours exposed buildings. A <strong>Seismic & Storm Radar</strong> softens the solar and rover penalties. <strong>Electrostatic Dust Deflectors</strong>, researched from the Research screen, stop the rover slow and restore most of the lost solar power. Seismic tremors shake the outpost, crack buildings, and uncover new spice veins. Cracks and a warning light show on a wounded building. A building knocked offline goes dark until it is repaired. Solar flares boost solar output, spike radiation, and drop research output. A meteor strike wounds a building and cuts production. Repair damaged modules from their panel. Recall harvesters if a storm gets too rough.
               </p>
             </div>
           </div>
@@ -102,7 +102,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                 4. Earth Commerce & Terraforming
               </h4>
               <p className="text-xs text-stone-400 mt-1 leading-relaxed">
-                Sell spice for Galactic Credits (₡) from the trade shuttle. Without an <strong>Orbital Trade Launchpad</strong>, emergency drones take a 15% cut. A launchpad pays full price and can auto-launch when the stockpile hits a threshold. Credits buy specialist crew (+4 colonists and alloy), titanium alloy, and survival stores (food and water). <strong>Science Labs</strong> earn tech points. The last research is the <strong>Atmospheric Genesis Engine</strong>.
+                Sell spice for Galactic Credits (₡) from the trade shuttle. Without an <strong>Orbital Trade Launchpad</strong>, emergency drones take a 15% cut. A launchpad pays full price and can auto-launch when the stockpile hits a threshold. Credits buy specialist crew (+4 colonists and alloy), titanium alloy, and survival stores (food and water). When morale stays at least 55 and a bunk is free, a shuttle brings one more colonist about every 75 seconds. Each arrival raises food, water, and air use. <strong>Science Labs</strong> earn tech points. The last research is the <strong>Atmospheric Genesis Engine</strong>.
               </p>
             </div>
           </div>

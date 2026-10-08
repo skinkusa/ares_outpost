@@ -32,7 +32,7 @@ import {
   WORLD_WIDTH,
 } from './utils/constants';
 import { generateMarsTerrain, spawnNewSpicePatch } from './utils/terrain';
-import { loadColony, mergeSavedTech } from './utils/colonySave';
+import { clearColonySave, ColonySave, loadColony, mergeSavedTech, saveColony } from './utils/colonySave';
 import { sound } from './utils/audio';
 import {
   findDockingApron,
@@ -177,6 +177,15 @@ function cycledWeather(type: WeatherType): WeatherCondition {
     severity: 0,
   };
 }
+
+const STAFFABLE_BUILDINGS = new Set([
+  'greenhouse',
+  'medbay',
+  'research',
+  'refinery',
+  'scrubber',
+  'vaporator',
+]);
 
 export default function App() {
   const [boot] = useState(() => loadColony());
@@ -478,21 +487,59 @@ export default function App() {
   const [isResourceMonitorOpen, setIsResourceMonitorOpen] = useState<boolean>(false);
   const [resourceMonitorFilter, setResourceMonitorFilter] = useState<'all' | 'power' | 'water' | 'oxygen' | 'food' | 'alloy' | 'ore' | 'spice' | 'credits' | 'crew' | 'health'>('all');
   const [resourceHistory, setResourceHistory] = useState<ResourceHistoryPoint[]>(() =>
-    generateInitialResourceHistory(stats)
+    boot?.resourceHistory && boot.resourceHistory.length > 0
+      ? boot.resourceHistory
+      : generateInitialResourceHistory(stats)
   );
-  const lastRecordedGameMinuteRef = useRef<number>((1 - 1) * 1440 + Math.floor(0.15 * 1440));
+  const lastRecordedGameMinuteRef = useRef<number>(
+    (stats.sol - 1) * 1440 + Math.floor(stats.timeOfDay * 1440)
+  );
 
   // Colony Event Logs
-  const [logs, setLogs] = useState<ColonyEventLog[]>([
-    {
-      id: 'log_0',
-      sol: 1,
-      timeStr: '06:00',
-      type: 'info',
-      title: 'Ares Outpost Online',
-      message: 'Life support operational. Primary Harvester Alpha ready for spice deployment.',
-    },
-  ]);
+  const [logs, setLogs] = useState<ColonyEventLog[]>(() =>
+    boot?.logs && boot.logs.length > 0
+      ? boot.logs
+      : [
+          {
+            id: 'log_0',
+            sol: 1,
+            timeStr: '06:00',
+            type: 'info',
+            title: 'Ares Outpost Online',
+            message: 'Life support operational. Primary Harvester Alpha ready for spice deployment.',
+          },
+        ]
+  );
+
+  const colonySnapshotRef = useRef<ColonySave | null>(null);
+  colonySnapshotRef.current = {
+    version: 1,
+    terrain,
+    spicePatches,
+    oreDeposits,
+    modules,
+    harvesters,
+    workers,
+    techNodes,
+    weather,
+    randomEvent,
+    stats,
+    resourceHistory,
+    logs,
+  };
+
+  useEffect(() => {
+    const write = () => {
+      if (colonySnapshotRef.current) saveColony(colonySnapshotRef.current);
+    };
+    const id = window.setInterval(write, 5000);
+    window.addEventListener('beforeunload', write);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener('beforeunload', write);
+      write();
+    };
+  }, []);
 
   // Add Log Helper
   const addLog = (
@@ -529,6 +576,8 @@ export default function App() {
     radiation: number;
   }>({ o2: 0, water: 0, food: 0, power: 0, general: 0, health: 0, radiation: 0 });
   const hazardClockRef = useRef(0);
+  const arrivalClockRef = useRef(0);
+  const shuttleTurnedBackRef = useRef(false);
 
   // Prolonged Low Resource Deprivation Tracker (> 5 minutes / 300 seconds of game time)
   const prolongedLowTrackerRef = useRef<{
@@ -585,6 +634,46 @@ export default function App() {
 
     const interval = setInterval(() => {
       const dt = 0.1 * gameSpeed; // scaled seconds
+
+      const construction = modules.filter((m) => m.constructProgress < 100);
+      if (construction.length > 0) {
+        const updates = construction.map((m) => {
+          const tiles = Math.max(1, m.width * m.height);
+          const duration = 15 + 5 * tiles;
+          const progress = Math.min(100, m.constructProgress + (100 / duration) * dt);
+          return {
+            id: m.id,
+            progress,
+            done: progress >= 100,
+            name: MODULE_BLUEPRINTS[m.type]?.name ?? 'Module',
+          };
+        });
+        setModules((prev) =>
+          prev.map((m) => {
+            const update = updates.find((item) => item.id === m.id);
+            if (!update || m.constructProgress >= 100) return m;
+            if (update.done) return { ...m, constructProgress: 100, constructed: true, isActive: true };
+            return { ...m, constructProgress: update.progress, constructed: false, isActive: false };
+          })
+        );
+        updates.filter((item) => item.done).forEach((item) => {
+          sound.playBuild();
+          addLog('success', 'Construction Complete', `${item.name} is online.`);
+        });
+      }
+
+      arrivalClockRef.current += dt;
+      if (arrivalClockRef.current >= 75) {
+        arrivalClockRef.current = 0;
+        if (stats.morale >= 55 && stats.population < stats.maxPopulation) {
+          shuttleTurnedBackRef.current = false;
+          setStats((prev) => ({ ...prev, population: Math.min(prev.maxPopulation, prev.population + 1) }));
+          addLog('success', 'Shuttle Arrival', 'A colonist joined the outpost. Food, water, and air use rose with them.');
+        } else if (stats.morale >= 55 && stats.population >= stats.maxPopulation && !shuttleTurnedBackRef.current) {
+          shuttleTurnedBackRef.current = true;
+          addLog('warning', 'Shuttle Turned Back', 'A colonist was ready to land, but every bunk is full.');
+        }
+      }
 
       const scarBuilding = (reason: 'tremor' | 'storm' | 'meteor') => {
         const pool = modules.filter((m) => m.constructed && m.type !== 'command' && m.health > 0);
@@ -687,10 +776,12 @@ export default function App() {
           const integrity = mod.maxHealth > 0 ? Math.max(0, Math.min(1, mod.health / mod.maxHealth)) : 1;
           const wear = integrity >= 0.995 ? 1 : 0.5 + 0.5 * integrity;
           const rate = mult * wear;
+          const staffed = !STAFFABLE_BUILDINGS.has(mod.type) || mod.assignedColonists > 0;
+          const yieldRate = staffed ? rate : rate * 0.45;
 
           if (mod.type === 'medbay') {
             medBayCount++;
-            medBayEffectiveness += mult;
+            medBayEffectiveness += mult * (staffed ? 1 : 0.45);
           }
 
           if (bp.powerDelta > 0) {
@@ -715,7 +806,7 @@ export default function App() {
           if (bp.waterCapacity) waterCap += bp.waterCapacity * mult;
           if (bp.popCapacity) popCap += bp.popCapacity;
 
-          if (bp.o2Delta > 0) o2Gen += bp.o2Delta * rate;
+          if (bp.o2Delta > 0) o2Gen += bp.o2Delta * yieldRate;
           else if (bp.o2Delta < 0) o2Upkeep += Math.abs(bp.o2Delta) * rate;
           if (bp.waterDelta > 0) {
             const waterBonus = hasTech('deep_well_drilling') ? 1.5 : 1.0;
@@ -725,19 +816,19 @@ export default function App() {
             } else if (mod.type === 'vaporator' && weather.type === 'dust_veil') {
               intake = 0.82;
             }
-            waterGen += bp.waterDelta * rate * waterBonus * intake;
+            waterGen += bp.waterDelta * yieldRate * waterBonus * intake;
           } else if (bp.waterDelta < 0) {
             let waterUse = Math.abs(bp.waterDelta) * rate;
             if (mod.type === 'greenhouse' && hasTech('hydro_recycler')) waterUse *= 0.5;
             waterUpkeep += waterUse;
           }
-          if (bp.foodDelta > 0) foodGen += bp.foodDelta * rate;
+          if (bp.foodDelta > 0) foodGen += bp.foodDelta * yieldRate;
           else if (bp.foodDelta < 0) foodUpkeep += Math.abs(bp.foodDelta) * rate;
-          if (bp.techRate) techGen += bp.techRate * rate;
+          if (bp.techRate) techGen += bp.techRate * yieldRate;
 
           if (mod.type === 'refinery') {
-            oreConsRate += 4 * rate; // Consumes 4 ore per sec
-            alloyGenRate += 2 * rate; // Produces 2 alloy per sec (2:1 ratio)
+            oreConsRate += 4 * yieldRate;
+            alloyGenRate += 2 * yieldRate;
           }
         });
 
@@ -1869,18 +1960,18 @@ export default function App() {
       level: 1,
       health: 120,
       maxHealth: 120,
-      isActive: true,
+      isActive: false,
       assignedColonists: 0,
-      constructed: true,
-      constructProgress: 100,
+      constructed: false,
+      constructProgress: 0,
     };
 
     setModules((prev) => [...prev, newModule]);
-    // Invalidate cached waypoints so roaming vehicles immediately route around the newly constructed building
     setHarvesters((prev) => prev.map((h) => ({ ...h, waypoints: [] })));
     setWorkers((prev) => prev.map((w) => ({ ...w, waypoints: [] })));
-    sound.playBuild();
-    addLog('info', 'Construction Complete', `${bp.name} constructed in Sector [${gridX}, ${gridY}].`);
+    sound.playClick(520);
+    const buildSeconds = 15 + 5 * bp.width * bp.height;
+    addLog('info', 'Construction Started', `${bp.name} is going up in Sector [${gridX}, ${gridY}]. About ${buildSeconds}s until it comes online.`);
     setBuildPlacingType(null);
   };
 
@@ -2148,6 +2239,26 @@ export default function App() {
     addLog('info', 'Module Repaired', `${bp.name} restored to 100% structural integrity.`);
   };
 
+  const handleNewColony = () => {
+    if (!window.confirm('Start a new colony? This outpost will be erased. Custom sprites and the audio mix stay.')) return;
+    clearColonySave();
+    window.location.reload();
+  };
+
+  const handleAssignCrew = (moduleId: string, delta: number) => {
+    setModules((prev) => {
+      const target = prev.find((m) => m.id === moduleId);
+      if (!target || !STAFFABLE_BUILDINGS.has(target.type)) return prev;
+      const nextCount = Math.max(0, Math.min(1, target.assignedColonists + delta));
+      if (nextCount === target.assignedColonists) return prev;
+      if (delta > 0) {
+        const used = prev.reduce((sum, m) => sum + (m.assignedColonists || 0), 0);
+        if (used >= stats.population) return prev;
+      }
+      return prev.map((m) => (m.id === moduleId ? { ...m, assignedColonists: nextCount } : m));
+    });
+  };
+
   const handleDemolishModule = (moduleId: string) => {
     const mod = modules.find((m) => m.id === moduleId);
     if (!mod) return;
@@ -2240,6 +2351,7 @@ export default function App() {
           sound.playClick(850);
         }}
         onCycleWeather={handleCycleWeather}
+        onNewColony={handleNewColony}
       />
 
       {/* Main 2D Martian Surface Canvas */}
@@ -2316,6 +2428,8 @@ export default function App() {
         onUpgradeModule={handleUpgradeModule}
         onRepairModule={handleRepairModule}
         onDemolishModule={handleDemolishModule}
+        freeCrew={Math.max(0, stats.population - modules.reduce((sum, m) => sum + (m.assignedColonists || 0), 0))}
+        onAssignCrew={handleAssignCrew}
       />
 
       {/* Selected Harvester Details Drawer */}

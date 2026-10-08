@@ -42,6 +42,7 @@ interface TopBarProps {
   onOpenCustomAssets: () => void;
   onOpenResourceMonitor: (filter?: 'all' | 'power' | 'water' | 'oxygen' | 'food' | 'alloy' | 'ore' | 'spice' | 'credits' | 'crew' | 'health') => void;
   onCycleWeather?: () => void;
+  onNewColony: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -57,6 +58,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenCustomAssets,
   onOpenResourceMonitor,
   onCycleWeather,
+  onNewColony,
 }) => {
   // Sol time string formatted e.g. "14:20"
   const hours = Math.floor(stats.timeOfDay * 24);
@@ -174,6 +176,14 @@ export const TopBar: React.FC<TopBarProps> = ({
           >
             <BookOpen className="w-3.5 h-3.5 text-orange-400" />
             <span className="hidden sm:inline">GUIDE</span>
+          </button>
+
+          <button
+            onClick={onNewColony}
+            className="flex items-center gap-1 bg-stone-900 hover:bg-stone-800 border border-stone-700 px-2.5 py-1 rounded-md text-xs text-stone-300 transition-colors"
+            title="Erase this outpost and start again. Custom sprites and the audio mix stay."
+          >
+            <span className="hidden sm:inline">NEW</span>
           </button>
 
           {/* Custom Graphics / Sprites Manager */}

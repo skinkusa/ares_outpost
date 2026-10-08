@@ -1660,6 +1660,50 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           }
       }
 
+        const integrity = mod.maxHealth > 0 ? mod.health / mod.maxHealth : 1;
+        if (mod.constructProgress < 100) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(28, 25, 23, 0.58)';
+          ctx.fillRect(px + 3, py + 3, pw - 6, ph - 6);
+          ctx.fillStyle = '#44403c';
+          ctx.fillRect(px + 8, cy - 4, pw - 16, 8);
+          ctx.fillStyle = '#f97316';
+          ctx.fillRect(px + 8, cy - 4, Math.max(0, (pw - 16) * (mod.constructProgress / 100)), 8);
+          ctx.restore();
+        } else if (mod.health <= 0) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          ctx.fillRect(px + 3, py + 3, pw - 6, ph - 6);
+          ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(px + 8, py + 10);
+          ctx.lineTo(cx, cy);
+          ctx.lineTo(px + pw - 10, py + ph - 8);
+          ctx.moveTo(px + pw - 12, py + 12);
+          ctx.lineTo(cx - 4, cy + 6);
+          ctx.stroke();
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.arc(px + pw - 12, py + 12, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        } else if (integrity < 0.85) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.8)';
+          ctx.lineWidth = 1.25;
+          ctx.beginPath();
+          ctx.moveTo(px + 10, py + ph * 0.3);
+          ctx.lineTo(cx, cy);
+          ctx.lineTo(px + pw * 0.7, py + ph - 8);
+          ctx.stroke();
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(px + pw - 12, py + 12, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
         // Module Label & Level
         ctx.textAlign = 'center';
         ctx.fillStyle = '#fafaf9';

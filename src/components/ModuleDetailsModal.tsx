@@ -22,6 +22,8 @@ interface ModuleDetailsModalProps {
   onUpgradeModule: (moduleId: string) => void;
   onRepairModule: (moduleId: string) => void;
   onDemolishModule: (moduleId: string) => void;
+  freeCrew: number;
+  onAssignCrew: (moduleId: string, delta: number) => void;
 }
 
 export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
@@ -33,6 +35,8 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
   onUpgradeModule,
   onRepairModule,
   onDemolishModule,
+  freeCrew,
+  onAssignCrew,
 }) => {
   if (!module) return null;
 
@@ -223,6 +227,34 @@ export const ModuleDetailsModal: React.FC<ModuleDetailsModalProps> = ({
           </div>
         )}
       </div>
+
+      {['greenhouse', 'medbay', 'research', 'refinery', 'scrubber', 'vaporator'].includes(module.type) && (
+        <div className="flex items-center justify-between gap-2 bg-stone-900/70 border border-stone-800 rounded-md px-2.5 py-2">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-orange-300 font-bold">Crew</div>
+            <div className="text-[10px] text-stone-500">
+              {module.assignedColonists > 0 ? 'Full output' : 'Unstaffed output is 45%'} · {freeCrew} free
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onAssignCrew(module.id, -1)}
+              disabled={module.assignedColonists <= 0}
+              className="w-6 h-6 rounded border border-stone-700 text-stone-300 disabled:opacity-30"
+            >
+              −
+            </button>
+            <span className="font-mono text-xs w-8 text-center">{module.assignedColonists}/1</span>
+            <button
+              onClick={() => onAssignCrew(module.id, 1)}
+              disabled={module.assignedColonists >= 1 || freeCrew <= 0}
+              className="w-6 h-6 rounded border border-stone-700 text-stone-300 disabled:opacity-30"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Action Controls: Toggle Power, Repair, Upgrade, Demolish */}
       <div className="flex flex-col gap-2 pt-2 border-t border-stone-800">
