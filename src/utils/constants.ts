@@ -139,7 +139,7 @@ export const MODULE_BLUEPRINTS: Record<string, ModuleBlueprint> = {
   },
   depot: {
     type: 'depot',
-    name: 'Spice Melange Refinery',
+    name: 'Spice Refinery',
     category: 'industry',
     description: 'Stores and purifies raw Martian spice into high-grade galactic canisters (+600 Spice storage).',
     costAlloy: 65,
@@ -339,7 +339,7 @@ export const TECH_TREE: TechNode[] = [
   },
   {
     id: 'spice_centrifuge',
-    name: 'High-Density Melange Refinement',
+    name: 'High-Density Spice Refinement',
     category: 'spice',
     description: 'Centrifugal separators purify spice crystals, increasing trade credit value by +40%.',
     cost: 75,

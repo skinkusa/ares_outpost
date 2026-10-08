@@ -45,7 +45,7 @@ export const HarvesterDetailsModal: React.FC<HarvesterDetailsModalProps> = ({
     stateLabel = 'NAVIGATING TO SPICE VEIN';
     stateColor = 'text-blue-400';
   } else if (harvester.state === 'harvesting') {
-    stateLabel = 'MINING RAW MELANGE';
+    stateLabel = 'MINING RAW SPICE';
     stateColor = 'text-fuchsia-400';
   } else if (harvester.state === 'returning_to_depot') {
     stateLabel = 'RETURNING TO BASE (CARGO FULL)';

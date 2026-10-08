@@ -56,7 +56,7 @@ export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
                 EARTH TRADE & CARGO SHUTTLE
               </h2>
               <p className="text-xs text-stone-400">
-                Export raw Martian spice melange to Earth and order critical supplies
+                Export raw Martian spice to Earth and order critical supplies
               </p>
             </div>
           </div>

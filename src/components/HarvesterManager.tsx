@@ -223,7 +223,7 @@ export const HarvesterManager: React.FC<HarvesterManagerProps> = ({
                 <Truck className="w-8 h-8 text-stone-600" />
                 <p className="text-sm">No harvesters currently active on the Martian surface.</p>
                 <p className="text-xs text-stone-600">
-                  Deploy a Scout, Heavy, or Titan harvester to reap spice melange!
+                  Deploy a Scout, Heavy, or Titan harvester to reap spice!
                 </p>
               </div>
             ) : (

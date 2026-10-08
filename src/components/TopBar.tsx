@@ -553,13 +553,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
         </div>
 
-        {/* SPICE MELANGE (Key Feature!) */}
+        {/* SPICE (Key Feature!) */}
         <div
           className="relative group flex flex-col bg-gradient-to-r from-purple-950/80 to-fuchsia-950/60 border border-fuchsia-600/70 px-2.5 py-1 rounded shadow-lg glow-purple"
         >
           {/* Custom Tooltip */}
           <div className="absolute top-full left-0 mt-2 p-3 bg-stone-900/95 border border-stone-700 text-stone-200 text-xs rounded shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none w-64">
-            <div className="font-bold text-fuchsia-400 mb-1">Martian Spice Melange</div>
+            <div className="font-bold text-fuchsia-400 mb-1">Martian Spice</div>
             <div className="flex justify-between"><span>Current:</span> <span>{Math.round(stats.spice)}/{stats.spiceCapacity} kg</span></div>
             <p className="mt-1 text-stone-400">Refine or trade for credits.</p>
             <p className="mt-2 text-stone-400 text-[10px]">Mined by Harvesters. Stored in Refineries.</p>
@@ -568,7 +568,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="flex items-center gap-1 font-sans font-bold">
               <Zap className="w-3 h-3 text-fuchsia-400" /> SPICE
             </span>
-            <span className="text-fuchsia-400 font-bold animate-pulse">MELANGE</span>
+            <span className="text-fuchsia-400 font-bold animate-pulse">SPICE</span>
           </div>
           <div className="flex items-center justify-between font-bold mt-0.5">
             <span className="text-fuchsia-200 text-sm">{Math.round(stats.spice)}</span>

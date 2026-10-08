@@ -1049,7 +1049,7 @@ export default function App() {
             return {
               type: 'seismic_tremor',
               name: 'Seismic Dune Tremor',
-              description: 'Ground tremors uncovering underground spice melange geysers.',
+              description: 'Ground tremors uncovering underground spice geysers.',
               duration: 35,
               maxDuration: 35,
               severity: 0.65,
@@ -1423,7 +1423,7 @@ export default function App() {
                 addLog(
                   'success',
                   isOre ? 'Ore Delivered' : 'Spice Delivered',
-                  `${updated.name} delivered ${Math.round(delivered)}kg ${isOre ? 'Raw Ore' : 'Spice Melange'} to ${isOre ? 'Ore Refinery' : 'refinery'}.`
+                  `${updated.name} delivered ${Math.round(delivered)}kg ${isOre ? 'Raw Ore' : 'Spice'} to ${isOre ? 'Ore Refinery' : 'refinery'}.`
                 );
 
                 updated.totalSpiceDelivered += delivered;
@@ -1778,7 +1778,7 @@ export default function App() {
     addLog('info', 'Harvester Scrapped', `${target.name} decommissioned. Recovered ${refund} Alloy.`);
   };
 
-  // Sell Spice Melange
+  // Sell Spice
   const handleSellSpice = (amount: number) => {
     if (amount <= 0 || stats.spice < amount) return;
     const hasLaunchpad = modules.some((m) => m.type === 'launchpad' && m.isActive);
