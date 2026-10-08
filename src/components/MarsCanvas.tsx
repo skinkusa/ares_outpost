@@ -138,9 +138,10 @@ function drawColonist(ctx: CanvasRenderingContext2D, w: ColonistWorker, timeMs: 
   ctx.fill();
 
   ctx.rotate(w.angle);
+  ctx.scale(1.25, 1.25);
 
   // Local +X is forward, matching your original visor.
-  const outline = '#374151';
+  const outline = '#1f2937'; // Darker outline
   const suit = '#e5e7eb';
 
   function oval(x: number, y: number, rx: number, ry: number, fill: string, border = true) {
@@ -156,9 +157,9 @@ function drawColonist(ctx: CanvasRenderingContext2D, w: ColonistWorker, timeMs: 
     }
   }
 
-  // Boots: alternate forward/back while walking.
-  oval(-1 + stride, -1.65, 1.1, 0.65, '#475569');
-  oval(-1 - stride, 1.65, 1.1, 0.65, '#475569');
+  // Boots: alternate forward/back while walking (more separated).
+  oval(-1 + stride, -2.0, 1.1, 0.65, '#475569');
+  oval(-1 - stride, 2.0, 1.1, 0.65, '#475569');
 
   // Life-support pack behind the body.
   ctx.fillStyle = outline;
@@ -170,11 +171,11 @@ function drawColonist(ctx: CanvasRenderingContext2D, w: ColonistWorker, timeMs: 
   ctx.fillStyle = '#22d3ee';
   ctx.fillRect(-3.1, -0.6, 0.5, 0.8);
 
-  // Arms and gloves.
-  oval(-stride * 0.4, -2.25, 1.3, 0.65, suit);
-  oval(stride * 0.4, 2.25, 1.3, 0.65, suit);
-  oval(0.95 - stride * 0.4, -2.25, 0.45, 0.5, '#64748b');
-  oval(0.95 + stride * 0.4, 2.25, 0.45, 0.5, '#64748b');
+  // Arms and gloves (more separated).
+  oval(-stride * 0.4, -2.7, 1.3, 0.65, suit);
+  oval(stride * 0.4, 2.7, 1.3, 0.65, suit);
+  oval(0.95 - stride * 0.4, -2.7, 0.45, 0.5, '#64748b');
+  oval(0.95 + stride * 0.4, 2.7, 0.45, 0.5, '#64748b');
 
   // Suit torso.
   oval(-0.65, 0, 1.9, 1.85, suit);
