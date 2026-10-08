@@ -803,12 +803,37 @@ export const ResourceMonitor: React.FC<ResourceMonitorProps> = ({
                       activeDot={{ r: 5, fill: '#06b6d4', stroke: '#1c1917', strokeWidth: 2 }}
                     />
                   )}
+                  {/* Morale Line */}
+                  {(category === 'crew' && (selectedResource === 'crew' || selectedResource === 'morale')) && (
+                    <Line type="monotone" dataKey="morale" name="Morale" stroke="#a855f7" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#a855f7', stroke: '#1c1917', strokeWidth: 2 }} />
+                  )}
+                  {/* Health Line */}
+                  {(category === 'crew' && (selectedResource === 'crew' || selectedResource === 'health')) && (
+                    <Line type="monotone" dataKey="health" name="Health" stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#10b981', stroke: '#1c1917', strokeWidth: 2 }} />
+                  )}
+                  {/* Alloy Line */}
+                  {(category === 'industry' && (selectedResource === 'all' || selectedResource === 'alloy')) && (
+                    <Line type="monotone" dataKey="alloy" name="Alloy" stroke="#f97316" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#f97316', stroke: '#1c1917', strokeWidth: 2 }} />
+                  )}
+                  {/* Ore Line */}
+                  {(category === 'industry' && (selectedResource === 'all' || selectedResource === 'ore')) && (
+                    <Line type="monotone" dataKey="ore" name="Ore" stroke="#fbbf24" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#fbbf24', stroke: '#1c1917', strokeWidth: 2 }} />
+                  )}
+                  {/* Spice Line */}
+                  {(category === 'industry' && (selectedResource === 'all' || selectedResource === 'spice')) && (
+                    <Line type="monotone" dataKey="spice" name="Spice" stroke="#d946ef" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#d946ef', stroke: '#1c1917', strokeWidth: 2 }} />
+                  )}
+                  {/* Credits Line */}
+                  {(category === 'commerce' && (selectedResource === 'all' || selectedResource === 'credits')) && (
+                    <Line type="monotone" dataKey="credits" name="Credits" stroke="#eab308" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#eab308', stroke: '#1c1917', strokeWidth: 2 }} />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Diagnostic Advisory & Early Warning System */}
+          {category === 'vitals' && (
           <div className="bg-stone-900/60 border border-stone-800 rounded-lg p-3.5 flex flex-col gap-2.5">
             <div className="flex items-center gap-2 text-xs font-title font-semibold text-stone-200">
               <Sliders className="w-4 h-4 text-orange-400" />
@@ -912,6 +937,7 @@ export const ResourceMonitor: React.FC<ResourceMonitorProps> = ({
             </div>
             )}
           </div>
+          )}
         </div>
 
         {/* Footer */}
