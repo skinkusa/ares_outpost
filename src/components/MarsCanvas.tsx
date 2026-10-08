@@ -2030,11 +2030,15 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
       });
 
       // =====================================================================
-      // 10.5. COLONIST WORKERS (EVA Suits)
+      // 10.5. COLONIST WORKERS (EVA Suits & Rovers)
       // =====================================================================
       const workerTime = performance.now();
       workers.forEach((w) => {
-        drawColonistRover(ctx, w, workerTime);
+        if (w.transport === 'rover') {
+          drawColonistRover(ctx, w, workerTime);
+        } else {
+          drawColonist(ctx, w, workerTime);
+        }
       });
 
       // =====================================================================

@@ -1581,7 +1581,7 @@ export default function App() {
               const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
               updated.angle += normalizedDiff * 5 * dt;
 
-              const speed = 14; // Slow walk speed
+              const speed = updated.transport === 'rover' ? 38 : 14;
               updated.x += Math.cos(updated.angle) * speed * dt;
               updated.y += Math.sin(updated.angle) * speed * dt;
             }
@@ -1606,6 +1606,7 @@ export default function App() {
             angle: Math.random() * Math.PI * 2,
             state: 'idle',
             timer: Math.random() * 5 + 2,
+            transport: Math.random() > 0.8 ? 'rover' : 'walking',
           });
         }
         

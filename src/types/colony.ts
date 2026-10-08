@@ -66,6 +66,7 @@ export interface ColonistWorker {
   angle: number;
   state: 'idle' | 'walking';
   timer: number;
+  transport?: 'walking' | 'rover';
 }
 
 export interface ColonyModule {
