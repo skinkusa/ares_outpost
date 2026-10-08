@@ -506,6 +506,9 @@ export default function App() {
         let foodGen = 0;
         let techGen = 0;
         let spiceCap = 600;
+        let oreGen = 0;
+        let oreConsRate = 0;
+        let alloyGenRate = 0;
         let batteryCap = 0;
         let popCap = 0;
         let medBayCount = 0;
@@ -547,6 +550,14 @@ export default function App() {
           }
           if (bp.foodDelta > 0) foodGen += bp.foodDelta * mult;
           if (bp.techRate) techGen += bp.techRate * mult;
+          
+          if (mod.type === 'miner') {
+            oreGen += 5 * mult; // Static miner produces 5 ore per second
+          }
+          if (mod.type === 'refinery') {
+            oreConsRate += 4 * mult; // Consumes 4 ore per sec
+            alloyGenRate += 2 * mult; // Produces 2 alloy per sec (2:1 ratio)
+          }
         });
 
         // Apply Random Event Effects
@@ -570,6 +581,14 @@ export default function App() {
         let newPowerStored = prevStats.powerStored + netPower * dt;
         if (newPowerStored > batteryCap) newPowerStored = batteryCap;
         if (newPowerStored < 0) newPowerStored = 0;
+
+        // Ore & Alloy processing
+        let availableOreRate = prevStats.ore / dt + oreGen;
+        let actualOreConsRate = Math.min(oreConsRate, availableOreRate);
+        let actualAlloyGenRate = oreConsRate > 0 ? alloyGenRate * (actualOreConsRate / oreConsRate) : 0;
+        
+        let newOre = Math.min(prevStats.maxOre, Math.max(0, prevStats.ore + (oreGen - actualOreConsRate) * dt));
+        let newAlloy = prevStats.alloy + actualAlloyGenRate * dt;
 
         // Oxygen & Water & Food integration
         let newO2 = Math.min(prevStats.maxOxygen, Math.max(0, prevStats.oxygen + (o2Gen - o2Cons) * dt));
@@ -935,8 +954,8 @@ export default function App() {
             foodPct: Math.round((newFood / Math.max(1, prevStats.maxFood)) * 1000) / 10,
             foodDelta: Math.round((foodGen - foodCons) * 10) / 10,
             maxFood: prevStats.maxFood,
-            alloy: Math.round(prevStats.alloy * 10) / 10,
-            ore: Math.round(prevStats.ore * 10) / 10,
+            alloy: Math.round(newAlloy * 10) / 10,
+            ore: Math.round(newOre * 10) / 10,
             spice: Math.round(prevStats.spice * 10) / 10,
             credits: Math.round(prevStats.credits * 10) / 10,
             morale: Math.round(newMorale * 10) / 10,
