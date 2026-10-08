@@ -1642,6 +1642,7 @@ export default function App() {
         return h;
       })
     );
+    setSelectedHarvester((prev) => prev && prev.id === harvesterId ? { ...prev, state: 'returning_to_depot' } : prev);
     addLog('info', 'Harvester Recalled', 'Harvester ordered to return immediately to base depot.');
   };
 
@@ -1650,6 +1651,7 @@ export default function App() {
     setHarvesters((prev) =>
       prev.map((h) => (h.id === harvesterId ? { ...h, autoHarvest: !h.autoHarvest } : h))
     );
+    setSelectedHarvester((prev) => prev && prev.id === harvesterId ? { ...prev, autoHarvest: !prev.autoHarvest } : prev);
   };
 
   // Toggle Mining Target
@@ -1772,6 +1774,7 @@ export default function App() {
     setModules((prev) =>
       prev.map((m) => (m.id === moduleId ? { ...m, isActive: !m.isActive } : m))
     );
+    setSelectedModule((prev) => (prev && prev.id === moduleId ? { ...prev, isActive: !prev.isActive } : prev));
   };
 
   const handleUpgradeModule = (moduleId: string) => {
@@ -1793,6 +1796,9 @@ export default function App() {
       prev.map((m) => (m.id === moduleId ? { ...m, level: m.level + 1 } : m))
     );
 
+    // Update selected module to reflect changes instantly
+    setSelectedModule((prev) => (prev && prev.id === moduleId ? { ...prev, level: prev.level + 1 } : prev));
+
     sound.playBuild();
     addLog('info', 'Module Upgraded', `${bp.name} upgraded to Tier ${mod.level + 1}.`);
   };
@@ -1809,6 +1815,7 @@ export default function App() {
     setModules((prev) =>
       prev.map((m) => (m.id === moduleId ? { ...m, health: m.maxHealth } : m))
     );
+    setSelectedModule((prev) => (prev && prev.id === moduleId ? { ...prev, health: prev.maxHealth } : prev));
 
     sound.playBuild();
     addLog('info', 'Module Repaired', `${bp.name} restored to 100% structural integrity.`);
@@ -1898,8 +1905,8 @@ export default function App() {
         oreDeposits={oreDeposits}
         weather={weather}
         timeOfDay={stats.timeOfDay}
-        selectedModule={selectedModule}
-        selectedHarvester={selectedHarvester}
+        selectedModule={modules.find((m) => m.id === selectedModule?.id) || selectedModule}
+        selectedHarvester={harvesters.find((h) => h.id === selectedHarvester?.id) || selectedHarvester}
         buildPlacingType={buildPlacingType}
         canAffordPlacing={
           buildPlacingType
@@ -1945,7 +1952,7 @@ export default function App() {
 
       {/* Selected Module Details Drawer */}
       <ModuleDetailsModal
-        module={selectedModule}
+        module={modules.find((m) => m.id === selectedModule?.id) || selectedModule}
         onClose={() => setSelectedModule(null)}
         currentCredits={stats.credits}
         currentAlloy={stats.alloy}
@@ -1957,7 +1964,7 @@ export default function App() {
 
       {/* Selected Harvester Details Drawer */}
       <HarvesterDetailsModal
-        harvester={selectedHarvester}
+        harvester={harvesters.find((h) => h.id === selectedHarvester?.id) || selectedHarvester}
         onClose={() => setSelectedHarvester(null)}
         currentAlloy={stats.alloy}
         onRecall={handleRecallHarvester}
@@ -1968,6 +1975,7 @@ export default function App() {
             setHarvesters((prev) =>
               prev.map((h) => (h.id === id ? { ...h, health: h.maxHealth } : h))
             );
+            setSelectedHarvester((prev) => prev && prev.id === id ? { ...prev, health: prev.maxHealth } : prev);
             sound.playBuild();
             addLog('info', 'Rover Repaired', 'Harvester chassis repaired to 100% hull.');
           }
