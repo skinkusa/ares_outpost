@@ -1605,7 +1605,7 @@ export default function App() {
             angle: Math.random() * Math.PI * 2,
             state: 'idle',
             timer: Math.random() * 5 + 2,
-            transport: Math.random() > 0.8 ? 'rover' : 'walking',
+            transport: Math.random() > 0.5 ? 'rover' : 'walking',
           });
         }
         
