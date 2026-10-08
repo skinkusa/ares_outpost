@@ -2042,6 +2042,12 @@ export default function App() {
         onPlaceModule={handlePlaceModule}
         onCancelPlacing={() => setBuildPlacingType(null)}
         onManualHarvesterOrder={handleManualHarvesterOrder}
+        solarTracking={hasTech('solar_tracking')}
+        spiceCentrifuge={hasTech('spice_centrifuge')}
+        hydroRecycler={hasTech('hydro_recycler')}
+        deepWellDrilling={hasTech('deep_well_drilling')}
+        stormHardening={hasTech('storm_hardening')}
+        terraformingGenesis={hasTech('terraforming_genesis')}
       />
 
       {/* Mission Log Feed & Population Morale Dashboard */}

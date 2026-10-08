@@ -41,6 +41,12 @@ interface MarsCanvasProps {
   onCancelPlacing: () => void;
   onManualHarvesterOrder: (harvesterId: string, worldX: number, worldY: number) => void;
   onCycleWeather?: () => void;
+  solarTracking?: boolean;
+  spiceCentrifuge?: boolean;
+  hydroRecycler?: boolean;
+  deepWellDrilling?: boolean;
+  stormHardening?: boolean;
+  terraformingGenesis?: boolean;
 }
 
 // Particle types for sci-fi rendering
@@ -407,6 +413,12 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
   onCancelPlacing,
   onManualHarvesterOrder,
   onCycleWeather,
+  solarTracking = false,
+  spiceCentrifuge = false,
+  hydroRecycler = false,
+  deepWellDrilling = false,
+  stormHardening = false,
+  terraformingGenesis = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -1521,7 +1533,11 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           }
 
           case 'solar': {
-            drawSolarArray(ctx, px, py, pw, ph, time);
+            if (solarTracking) {
+              drawSunTrackingGimbal(ctx, px, py, pw, ph, sunAngle, performance.now());
+            } else {
+              drawSolarArray(ctx, px, py, pw, ph, time);
+            }
             break;
           }
 
@@ -1538,17 +1554,29 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           }
 
           case 'scrubber': {
-            drawScrubber(ctx, px, py, pw, ph, time);
+            if (terraformingGenesis) {
+              drawAtmosphericGenesisEngine(ctx, px, py, pw, ph, performance.now());
+            } else {
+              drawScrubber(ctx, px, py, pw, ph, time);
+            }
             break;
           }
 
           case 'vaporator': {
-            drawVaporator(ctx, px, py, pw, ph);
+            if (deepWellDrilling) {
+              drawSubPermafrostThermalWells(ctx, px, py, pw, ph, performance.now());
+            } else {
+              drawVaporator(ctx, px, py, pw, ph);
+            }
             break;
           }
 
           case 'greenhouse': {
-            drawHydroponicBioDome(ctx, px, py, pw, ph);
+            if (hydroRecycler) {
+              drawClosedLoopMoistureReclamation(ctx, px, py, pw, ph, performance.now());
+            } else {
+              drawHydroponicBioDome(ctx, px, py, pw, ph);
+            }
             break;
           }
 
@@ -1558,7 +1586,11 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           }
 
           case 'depot': {
-            drawHarvesterGarage(ctx, px, py, pw, ph);
+            if (spiceCentrifuge) {
+              drawHighDensitySpiceRefinement(ctx, px, py, pw, ph, performance.now());
+            } else {
+              drawHarvesterGarage(ctx, px, py, pw, ph);
+            }
             break;
           }
 
@@ -1583,7 +1615,11 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
           }
 
           case 'radar': {
-            drawSeismicStormRadar(ctx, px, py, pw, ph);
+            if (stormHardening) {
+              drawElectrostaticDustDeflectors(ctx, px, py, pw, ph, performance.now());
+            } else {
+              drawSeismicStormRadar(ctx, px, py, pw, ph);
+            }
             break;
           }
 
@@ -2917,6 +2953,12 @@ export const MarsCanvas: React.FC<MarsCanvasProps> = ({
     buildPlacingType,
     canAffordPlacing,
     cursorGrid,
+    solarTracking,
+    spiceCentrifuge,
+    hydroRecycler,
+    deepWellDrilling,
+    stormHardening,
+    terraformingGenesis,
   ]);
 
   return (
@@ -3356,6 +3398,1222 @@ function drawSolarArray(ctx: CanvasRenderingContext2D, px: number, py: number, p
   }
 
   line([[44, 90], [56, 90]], c.metal);
+  ctx.restore();
+}
+
+function drawSunTrackingGimbal(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  sunAngle: number = 0,
+  timeMs: number = 0
+) {
+  if (pw <= 0 || ph <= 0) return;
+  ctx.save();
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+  const outline = '#111827';
+  const orange = '#ea580c';
+  const cyan = '#22d3ee';
+  function box(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    fill: string,
+    border = true
+  ) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, width, height);
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, width, height);
+    }
+  }
+  function line(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    color: string,
+    width = 1
+  ) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+  function oval(
+    x: number,
+    y: number,
+    rx: number,
+    ry: number,
+    fill: string,
+    border = true
+  ) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  function polygon(points: number[][], fill: string) {
+    ctx.beginPath();
+    points.forEach(([x, y], index) => {
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  // Fixed pedestal shadow.
+  oval(50, 61, 28, 22, 'rgba(0, 0, 0, 0.25)', false);
+  // Four reinforced mounting feet.
+  for (const [x, y] of [
+    [29, 29], [64, 29], [29, 64], [64, 64]
+  ]) {
+    box(x, y + 3, 7, 7, '#334155');
+    box(x, y, 7, 7, '#94a3b8');
+    box(x + 2, y + 2, 3, 3, '#475569');
+  }
+  // Diagonal foundation braces.
+  line(33, 33, 50, 50, outline, 7);
+  line(67, 33, 50, 50, outline, 7);
+  line(33, 67, 50, 50, outline, 7);
+  line(67, 67, 50, 50, outline, 7);
+  line(33, 33, 50, 50, '#64748b', 4);
+  line(67, 33, 50, 50, '#64748b', 4);
+  line(33, 67, 50, 50, '#64748b', 4);
+  line(67, 67, 50, 50, '#64748b', 4);
+  // Circular pedestal with visible south-facing depth.
+  oval(50, 56, 20, 17, '#334155');
+  oval(50, 51, 20, 17, '#64748b');
+  oval(50, 51, 15, 12, '#94a3b8');
+  oval(50, 51, 10, 8, '#475569');
+  // Fixed status display.
+  box(43, 64, 14, 6, outline);
+  box(45, 65.5, 10, 3, cyan, false);
+  // Power cable to a fixed service cabinet.
+  line(63, 61, 74, 70, outline, 4);
+  line(74, 70, 80, 70, outline, 4);
+  line(63, 61, 74, 70, '#64748b', 2);
+  line(74, 70, 80, 70, '#64748b', 2);
+  box(77, 65, 13, 15, '#334155');
+  box(77, 63, 13, 13, '#94a3b8');
+  box(80, 66, 7, 4, '#164e63');
+  line(81, 68, 86, 68, cyan, 1);
+  for (const y of [72, 74]) {
+    line(80, y, 87, y, '#475569', 0.7);
+  }
+  // Rotating gimbal assembly.
+  // Local +X points toward the sun.
+  ctx.save();
+  ctx.translate(50, 47);
+  ctx.rotate(sunAngle);
+  // Rotating bearing.
+  oval(0, 0, 11, 11, '#334155');
+  oval(0, 0, 8, 8, '#cbd5e1');
+  oval(0, 0, 5, 5, '#475569');
+  // Orange bearing markers.
+  box(-1, -10, 2, 4, orange, false);
+  box(-1, 6, 2, 4, orange, false);
+  // Fork arms supporting the panel.
+  box(-8, -23, 6, 46, '#475569');
+  box(-7, -22, 3, 44, orange, false);
+  // Cross-axis hinge.
+  line(0, -27, 0, 27, outline, 5);
+  line(0, -27, 0, 27, '#94a3b8', 3);
+  // Tilt actuator on the rear side.
+  line(-16, 0, -5, 0, outline, 4);
+  line(-16, 0, -5, 0, '#cbd5e1', 2);
+  box(-19, -4, 7, 8, '#64748b');
+  box(-18, -3, 2, 6, orange, false);
+  // Panel underside gives the array thickness.
+  polygon(
+    [
+      [-17, -27], [17, -27], [20, -24],
+      [20, 30], [-14, 30], [-17, 27]
+    ],
+    '#334155'
+  );
+  // Main metal frame.
+  box(-18, -29, 36, 58, '#94a3b8');
+  box(-16, -27, 32, 54, '#111827');
+  // Six blue photovoltaic sections.
+  for (let column = 0; column < 2; column++) {
+    for (let row = 0; row < 3; row++) {
+      const x = -14 + column * 15;
+      const y = -25 + row * 17;
+      box(x, y, 13, 15, '#164e63');
+      // Solar cell grid.
+      for (let cellX = 1; cellX < 4; cellX++) {
+        line(
+          x + cellX * 3.25,
+          y + 0.5,
+          x + cellX * 3.25,
+          y + 14.5,
+          '#60a5fa',
+          0.35
+        );
+      }
+      for (let cellY = 1; cellY < 5; cellY++) {
+        line(
+          x + 0.5,
+          y + cellY * 3,
+          x + 12.5,
+          y + cellY * 3,
+          '#60a5fa',
+          0.35
+        );
+      }
+      // Subtle surface highlight.
+      line(x + 1, y + 1, x + 11, y + 1, '#93c5fd', 0.6);
+    }
+  }
+  // Frame highlights and structural center rail.
+  line(-18, -29, 18, -29, '#e2e8f0', 1);
+  line(-18, -29, -18, 29, '#cbd5e1', 1);
+  box(-1, -27, 2, 54, '#64748b', false);
+  // Hinge caps remain visible beyond the panel edges.
+  oval(0, -31, 4, 2.5, '#64748b');
+  oval(0, 31, 4, 2.5, '#64748b');
+  oval(0, -31, 1.5, 1.2, orange, false);
+  oval(0, 31, 1.5, 1.2, orange, false);
+  // Sun-direction sensor on the forward edge.
+  box(18, -3, 5, 6, '#475569');
+  box(20, -1.5, 2, 3, '#fbbf24', false);
+  ctx.restore();
+  // Fixed cabinet indicator.
+  const pulse = 0.65 + Math.sin(timeMs * 0.004) * 0.35;
+  ctx.fillStyle = `rgba(34, 211, 238, ${pulse})`;
+  ctx.fillRect(85, 64, 2, 1);
+  ctx.restore();
+}
+
+function drawHighDensitySpiceRefinement(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  timeMs: number = 0
+) {
+  if (pw <= 0 || ph <= 0) return;
+  ctx.save();
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+  const outline = '#111827';
+  const orange = '#ea580c';
+  const cyan = '#22d3ee';
+  function box(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    fill: string,
+    border = true
+  ) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, width, height);
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, width, height);
+    }
+  }
+  function oval(
+    x: number,
+    y: number,
+    rx: number,
+    ry: number,
+    fill: string,
+    border = true
+  ) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  function line(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    color: string,
+    width = 1
+  ) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+  function pipe(points: number[][]) {
+    ctx.beginPath();
+    points.forEach(([x, y], index) => {
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 4.5;
+    ctx.stroke();
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+  function vent(x: number, y: number, width: number) {
+    box(x, y, width, 6, '#334155');
+    for (let offset = 2; offset < width - 1; offset += 3) {
+      line(x + offset, y + 1, x + offset, y + 5, outline, 0.8);
+    }
+  }
+  function chamber(x: number, y: number, phase: number) {
+    // Cylinder body and lower mounting ring.
+    oval(x, y + 21, 9, 5, '#334155');
+    box(x - 9, y, 18, 21, '#64748b');
+    oval(x, y + 20, 9, 4, '#475569');
+    // Amber containment window.
+    box(x - 6.5, y + 3, 13, 13, '#78350f');
+    box(x - 5, y + 4, 10, 11, '#d97706', false);
+    // Subtle processing pulse.
+    const pulse = 0.15 + (Math.sin(timeMs * 0.003 + phase) + 1) * 0.12;
+    box(
+      x - 5,
+      y + 4,
+      10,
+      11,
+      `rgba(251, 191, 36, ${pulse})`,
+      false
+    );
+    // Glass reflection.
+    box(x - 4, y + 5, 1.5, 8, '#fde68a', false);
+    // Steel retaining bands.
+    box(x - 9, y + 1, 18, 2, '#94a3b8');
+    box(x - 9, y + 16, 18, 2, '#94a3b8');
+    // Top cap.
+    oval(x, y, 9, 4, '#94a3b8');
+    oval(x, y - 0.5, 6, 2.5, '#475569');
+    oval(x, y - 0.5, 3, 1.3, '#334155');
+    // Front status panel.
+    box(x - 3, y + 19, 6, 6, outline);
+    box(x - 2, y + 20, 4, 3, cyan, false);
+  }
+  // Building shadow and raised industrial deck.
+  box(9, 17, 84, 76, 'rgba(0, 0, 0, 0.25)', false);
+  box(7, 13, 86, 76, '#334155');
+  box(7, 13, 86, 70, '#64748b');
+  box(11, 17, 78, 62, '#475569');
+  // Deck seams.
+  for (const x of [30, 50, 70]) {
+    line(x, 18, x, 78, '#64748b', 0.6);
+  }
+  for (const y of [37, 58]) {
+    line(12, y, 88, y, '#64748b', 0.6);
+  }
+  // Rear transfer manifold.
+  pipe([[18, 27], [18, 19], [82, 19], [82, 27]]);
+  pipe([[50, 19], [50, 30]]);
+  // Side feed lines.
+  pipe([[17, 40], [13, 40], [13, 64], [23, 64]]);
+  pipe([[83, 40], [87, 40], [87, 64], [77, 64]]);
+  // Rear pair of processing chambers.
+  chamber(25, 27, 0);
+  chamber(75, 27, 1.5);
+  // Central separator tower base.
+  box(37, 38, 26, 31, '#334155');
+  box(39, 35, 22, 29, '#94a3b8');
+  box(42, 39, 16, 21, '#475569');
+  // Orange reinforced tower edges.
+  box(39, 39, 3, 22, orange);
+  box(58, 39, 3, 22, orange);
+  // Vertical concentration chamber.
+  box(45, 39, 10, 17, '#78350f');
+  box(47, 40, 6, 15, '#f59e0b', false);
+  box(47, 41, 1.2, 11, '#fef3c7', false);
+  // Tower cap and circular separator motor.
+  oval(50, 35, 12, 6, '#cbd5e1');
+  oval(50, 34, 9, 4.5, '#64748b');
+  oval(50, 34, 5, 2.8, '#334155');
+  oval(50, 34, 2, 1.2, orange, false);
+  box(44, 59, 12, 5, outline);
+  box(46, 60, 8, 2.5, cyan, false);
+  // Pipes from separator to the front chambers.
+  pipe([[40, 56], [33, 56], [33, 60], [25, 60]]);
+  pipe([[60, 56], [67, 56], [67, 60], [75, 60]]);
+  // Front pair of processing chambers.
+  chamber(25, 57, 3);
+  chamber(75, 57, 4.5);
+  // Central output conduit.
+  pipe([[50, 65], [50, 76], [50, 82]]);
+  // Product loading outlet.
+  box(37, 79, 26, 15, '#334155');
+  box(37, 76, 26, 13, '#94a3b8');
+  box(41, 79, 18, 8, outline);
+  box(43, 80, 14, 6, '#292524', false);
+  // Conveyor rollers.
+  for (const x of [44, 47, 50, 53, 56]) {
+    line(x, 81, x, 85, '#64748b', 0.7);
+  }
+  // Refined spice cargo container.
+  box(47, 80, 6, 5, '#b45309');
+  line(48, 81, 52, 81, '#fbbf24', 0.8);
+  // Loading bay hazard trim.
+  for (let x = 39; x < 61; x += 5) {
+    box(x, 88, 2.5, 2, orange, false);
+  }
+  // Rear cooling units.
+  vent(35, 21, 12);
+  vent(53, 21, 12);
+  // Small control cabinet.
+  box(9, 71, 11, 13, '#334155');
+  box(9, 69, 11, 11, '#94a3b8');
+  box(11, 71, 7, 4, '#164e63');
+  line(12, 73, 17, 73, cyan, 0.8);
+  box(16, 77, 2, 1.5, orange, false);
+  // Perimeter guide lights.
+  for (const x of [10, 87]) {
+    box(x, 15, 3, 5, outline);
+    box(x + 0.7, 16, 1.6, 3, cyan, false);
+  }
+  // South-facing deck trim.
+  line(9, 84, 35, 84, '#94a3b8', 1);
+  line(65, 84, 91, 84, '#94a3b8', 1);
+  ctx.restore();
+}
+
+function drawClosedLoopMoistureReclamation(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  timeMs: number = 0
+) {
+  if (pw <= 0 || ph <= 0) return;
+  ctx.save();
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+  const outline = '#111827';
+  const cyan = '#22d3ee';
+  const orange = '#ea580c';
+  function box(
+    x: number, y: number,
+    width: number, height: number,
+    fill: string, border = true
+  ) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, width, height);
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, width, height);
+    }
+  }
+  function oval(
+    x: number, y: number,
+    rx: number, ry: number,
+    fill: string, border = true
+  ) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  function line(
+    x1: number, y1: number,
+    x2: number, y2: number,
+    color: string, width = 1
+  ) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+  function pipe(points: number[][], inner = '#94a3b8') {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.strokeStyle = inner;
+    ctx.lineWidth = 2.8;
+    ctx.stroke();
+  }
+  function valve(x: number, y: number) {
+    oval(x, y, 3, 3, '#475569');
+    oval(x, y, 1.7, 1.7, orange);
+    line(x - 1.4, y, x + 1.4, y, '#fed7aa', 0.7);
+    line(x, y - 1.4, x, y + 1.4, '#fed7aa', 0.7);
+  }
+  function tank(x: number, y: number, phase: number) {
+    // Feet and lower cylinder rim.
+    box(x - 9, y + 27, 5, 8, '#334155');
+    box(x + 4, y + 27, 5, 8, '#334155');
+    oval(x, y + 28, 12, 5, '#334155');
+    // Steel cylinder.
+    box(x - 12, y, 24, 28, '#64748b');
+    box(x - 10, y + 2, 4, 23, '#94a3b8', false);
+    oval(x, y + 27, 12, 4, '#475569');
+    // Water inspection window.
+    box(x - 5, y + 5, 10, 17, outline);
+    box(x - 4, y + 6, 8, 15, '#164e63', false);
+    box(x - 4, y + 11, 8, 10, '#0891b2', false);
+    box(x - 3, y + 7, 1.3, 12, '#a5f3fc', false);
+    // Animated water surface within the window.
+    const surface = y + 11 + Math.sin(timeMs * 0.002 + phase) * 0.6;
+    line(x - 3.5, surface, x + 3.5, surface, '#67e8f9', 0.8);
+    // Retaining bands.
+    box(x - 12, y + 3, 24, 2, '#cbd5e1');
+    box(x - 12, y + 23, 24, 2, '#94a3b8');
+    // Top lid and inlet.
+    oval(x, y, 12, 5, '#cbd5e1');
+    oval(x, y - 0.5, 8, 3.3, '#64748b');
+    oval(x, y - 0.5, 3, 1.5, '#334155');
+    // Status indicator.
+    box(x - 3, y + 27, 6, 5, outline);
+    box(x - 2, y + 28, 4, 2, cyan, false);
+  }
+  // Raised equipment deck.
+  box(9, 19, 84, 72, 'rgba(0, 0, 0, 0.25)', false);
+  box(7, 15, 86, 72, '#334155');
+  box(7, 15, 86, 66, '#64748b');
+  box(11, 19, 78, 58, '#475569');
+  // Deck seams.
+  for (const x of [30, 50, 70]) {
+    line(x, 20, x, 76, '#64748b', 0.6);
+  }
+  for (const y of [39, 59]) {
+    line(12, y, 88, y, '#64748b', 0.6);
+  }
+  // Closed return circuit, behind the equipment.
+  pipe([
+    [25, 29], [25, 21], [77, 21],
+    [86, 30], [86, 69], [77, 78],
+    [23, 78], [14, 69], [14, 42], [25, 42]
+  ]);
+  // Cyan pipe collars.
+  box(46, 18.5, 7, 5, '#164e63');
+  box(48, 19.5, 3, 3, cyan, false);
+  box(82.5, 51, 7, 6, '#164e63');
+  box(84, 52, 4, 4, cyan, false);
+  // Tank connections.
+  pipe([[37, 49], [43, 49]]);
+  pipe([[57, 49], [63, 49]]);
+  pipe([[50, 65], [50, 78]], '#67e8f9');
+  // Twin recovery tanks.
+  tank(25, 34, 0);
+  tank(75, 34, Math.PI);
+  // Central condenser housing.
+  box(39, 33, 22, 35, '#334155');
+  box(39, 29, 22, 34, '#94a3b8');
+  box(42, 33, 16, 25, '#475569');
+  // Condenser fin stack.
+  for (let y = 34; y <= 49; y += 3) {
+    box(42, y, 16, 1.5, '#cbd5e1');
+  }
+  // Orange reinforced side rails.
+  box(39, 33, 2.5, 24, orange);
+  box(58.5, 33, 2.5, 24, orange);
+  // Roof fan with slow rotation.
+  oval(50, 29, 9, 6, '#334155');
+  oval(50, 29, 7, 4.5, '#1e293b');
+  ctx.save();
+  ctx.translate(50, 29);
+  ctx.scale(1, 0.64);
+  ctx.rotate(timeMs * 0.0015);
+  for (let blade = 0; blade < 4; blade++) {
+    ctx.save();
+    ctx.rotate(blade * Math.PI / 2);
+    box(1, -1, 5, 2, '#94a3b8', false);
+    ctx.restore();
+  }
+  ctx.restore();
+  oval(50, 29, 2, 1.3, orange);
+  // Condensate collector beneath the fins.
+  box(44, 52, 12, 7, outline);
+  box(46, 53, 8, 4, '#0891b2', false);
+  line(47, 54, 53, 54, '#a5f3fc', 0.7);
+  // Front circulation pump.
+  box(40, 70, 20, 10, '#334155');
+  box(42, 68, 16, 10, '#94a3b8');
+  oval(50, 73, 5, 4, '#475569');
+  oval(50, 73, 2.5, 2, '#164e63');
+  oval(50, 73, 1.2, 1, cyan, false);
+  // Isolation valves.
+  valve(35, 21);
+  valve(86, 64);
+  valve(25, 78);
+  // Front control cabinet.
+  box(65, 73, 17, 16, '#334155');
+  box(65, 70, 17, 14, '#94a3b8');
+  box(68, 73, 11, 5, outline);
+  box(69, 74, 9, 3, '#164e63', false);
+  line(70, 75.5, 76, 75.5, cyan, 0.8);
+  box(68, 80, 2, 2, '#22c55e', false);
+  box(72, 80, 2, 2, orange, false);
+  // Front maintenance hatch.
+  box(20, 74, 13, 10, '#64748b');
+  box(22, 76, 9, 6, '#475569');
+  line(25, 79, 28, 79, '#cbd5e1', 0.8);
+  // South-facing deck trim and hazard markings.
+  line(9, 83, 63, 83, '#94a3b8', 1);
+  line(84, 83, 91, 83, '#94a3b8', 1);
+  for (const x of [9, 86]) {
+    box(x, 16, 5, 3, orange);
+    box(x + 1, 17, 3, 1, '#fed7aa', false);
+  }
+  ctx.restore();
+}
+
+function drawSubPermafrostThermalWells(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  timeMs: number = 0
+) {
+  if (pw <= 0 || ph <= 0) return;
+  ctx.save();
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+  const outline = '#111827';
+  const orange = '#ea580c';
+  const cyan = '#22d3ee';
+  function box(
+    x: number, y: number,
+    width: number, height: number,
+    fill: string, border = true
+  ) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, width, height);
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, width, height);
+    }
+  }
+  function oval(
+    x: number, y: number,
+    rx: number, ry: number,
+    fill: string, border = true
+  ) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  function line(
+    x1: number, y1: number,
+    x2: number, y2: number,
+    color: string, width = 1
+  ) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+  function pipe(points: number[][], color: string) {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+  function wellhead(x: number, y: number, phase: number) {
+    // Reinforced bore collar.
+    oval(x, y + 7, 13, 10, '#334155');
+    oval(x, y + 4, 13, 10, '#94a3b8');
+    oval(x, y + 4, 10, 7.5, '#475569');
+    oval(x, y + 4, 7, 5.5, '#1e293b');
+    // Insulated vertical riser.
+    box(x - 6, y - 10, 12, 15, '#64748b');
+    box(x - 5, y - 9, 3, 13, '#cbd5e1', false);
+    box(x + 3, y - 9, 2, 13, '#334155', false);
+    // Thermal inspection slit.
+    box(x - 1, y - 7, 3, 9, outline);
+    const intensity = 0.65 + Math.sin(timeMs * 0.003 + phase) * 0.2;
+    box(
+      x - 0.4, y - 6, 1.8, 7,
+      `rgba(251, 146, 60, ${intensity})`,
+      false
+    );
+    // Insulation bands.
+    box(x - 6, y - 8, 12, 2, '#94a3b8');
+    box(x - 6, y + 1, 12, 2, '#94a3b8');
+    // Pressure cap and valve wheel.
+    oval(x, y - 10, 7, 3.5, '#cbd5e1');
+    oval(x, y - 10, 4, 2, '#475569');
+    line(x, y - 11, x, y - 15, '#94a3b8', 1.5);
+    oval(x, y - 16, 4, 2, orange);
+    line(x - 3, y - 16, x + 3, y - 16, '#fed7aa', 0.7);
+    // Collar bolts.
+    for (const offset of [-9, 9]) {
+      oval(x + offset, y + 4, 1.1, 0.8, '#cbd5e1', false);
+    }
+    // Monitoring tab.
+    box(x - 3, y + 10, 6, 4, outline);
+    box(x - 2, y + 11, 4, 1.5, cyan, false);
+  }
+  // Raised foundation.
+  box(9, 18, 84, 74, 'rgba(0, 0, 0, 0.25)', false);
+  box(7, 14, 86, 74, '#334155');
+  box(7, 14, 86, 68, '#64748b');
+  box(11, 18, 78, 60, '#475569');
+  // Deck panel seams.
+  for (const x of [30, 50, 70]) {
+    line(x, 19, x, 77, '#64748b', 0.6);
+  }
+  for (const y of [39, 59]) {
+    line(12, y, 88, y, '#64748b', 0.6);
+  }
+  // Frost along the outer deck edges.
+  line(14, 19, 28, 19, '#bae6fd', 1.4);
+  line(71, 19, 85, 19, '#bae6fd', 1.4);
+  line(12, 53, 12, 69, '#bae6fd', 1.2);
+  line(88, 53, 88, 69, '#bae6fd', 1.2);
+  // Hot supply manifold.
+  pipe([[24, 37], [24, 49], [76, 49], [76, 37]], orange);
+  pipe([[50, 34], [50, 49], [50, 57]], orange);
+  // Cool return manifold.
+  pipe([
+    [16, 40], [16, 72], [84, 72], [84, 40]
+  ], '#0891b2');
+  pipe([[57, 67], [57, 72]], '#0891b2');
+  // Rear wellheads.
+  wellhead(24, 35, 0);
+  wellhead(50, 30, 2);
+  wellhead(76, 35, 4);
+  // Insulated pipe collars.
+  for (const x of [34, 64]) {
+    box(x, 46, 4, 6, '#94a3b8');
+    box(x + 1, 47, 2, 4, orange, false);
+  }
+  // Heat exchanger lower housing.
+  box(32, 60, 36, 18, '#334155');
+  box(32, 55, 36, 18, '#94a3b8');
+  box(35, 58, 30, 12, '#475569');
+  // Dense exchanger fins.
+  for (let x = 37; x <= 63; x += 3) {
+    box(x, 59, 1.5, 10, '#cbd5e1', false);
+  }
+  // Orange end caps and reinforcement.
+  box(32, 58, 3, 12, orange);
+  box(65, 58, 3, 12, orange);
+  line(36, 56, 64, 56, '#e2e8f0', 1);
+  // Front temperature display.
+  box(43, 72, 14, 5, outline);
+  box(45, 73, 10, 2.5, '#164e63', false);
+  line(46, 74, 49, 74, cyan, 0.8);
+  line(51, 74, 54, 74, '#fb923c', 0.8);
+  // Small circulation pump.
+  pipe([[68, 64], [75, 64], [75, 72]], '#0891b2');
+  oval(75, 64, 5, 4, '#334155');
+  oval(75, 63, 4, 3, '#94a3b8');
+  oval(75, 63, 1.5, 1.2, cyan, false);
+  // Front service cabinet.
+  box(13, 75, 15, 14, '#334155');
+  box(13, 72, 15, 13, '#94a3b8');
+  box(16, 75, 9, 5, outline);
+  box(17, 76, 7, 3, '#164e63', false);
+  line(18, 77, 23, 77, cyan, 0.8);
+  box(16, 82, 2, 1.5, orange, false);
+  // Thermal output connection.
+  pipe([[50, 78], [50, 87]], orange);
+  box(44, 83, 12, 10, '#475569');
+  box(46, 84, 8, 7, '#94a3b8');
+  box(48, 85, 4, 5, '#b45309');
+  line(49, 86, 49, 89, '#fbbf24', 0.8);
+  // Hazard markings on the south edge.
+  for (const x of [33, 39, 59, 65, 71, 77]) {
+    box(x, 83, 3, 2, orange, false);
+  }
+  // Fixed perimeter lights.
+  for (const x of [9, 87]) {
+    box(x, 16, 3, 5, outline);
+    box(x + 0.7, 17, 1.6, 3, cyan, false);
+  }
+  ctx.restore();
+}
+
+function drawElectrostaticDustDeflectors(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  timeMs: number = 0
+) {
+  if (pw <= 0 || ph <= 0) return;
+  ctx.save();
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+  const outline = '#111827';
+  const cyan = '#22d3ee';
+  const orange = '#ea580c';
+  function box(
+    x: number, y: number,
+    width: number, height: number,
+    fill: string, border = true
+  ) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, width, height);
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, width, height);
+    }
+  }
+  function oval(
+    x: number, y: number,
+    rx: number, ry: number,
+    fill: string, border = true
+  ) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  function line(
+    x1: number, y1: number,
+    x2: number, y2: number,
+    color: string, width = 1
+  ) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+  function cable(points: number[][]) {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  function pylon(x: number, y: number, phase: number) {
+    // Mounting plinth with visible front depth.
+    box(x - 8, y + 3, 16, 8, '#334155');
+    box(x - 8, y, 16, 7, '#94a3b8');
+    box(x - 5, y + 1, 10, 4, '#475569');
+    // Insulated emitter mast.
+    box(x - 3, y - 18, 6, 21, '#64748b');
+    box(x - 2, y - 17, 1.5, 19, '#cbd5e1', false);
+    // Ceramic insulation rings.
+    for (const offset of [-14, -10, -6]) {
+      oval(x, y + offset, 5, 2, '#94a3b8');
+      line(
+        x - 3.5, y + offset - 0.5,
+        x + 3.5, y + offset - 0.5,
+        '#e2e8f0', 0.6
+      );
+    }
+    // Orange base collar.
+    box(x - 4, y - 2, 8, 3, orange);
+    // Emitter head.
+    oval(x, y - 20, 7, 4, '#334155');
+    oval(x, y - 22, 7, 4, '#94a3b8');
+    oval(x, y - 22, 4.5, 2.5, '#164e63');
+    const pulse = 0.65 + Math.sin(timeMs * 0.004 + phase) * 0.25;
+    oval(
+      x, y - 22, 2.5, 1.4,
+      `rgba(103, 232, 249, ${pulse})`,
+      false
+    );
+    // Small status panel.
+    box(x - 2, y + 3, 4, 3, outline);
+    box(x - 1.3, y + 3.7, 2.6, 1.3, cyan, false);
+  }
+  function fieldArc(
+    x1: number, y1: number,
+    cx: number, cy: number,
+    x2: number, y2: number
+  ) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.quadraticCurveTo(cx, cy, x2, y2);
+    ctx.stroke();
+  }
+  // Reinforced equipment deck.
+  box(9, 23, 84, 68, 'rgba(0, 0, 0, 0.25)', false);
+  box(7, 19, 86, 68, '#334155');
+  box(7, 19, 86, 62, '#64748b');
+  box(11, 23, 78, 54, '#475569');
+  // Deck seams.
+  for (const x of [30, 50, 70]) {
+    line(x, 24, x, 76, '#64748b', 0.6);
+  }
+  for (const y of [41, 59]) {
+    line(12, y, 88, y, '#64748b', 0.6);
+  }
+  // Power conduits beneath the pylons and generator.
+  cable([[24, 35], [24, 49], [42, 49]]);
+  cable([[76, 35], [76, 49], [58, 49]]);
+  cable([[24, 70], [35, 70], [35, 60], [42, 60]]);
+  cable([[76, 70], [65, 70], [65, 60], [58, 60]]);
+  // Rear emitter pair.
+  pylon(24, 35, 0);
+  pylon(76, 35, Math.PI);
+  // Central high-voltage generator.
+  box(37, 46, 26, 23, '#334155');
+  box(37, 41, 26, 23, '#94a3b8');
+  box(40, 45, 20, 15, '#475569');
+  // Capacitor banks.
+  for (const x of [44, 56]) {
+    box(x - 3, 46, 6, 11, '#334155');
+    oval(x, 46, 3, 1.8, '#cbd5e1');
+    box(x - 1, 48, 2, 7, cyan, false);
+    oval(x, 57, 3, 1.5, '#64748b');
+  }
+  // Orange armored sides.
+  box(37, 45, 2.5, 15, orange);
+  box(60.5, 45, 2.5, 15, orange);
+  // Top cooling grille.
+  box(42, 41, 16, 3, outline);
+  for (let x = 44; x <= 56; x += 3) {
+    line(x, 41.5, x, 43.5, '#94a3b8', 0.7);
+  }
+  // Front power display.
+  box(43, 61, 14, 5, outline);
+  box(45, 62, 10, 2.5, '#164e63', false);
+  line(46, 63, 54, 63, cyan, 0.8);
+  // Front emitter pair.
+  pylon(24, 70, 1);
+  pylon(76, 70, 3);
+  // Field arcs between emitter heads.
+  ctx.save();
+  const fieldPulse = 0.2 + (Math.sin(timeMs * 0.003) + 1) * 0.1;
+  ctx.strokeStyle = `rgba(34, 211, 238, ${fieldPulse})`;
+  ctx.lineWidth = 3;
+  fieldArc(24, 13, 50, 5, 76, 13);
+  fieldArc(24, 13, 13, 30, 24, 48);
+  fieldArc(76, 13, 87, 30, 76, 48);
+  fieldArc(24, 48, 50, 57, 76, 48);
+  // Narrow moving dashes suggest electrical flow.
+  ctx.strokeStyle = 'rgba(165, 243, 252, 0.65)';
+  ctx.lineWidth = 0.7;
+  ctx.setLineDash([2, 8]);
+  ctx.lineDashOffset = -timeMs * 0.012;
+  fieldArc(24, 13, 50, 5, 76, 13);
+  fieldArc(24, 13, 13, 30, 24, 48);
+  fieldArc(76, 13, 87, 30, 76, 48);
+  fieldArc(24, 48, 50, 57, 76, 48);
+  ctx.restore();
+  // Front maintenance console.
+  box(41, 76, 18, 14, '#334155');
+  box(41, 73, 18, 13, '#94a3b8');
+  box(44, 76, 12, 5, outline);
+  box(45, 77, 10, 3, '#164e63', false);
+  line(46, 78, 53, 78, cyan, 0.8);
+  box(44, 83, 2, 1.5, orange, false);
+  // South edge hazard markings.
+  for (const x of [10, 16, 22, 70, 76, 82]) {
+    box(x, 83, 3, 2, orange, false);
+  }
+  ctx.restore();
+}
+
+function drawAtmosphericGenesisEngine(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  timeMs: number = 0
+) {
+  if (pw <= 0 || ph <= 0) return;
+  ctx.save();
+  const scale = Math.min(pw, ph) / 100;
+  ctx.translate(
+    px + (pw - 100 * scale) / 2,
+    py + (ph - 100 * scale) / 2
+  );
+  ctx.scale(scale, scale);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+  const outline = '#111827';
+  const cyan = '#22d3ee';
+  const orange = '#ea580c';
+  function box(
+    x: number, y: number,
+    width: number, height: number,
+    fill: string, border = true
+  ) {
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, y, width, height);
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, width, height);
+    }
+  }
+  function oval(
+    x: number, y: number,
+    rx: number, ry: number,
+    fill: string, border = true
+  ) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (border) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  function line(
+    x1: number, y1: number,
+    x2: number, y2: number,
+    color: string, width = 1
+  ) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+  function pipe(points: number[][], color = '#94a3b8') {
+    ctx.beginPath();
+    points.forEach(([x, y], i) => {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+  function tower(x: number, y: number) {
+    // Mount and cylinder body.
+    oval(x, y + 27, 10, 5, '#334155');
+    box(x - 10, y, 20, 27, '#64748b');
+    box(x - 8, y + 2, 3, 22, '#94a3b8', false);
+    oval(x, y + 26, 10, 4, '#475569');
+    // Gas chamber.
+    box(x - 4, y + 5, 8, 15, outline);
+    box(x - 3, y + 6, 6, 13, '#164e63', false);
+    box(x - 2, y + 7, 1.2, 10, '#a5f3fc', false);
+    // Reinforcement bands.
+    box(x - 10, y + 2, 20, 2, '#cbd5e1');
+    box(x - 10, y + 21, 20, 2, '#94a3b8');
+    // Pressure cap.
+    oval(x, y, 10, 4, '#cbd5e1');
+    oval(x, y - 0.5, 6.5, 2.5, '#475569');
+    oval(x, y - 0.5, 2.5, 1.2, orange, false);
+    // Status panel.
+    box(x - 3, y + 25, 6, 5, outline);
+    box(x - 2, y + 26, 4, 2, cyan, false);
+  }
+  function fan(x: number, y: number, phase: number) {
+    oval(x, y, 6, 4, '#334155');
+    oval(x, y, 4.8, 3.2, outline);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, 0.67);
+    ctx.rotate(timeMs * 0.002 + phase);
+    for (let i = 0; i < 4; i++) {
+      ctx.save();
+      ctx.rotate(i * Math.PI / 2);
+      box(1, -0.8, 3.3, 1.6, '#94a3b8', false);
+      ctx.restore();
+    }
+    ctx.restore();
+    oval(x, y, 1.3, 0.9, orange, false);
+  }
+  // Raised industrial deck.
+  box(9, 20, 84, 72, 'rgba(0, 0, 0, 0.25)', false);
+  box(7, 16, 86, 72, '#334155');
+  box(7, 16, 86, 66, '#64748b');
+  box(11, 20, 78, 58, '#475569');
+  // Deck seams.
+  for (const x of [30, 50, 70]) {
+    line(x, 21, x, 77, '#64748b', 0.6);
+  }
+  for (const y of [40, 60]) {
+    line(12, y, 88, y, '#64748b', 0.6);
+  }
+  // Rear circulation manifold.
+  pipe([[23, 32], [23, 23], [77, 23], [77, 32]]);
+  pipe([[50, 23], [50, 33]], '#0891b2');
+  // Tower-to-reactor connections.
+  pipe([[23, 55], [23, 63], [37, 63]]);
+  pipe([[77, 55], [77, 63], [63, 63]]);
+  // Twin gas-processing towers.
+  tower(23, 32);
+  tower(77, 32);
+  // Reactor lower housing.
+  box(34, 44, 32, 30, '#334155');
+  box(34, 39, 32, 30, '#94a3b8');
+  box(38, 43, 24, 22, '#475569');
+  // Orange armored edges.
+  box(34, 43, 3, 22, orange);
+  box(63, 43, 3, 22, orange);
+  // Central reaction chamber.
+  box(43, 44, 14, 18, outline);
+  box(45, 46, 10, 14, '#164e63', false);
+  const pulse = 0.35 + (Math.sin(timeMs * 0.003) + 1) * 0.2;
+  box(
+    46, 47, 8, 12,
+    `rgba(34, 211, 238, ${pulse})`,
+    false
+  );
+  // Chamber separators and reflection.
+  for (const y of [50, 54, 58]) {
+    line(45, y, 55, y, '#67e8f9', 0.7);
+  }
+  box(46, 47, 1.2, 11, '#cffafe', false);
+  // Reactor roof cap.
+  oval(50, 39, 16, 8, '#cbd5e1');
+  oval(50, 38, 12, 6, '#64748b');
+  oval(50, 38, 7, 3.5, '#164e63');
+  oval(50, 38, 3, 1.5, cyan, false);
+  // Atmospheric outlet housing.
+  box(34, 27, 32, 10, '#334155');
+  box(34, 24, 32, 10, '#94a3b8');
+  box(37, 26, 26, 6, outline);
+  // Release grille.
+  for (let x = 39; x <= 61; x += 3) {
+    line(x, 27, x, 31, '#cbd5e1', 0.9);
+  }
+  // Front intake units.
+  box(12, 67, 18, 13, '#334155');
+  box(12, 64, 18, 12, '#94a3b8');
+  fan(21, 69, 0);
+  box(70, 67, 18, 13, '#334155');
+  box(70, 64, 18, 12, '#94a3b8');
+  fan(79, 69, Math.PI / 4);
+  // Front diagnostic console.
+  box(39, 76, 22, 15, '#334155');
+  box(39, 73, 22, 13, '#94a3b8');
+  box(42, 76, 16, 6, outline);
+  box(43, 77, 14, 4, '#164e63', false);
+  // Small waveform display.
+  ctx.beginPath();
+  ctx.moveTo(44, 79);
+  ctx.lineTo(47, 79);
+  ctx.lineTo(48, 77.8);
+  ctx.lineTo(50, 80);
+  ctx.lineTo(52, 78);
+  ctx.lineTo(53, 79);
+  ctx.lineTo(56, 79);
+  ctx.strokeStyle = cyan;
+  ctx.lineWidth = 0.7;
+  ctx.stroke();
+  box(43, 83, 2, 1.5, '#22c55e', false);
+  box(47, 83, 2, 1.5, orange, false);
+  // Hazard trim.
+  for (const x of [12, 18, 24, 72, 78, 84]) {
+    box(x, 83, 3, 2, orange, false);
+  }
+  // Soft atmospheric plume, kept inside the footprint.
+  for (let i = 0; i < 5; i++) {
+    const progress = ((timeMs * 0.00025 + i / 5) % 1 + 1) % 1;
+    const drift = Math.sin(progress * Math.PI * 2 + i) * 2;
+    const alpha = Math.sin(progress * Math.PI) * 0.16;
+    oval(
+      50 + drift,
+      25 - progress * 16,
+      3 + progress * 5,
+      1.5 + progress * 2,
+      `rgba(165, 243, 252, ${alpha})`,
+      false
+    );
+  }
   ctx.restore();
 }
 
