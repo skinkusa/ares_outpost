@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ColonyModule } from '../types/colony';
+import { ColonyModule, ContractBoard, EarthContract } from '../types/colony';
+import { earthImportCost } from '../utils/constants';
 import {
   Coins,
   DollarSign,
@@ -12,6 +13,27 @@ import {
   Zap,
 } from 'lucide-react';
 
+function contractClock(seconds: number): string {
+  const total = Math.max(0, Math.ceil(seconds));
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function offerBlurb(job: EarthContract): string {
+  if (job.kind === 'spice') {
+    return `Earth pays ₡${job.rewardCredits} for ${job.goal} kg, above the open market.`;
+  }
+  if (job.kind === 'alloy' && job.rewardSupplies > 0) {
+    return `Turn over ${job.goal} alloy. Earth sends ${job.rewardSupplies} rations and ${job.rewardSupplies} liters of water.`;
+  }
+  if (job.kind === 'alloy') return `Turn over ${job.goal} alloy for ₡${job.rewardCredits}.`;
+  if (job.hold === 'power') {
+    return `Keep the grid from going negative for ${job.goal} seconds. Pays 1 tech point and pulls the next colonist forward.`;
+  }
+  return `Keep morale at 55 or higher for ${job.goal} seconds. Pays 1 tech point and pulls the next colonist forward.`;
+}
+
 interface TradeRocketModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,6 +43,12 @@ interface TradeRocketModalProps {
   spicePriceMultiplier: number; // default 1.0, upgraded via tech
   onSellSpice: (amount: number) => void;
   onImportSupply: (type: 'crew' | 'alloy' | 'supplies') => void;
+  contract: ContractBoard;
+  alloy: number;
+  powerNet: number;
+  morale: number;
+  onAcceptContract: () => void;
+  onDeliverContract: () => void;
   autoExportSpice: boolean;
   autoExportThreshold: number;
   onToggleAutoExport: () => void;
@@ -36,6 +64,12 @@ export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
   spicePriceMultiplier,
   onSellSpice,
   onImportSupply,
+  contract,
+  alloy,
+  powerNet,
+  morale,
+  onAcceptContract,
+  onDeliverContract,
   autoExportSpice,
   autoExportThreshold,
   onToggleAutoExport,
@@ -47,6 +81,14 @@ export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
 
   const hasLaunchpad = modules.some((m) => m.type === 'launchpad' && m.isActive);
   const tariff = hasLaunchpad ? 1.0 : 0.85;
+  const crewCost = earthImportCost('crew', contract.importPenalty);
+  const alloyCost = earthImportCost('alloy', contract.importPenalty);
+  const supplyCost = earthImportCost('supplies', contract.importPenalty);
+  const activeJob = contract.active;
+  const offer = contract.offer;
+  const holding =
+    activeJob?.kind === 'hold' &&
+    (activeJob.hold === 'power' ? powerNet >= 0 : morale >= 55);
   const basePricePerKg = 2.5 * spicePriceMultiplier * tariff;
   const currentSellRevenue = Math.round(spiceToSell * basePricePerKg);
 
@@ -77,6 +119,78 @@ export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto flex flex-col gap-6">
+          <div className="bg-stone-900/80 border border-amber-700/50 p-4 rounded-xl flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-title font-bold text-sm text-amber-200 flex items-center gap-2">
+                <Rocket className="w-4 h-4 text-amber-400" /> EARTH CONTRACT
+              </h3>
+              {contract.importPenalty && (
+                <span className="font-mono text-[10px] text-red-300 border border-red-800/70 bg-red-950/50 px-2 py-0.5 rounded">
+                  IMPORTS +40%
+                </span>
+              )}
+            </div>
+            {!activeJob && !offer && (
+              <p className="text-xs text-stone-400">Earth is writing the next offer.</p>
+            )}
+            {activeJob && (
+              <div className="bg-stone-950/80 border border-stone-800 rounded-lg p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-title text-xs font-bold text-stone-100">{activeJob.name}</span>
+                  <span className="font-mono text-[11px] text-amber-300">{contractClock(activeJob.secondsLeft)}</span>
+                </div>
+                <p className="text-[11px] text-stone-400 leading-relaxed">{offerBlurb(activeJob)}</p>
+                <div className="font-mono text-[11px] text-stone-300">
+                  {activeJob.kind === 'hold'
+                    ? `Steady ${Math.floor(activeJob.progress)}/${activeJob.goal}s`
+                    : `${Math.floor(activeJob.progress)}/${activeJob.goal} delivered`}
+                </div>
+                {activeJob.kind === 'hold' ? (
+                  <p className={`text-[11px] ${holding ? 'text-emerald-300' : 'text-red-300'}`}>
+                    {holding
+                      ? 'The line is holding. The clock still runs.'
+                      : activeJob.hold === 'power'
+                        ? 'The grid is negative. Progress waits until power recovers.'
+                        : 'Morale is under 55. Progress waits until the crew steadies.'}
+                  </p>
+                ) : (
+                  <button
+                    onClick={onDeliverContract}
+                    disabled={(activeJob.kind === 'spice' ? spiceAmount : alloy) <= 0}
+                    className="self-start px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 disabled:bg-stone-800 disabled:text-stone-500 text-white font-title text-[11px] font-bold tracking-wide"
+                  >
+                    {(activeJob.kind === 'spice' ? spiceAmount : alloy) <= 0
+                      ? activeJob.kind === 'spice'
+                        ? 'NEED SPICE'
+                        : 'NEED ALLOY'
+                      : `DELIVER ${Math.min(
+                          Math.ceil((activeJob.kind === 'spice' ? spiceAmount : alloy)),
+                          Math.ceil(activeJob.goal - activeJob.progress)
+                        )} ${activeJob.kind === 'spice' ? 'kg' : 'ALLOY'}`}
+                  </button>
+                )}
+              </div>
+            )}
+            {offer && (
+              <div className="bg-stone-950/80 border border-stone-800 rounded-lg p-3 flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-title text-xs font-bold text-stone-200">
+                    {activeJob ? 'Waiting offer' : offer.name}
+                    <span className="ml-2 font-mono text-[10px] text-stone-500">{contractClock(offer.secondsLeft)}</span>
+                  </div>
+                  <p className="text-[11px] text-stone-400 mt-1 leading-relaxed">{offerBlurb(offer)}</p>
+                </div>
+                <button
+                  onClick={onAcceptContract}
+                  disabled={!!activeJob}
+                  className="shrink-0 px-3 py-1.5 rounded bg-stone-800 hover:bg-amber-900/70 disabled:opacity-40 text-amber-100 font-title text-[11px] font-bold border border-amber-800/60"
+                >
+                  {activeJob ? 'BUSY' : 'ACCEPT'}
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Automated Export (Requires Launchpad) */}
           {hasLaunchpad && (
             <div className="bg-stone-900/80 border border-stone-800 p-3 rounded-lg flex items-center justify-between">
@@ -225,10 +339,10 @@ export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
                 </div>
                 <button
                   onClick={() => onImportSupply('crew')}
-                  disabled={credits < 180}
+                  disabled={credits < crewCost}
                   className="mt-3 w-full py-1.5 rounded bg-stone-800 hover:bg-purple-900/60 disabled:opacity-40 text-purple-200 text-xs font-mono font-bold border border-purple-800/60 transition-colors"
                 >
-                  BUY (₡180)
+                  BUY (₡{crewCost})
                 </button>
               </div>
 
@@ -244,10 +358,10 @@ export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
                 </div>
                 <button
                   onClick={() => onImportSupply('alloy')}
-                  disabled={credits < 140}
+                  disabled={credits < alloyCost}
                   className="mt-3 w-full py-1.5 rounded bg-stone-800 hover:bg-orange-900/60 disabled:opacity-40 text-orange-200 text-xs font-mono font-bold border border-orange-800/60 transition-colors"
                 >
-                  BUY (₡140)
+                  BUY (₡{alloyCost})
                 </button>
               </div>
 
@@ -263,10 +377,10 @@ export const TradeRocketModal: React.FC<TradeRocketModalProps> = ({
                 </div>
                 <button
                   onClick={() => onImportSupply('supplies')}
-                  disabled={credits < 120}
+                  disabled={credits < supplyCost}
                   className="mt-3 w-full py-1.5 rounded bg-stone-800 hover:bg-emerald-900/60 disabled:opacity-40 text-emerald-200 text-xs font-mono font-bold border border-emerald-800/60 transition-colors"
                 >
-                  BUY (₡120)
+                  BUY (₡{supplyCost})
                 </button>
               </div>
             </div>

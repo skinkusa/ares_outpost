@@ -19,6 +19,8 @@ import {
   TechNode,
   WeatherCondition,
   WeatherType,
+  ContractBoard,
+  EarthContract,
   RandomEvent,
   RandomEventType,
 } from './types/colony';
@@ -27,13 +29,14 @@ import {
   HARVESTER_SPECS,
   MODULE_BLUEPRINTS,
   crewRequired,
+  earthImportCost,
   TECH_TREE,
   TILE_SIZE,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from './utils/constants';
 import { generateMarsTerrain, spawnNewSpicePatch } from './utils/terrain';
-import { clearColonySave, ColonySave, loadColony, mergeSavedTech, saveColony } from './utils/colonySave';
+import { clearColonySave, ColonySave, loadColony, mergeSavedTech, normalizeContractBoard, saveColony } from './utils/colonySave';
 import { sound } from './utils/audio';
 import {
   findDockingApron,
@@ -203,6 +206,188 @@ function repairJobs(modules: ColonyModule[]): number {
     const progress = m.repairProgress ?? 0;
     return progress > 0 && progress < 100;
   }).length;
+}
+
+function rollContract(): EarthContract {
+  const id = `job_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+  const roll = Math.random();
+  if (roll < 0.4) {
+    const goal = 50 + Math.floor(Math.random() * 3) * 10;
+    return {
+      id,
+      status: 'offered',
+      kind: 'spice',
+      name: 'Spice Haul',
+      goal,
+      progress: 0,
+      secondsLeft: 90,
+      rewardCredits: goal * 4,
+      rewardTech: 0,
+      rewardSupplies: 0,
+      hold: null,
+    };
+  }
+  if (roll < 0.7) {
+    const goal = 25 + Math.floor(Math.random() * 2) * 10;
+    const supplies = Math.random() < 0.5;
+    return {
+      id,
+      status: 'offered',
+      kind: 'alloy',
+      name: 'Alloy Levy',
+      goal,
+      progress: 0,
+      secondsLeft: 90,
+      rewardCredits: supplies ? 0 : goal * 6,
+      rewardTech: 0,
+      rewardSupplies: supplies ? 40 : 0,
+      hold: null,
+    };
+  }
+  const hold = Math.random() < 0.5 ? 'power' : 'morale';
+  return {
+    id,
+    status: 'offered',
+    kind: 'hold',
+    name: hold === 'power' ? 'Hold the Line' : 'Steady Morale',
+    goal: 40,
+    progress: 0,
+    secondsLeft: 80,
+    rewardCredits: 0,
+    rewardTech: 1,
+    rewardSupplies: 0,
+    hold,
+  };
+}
+
+type CasualtyClocks = { air: number; water: number; food: number; power: number; lock: number };
+
+const CASUALTY_AFTER: Record<'air' | 'water' | 'food' | 'power', number> = {
+  air: 20,
+  water: 35,
+  food: 45,
+  power: 30,
+};
+
+function stepCasualty(
+  clocks: CasualtyClocks,
+  dt: number,
+  empty: { air: boolean; water: boolean; food: boolean; power: boolean },
+  population: number
+): 'air' | 'water' | 'food' | 'power' | null {
+  (['air', 'water', 'food', 'power'] as const).forEach((key) => {
+    clocks[key] = empty[key] ? clocks[key] + dt : 0;
+  });
+  if (clocks.lock > 0) clocks.lock = Math.max(0, clocks.lock - dt);
+  if (population <= 0 || clocks.lock > 0) return null;
+  for (const cause of ['air', 'power', 'water', 'food'] as const) {
+    if (clocks[cause] >= CASUALTY_AFTER[cause]) {
+      clocks[cause] = 0;
+      clocks.lock = 15;
+      return cause;
+    }
+  }
+  return null;
+}
+
+function contractClock(seconds: number): string {
+  const total = Math.max(0, Math.ceil(seconds));
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function contractHudLabel(board: ContractBoard): string | null {
+  const job = board.active ?? board.offer;
+  if (!job) return board.importPenalty ? 'IMPORTS +40%' : null;
+  const clock = contractClock(job.secondsLeft);
+  if (!board.active) {
+    const tag = job.kind === 'spice' ? 'SPICE' : job.kind === 'alloy' ? 'ALLOY' : 'HOLD';
+    return `${tag} OFFER · ${clock}`;
+  }
+  if (job.kind === 'hold') return `HOLD ${Math.floor(job.progress)}/${job.goal} · ${clock}`;
+  const tag = job.kind === 'spice' ? 'SPICE' : 'ALLOY';
+  return `${tag} ${Math.floor(job.progress)}/${job.goal} · ${clock}`;
+}
+
+function contractOfferText(job: EarthContract): string {
+  if (job.kind === 'spice') {
+    return `Earth pays ₡${job.rewardCredits} for ${job.goal} kg, above the open market.`;
+  }
+  if (job.kind === 'alloy' && job.rewardSupplies > 0) {
+    return `Turn over ${job.goal} alloy. Earth sends ${job.rewardSupplies} rations and ${job.rewardSupplies} liters of water.`;
+  }
+  if (job.kind === 'alloy') {
+    return `Turn over ${job.goal} alloy for ₡${job.rewardCredits}.`;
+  }
+  if (job.hold === 'power') {
+    return `Keep the grid from going negative for ${job.goal} seconds. Pays 1 tech point and pulls the next colonist forward.`;
+  }
+  return `Keep morale at 55 or higher for ${job.goal} seconds. Pays 1 tech point and pulls the next colonist forward.`;
+}
+
+type ContractNotice = 'offer' | 'expired' | 'failed' | 'held';
+
+function stepContract(
+  board: ContractBoard,
+  dt: number,
+  powerNet: number,
+  morale: number
+): { board: ContractBoard; notice: ContractNotice | null; subject: EarthContract | null } {
+  let offer = board.offer ? { ...board.offer } : null;
+  let active = board.active ? { ...board.active } : null;
+  let importPenalty = board.importPenalty;
+  let introDelay = board.introDelay;
+  let notice: ContractNotice | null = null;
+  let subject: EarthContract | null = null;
+
+  if (offer) {
+    offer.secondsLeft -= dt;
+    if (offer.secondsLeft <= 0) {
+      notice = 'expired';
+      subject = offer;
+      offer = null;
+      introDelay = 12;
+    }
+  }
+
+  if (active) {
+    active.secondsLeft -= dt;
+    if (active.kind === 'hold') {
+      const holding = active.hold === 'power' ? powerNet >= 0 : morale >= 55;
+      if (holding) active.progress = Math.min(active.goal, active.progress + dt);
+      if (active.progress >= active.goal - 0.001) {
+        notice = 'held';
+        subject = active;
+        active = null;
+        importPenalty = false;
+        if (!offer) introDelay = 0;
+      } else if (active.secondsLeft <= 0) {
+        notice = 'failed';
+        subject = active;
+        active = null;
+        importPenalty = true;
+        if (!offer) introDelay = 12;
+      }
+    } else if (active.secondsLeft <= 0) {
+      notice = 'failed';
+      subject = active;
+      active = null;
+      importPenalty = true;
+      if (!offer) introDelay = 12;
+    }
+  }
+
+  if (!offer && notice === null) {
+    if (introDelay > 0) introDelay = Math.max(0, introDelay - dt);
+    else {
+      offer = rollContract();
+      notice = 'offer';
+      subject = offer;
+    }
+  }
+
+  return { board: { offer, active, importPenalty, introDelay }, notice, subject };
 }
 
 function assignRepairWorker(
@@ -495,6 +680,9 @@ export default function App() {
 
   // Random Events
   const [randomEvent, setRandomEvent] = useState<RandomEvent | null>(() => boot?.randomEvent ?? null);
+  const [contract, setContract] = useState<ContractBoard>(() => normalizeContractBoard(boot?.contract, !boot));
+  const contractRef = useRef(contract);
+  contractRef.current = contract;
 
   // Colony Stats & Resources
   const statsRef = useRef<ColonyStats | null>(null);
@@ -589,6 +777,7 @@ export default function App() {
     techNodes,
     weather,
     randomEvent,
+    contract,
     stats,
     resourceHistory,
     logs,
@@ -646,6 +835,8 @@ export default function App() {
   const shuttleTurnedBackRef = useRef(false);
 
   // Prolonged Low Resource Deprivation Tracker (> 5 minutes / 300 seconds of game time)
+  const casualtyRef = useRef<CasualtyClocks>({ air: 0, water: 0, food: 0, power: 0, lock: 0 });
+
   const prolongedLowTrackerRef = useRef<{
     powerSec: number;
     oxygenSec: number;
@@ -827,6 +1018,30 @@ export default function App() {
         }
       }
 
+      const contractStep = stepContract(contractRef.current, dt, stats.powerNet, stats.morale);
+      contractRef.current = contractStep.board;
+      setContract(contractStep.board);
+      if (contractStep.notice === 'offer' && contractStep.subject) {
+        addLog('info', 'Earth Contract', `${contractStep.subject.name}. ${contractOfferText(contractStep.subject)} Open for ${contractClock(contractStep.subject.secondsLeft)}.`);
+      } else if (contractStep.notice === 'expired' && contractStep.subject) {
+        addLog('info', 'Offer Withdrawn', `Earth withdrew the ${contractStep.subject.name}. Another offer will follow.`);
+      } else if (contractStep.notice === 'failed' && contractStep.subject) {
+        addLog('warning', 'Contract Missed', `The ${contractStep.subject.name} lapsed. Earth marked up imports until a contract is finished.`);
+      } else if (contractStep.notice === 'held' && contractStep.subject) {
+        const job = contractStep.subject;
+        setStats((prev) => ({
+          ...prev,
+          credits: prev.credits + job.rewardCredits,
+          totalCreditsEarned: prev.totalCreditsEarned + job.rewardCredits,
+          techPoints: prev.techPoints + job.rewardTech,
+          food: Math.min(prev.maxFood, prev.food + job.rewardSupplies),
+          water: Math.min(prev.maxWater, prev.water + job.rewardSupplies),
+        }));
+        arrivalClockRef.current = Math.min(74, arrivalClockRef.current + 20);
+        sound.playBuild();
+        addLog('success', 'Contract Fulfilled', `${job.name} held. +1 tech point, and the next colonist shuttle is closer.`);
+      }
+
       const scarBuilding = (reason: 'tremor' | 'storm' | 'meteor') => {
         const pool = modules.filter((m) => m.constructed && m.type !== 'command' && m.health > 0);
         const exposed = reason === 'storm'
@@ -933,7 +1148,8 @@ export default function App() {
           const staffFactor = !STAFFABLE_BUILDINGS.has(mod.type) || crewHave >= crewNeed
             ? 1
             : 0.45 + 0.55 * (crewHave / crewNeed);
-          const yieldRate = rate * staffFactor;
+          const moraleFactor = prevStats.morale >= 40 ? 1 : 0.3 + 0.7 * (Math.max(0, prevStats.morale) / 40);
+          const yieldRate = rate * staffFactor * moraleFactor;
 
           if (mod.type === 'medbay') {
             medBayCount++;
@@ -1114,15 +1330,15 @@ export default function App() {
         if (randomEvent?.type === 'meteor_strike') targetMorale -= 12;
 
         // Smoothly interpolate morale towards target
-        targetMorale = Math.max(5, Math.min(100, targetMorale));
+        targetMorale = Math.max(0, Math.min(100, targetMorale));
         const moraleDelta = (targetMorale - prevStats.morale) * (0.06 * dt);
-        const newMorale = Math.max(5, Math.min(100, prevStats.morale + moraleDelta));
+        const newMorale = Math.max(0, Math.min(100, prevStats.morale + moraleDelta));
 
         // Periodic Morale Tier Crossing Alerts
         if (newMorale < 38 && prevStats.morale >= 38 && cd.general <= 0) {
           cd.general = 25;
           sound.playAlarm();
-          addLog('danger', 'Morale Crisis', `Colony morale collapsed to ${Math.round(newMorale)}%! Colonist productivity stalled.`);
+          addLog('danger', 'Morale Crisis', `Colony morale fell to ${Math.round(newMorale)}. Useful output is falling with it.`);
         } else if (newMorale > 80 && prevStats.morale <= 80 && cd.general <= 0) {
           cd.general = 25;
           addLog('success', 'Morale Restored', `Life support stabilized. Colonists report optimal morale (${Math.round(newMorale)}%).`);
@@ -1478,6 +1694,51 @@ export default function App() {
           healthRecoveryRate: netHealthDeltaRate,
         };
       });
+
+      const cause = stepCasualty(
+        casualtyRef.current,
+        dt,
+        {
+          air: stats.oxygen <= 0,
+          water: stats.water <= 0,
+          food: stats.food <= 0,
+          power: stats.powerStored <= 0 && stats.powerNet < 0,
+        },
+        stats.population
+      );
+      if (cause) {
+        const remaining = Math.max(0, stats.population - 1);
+        setStats((prev) => ({ ...prev, population: Math.max(0, prev.population - 1) }));
+        let busiest: ColonyModule | null = null;
+        for (const mod of modules) {
+          if ((mod.assignedColonists || 0) <= 0) continue;
+          if (!busiest || (mod.assignedColonists || 0) > (busiest.assignedColonists || 0)) busiest = mod;
+        }
+        if (busiest) {
+          const id = busiest.id;
+          const nextAssigned = Math.max(0, (busiest.assignedColonists || 0) - 1);
+          setModules((prev) => prev.map((mod) => (mod.id === id ? { ...mod, assignedColonists: nextAssigned } : mod)));
+          setSelectedModule((selected) =>
+            selected && selected.id === id ? { ...selected, assignedColonists: nextAssigned } : selected
+          );
+        }
+        sound.playAlarm();
+        const reason =
+          cause === 'air'
+            ? 'suffocated'
+            : cause === 'water'
+              ? 'died of thirst'
+              : cause === 'food'
+                ? 'starved'
+                : 'died in the blackout';
+        addLog(
+          'danger',
+          'Colonist Lost',
+          remaining > 0
+            ? `A colonist ${reason}. ${remaining} remain.`
+            : `A colonist ${reason}. The outpost is empty. An Earth crew shipment is the only way back.`
+        );
+      }
 
       // 2. Weather Cycle Tick
       setWeather((prevWeather) => {
@@ -2354,30 +2615,103 @@ export default function App() {
 
   // Import Earth Supplies
   const handleImportSupply = (type: 'crew' | 'alloy' | 'supplies') => {
-    if (type === 'crew' && stats.credits >= 180) {
+    const price = earthImportCost(type, contract.importPenalty);
+    if (stats.credits < price) return;
+    if (type === 'crew') {
       setStats((prev) => ({
         ...prev,
-        credits: prev.credits - 180,
+        credits: prev.credits - price,
         population: prev.population + 4,
         alloy: Math.min(prev.maxAlloy, prev.alloy + 20),
       }));
       addLog('success', 'Earth Shuttle Arrived', '+4 Specialist Crew and +20 Alloy arrived from Earth.');
-    } else if (type === 'alloy' && stats.credits >= 140) {
+    } else if (type === 'alloy') {
       setStats((prev) => ({
         ...prev,
-        credits: prev.credits - 140,
+        credits: prev.credits - price,
         alloy: Math.min(prev.maxAlloy, prev.alloy + 75),
       }));
       addLog('success', 'Alloy Crates Delivered', '+75 Structural Alloy delivered to supply depot.');
-    } else if (type === 'supplies' && stats.credits >= 120) {
+    } else {
       setStats((prev) => ({
         ...prev,
-        credits: prev.credits - 120,
+        credits: prev.credits - price,
         food: Math.min(prev.maxFood, prev.food + 80),
         water: Math.min(prev.maxWater, prev.water + 80),
       }));
       addLog('success', 'Rations Delivered', '+80 Rations and +80L Water stockpiled.');
     }
+  };
+
+  const settleContract = (board: ContractBoard, job: EarthContract) => {
+    setStats((prev) => ({
+      ...prev,
+      credits: prev.credits + job.rewardCredits,
+      totalCreditsEarned: prev.totalCreditsEarned + job.rewardCredits,
+      techPoints: prev.techPoints + job.rewardTech,
+      food: Math.min(prev.maxFood, prev.food + job.rewardSupplies),
+      water: Math.min(prev.maxWater, prev.water + job.rewardSupplies),
+    }));
+    const next: ContractBoard = {
+      offer: board.offer,
+      active: null,
+      importPenalty: false,
+      introDelay: board.offer ? board.introDelay : 0,
+    };
+    contractRef.current = next;
+    setContract(next);
+    sound.playBuild();
+    const reward =
+      job.rewardSupplies > 0
+        ? `Earth sent ${job.rewardSupplies} rations and ${job.rewardSupplies} liters.`
+        : `Earth paid ₡${job.rewardCredits}.`;
+    addLog('success', 'Contract Fulfilled', `${job.name} complete. ${reward}`);
+  };
+
+  const handleAcceptContract = () => {
+    const board = contractRef.current;
+    if (!board.offer || board.active) return;
+    const taken = board.offer;
+    const duration = taken.kind === 'hold' ? 120 : 150;
+    const active: EarthContract = { ...taken, status: 'active', secondsLeft: duration, progress: 0 };
+    const next: ContractBoard = { ...board, active, offer: rollContract() };
+    contractRef.current = next;
+    setContract(next);
+    sound.playClick(640);
+    addLog(
+      'info',
+      'Contract Accepted',
+      `${taken.name} is on the clock (${contractClock(duration)}). Another offer is waiting.`
+    );
+  };
+
+  const handleDeliverContract = () => {
+    const board = contractRef.current;
+    const job = board.active;
+    if (!job || job.kind === 'hold') return;
+    const stock = job.kind === 'spice' ? stats.spice : stats.alloy;
+    const amount = Math.min(stock, job.goal - job.progress);
+    if (amount <= 0) return;
+    const progress = job.progress + amount;
+    setStats((prev) => ({
+      ...prev,
+      spice: job.kind === 'spice' ? prev.spice - amount : prev.spice,
+      alloy: job.kind === 'alloy' ? prev.alloy - amount : prev.alloy,
+    }));
+    if (progress >= job.goal - 0.001) {
+      settleContract(board, { ...job, progress: job.goal });
+      return;
+    }
+    const next: ContractBoard = { ...board, active: { ...job, progress } };
+    contractRef.current = next;
+    setContract(next);
+    sound.playClick(520);
+    const unit = job.kind === 'spice' ? 'kg' : 'alloy';
+    addLog(
+      'info',
+      'Partial Delivery',
+      `Turned over ${Math.round(amount)} ${unit}. ${Math.floor(progress)}/${job.goal} toward the ${job.name}.`
+    );
   };
 
   // Unlock Tech
@@ -2588,6 +2922,7 @@ export default function App() {
         onToggleMute={handleToggleMute}
         onOpenTechTree={() => setIsTechTreeOpen(true)}
         onOpenTradeRocket={() => setIsTradeRocketOpen(true)}
+        contractLabel={contractHudLabel(contract)}
         onOpenTutorial={() => setIsTutorialOpen(true)}
         onOpenCustomAssets={() => setIsCustomAssetsOpen(true)}
         onOpenResourceMonitor={(filter) => {
@@ -2736,6 +3071,12 @@ export default function App() {
         spicePriceMultiplier={hasTech('spice_centrifuge') ? 1.4 : 1.0}
         onSellSpice={handleSellSpice}
         onImportSupply={handleImportSupply}
+        contract={contract}
+        alloy={stats.alloy}
+        powerNet={stats.powerNet}
+        morale={stats.morale}
+        onAcceptContract={handleAcceptContract}
+        onDeliverContract={handleDeliverContract}
         autoExportSpice={stats.autoExportSpice || false}
         autoExportThreshold={stats.autoExportThreshold || 100}
         onToggleAutoExport={() => setStats(s => ({ ...s, autoExportSpice: !s.autoExportSpice }))}

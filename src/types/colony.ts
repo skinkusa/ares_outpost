@@ -194,6 +194,29 @@ export interface RandomEvent {
   effectMultiplier: number;
 }
 
+export type ContractKind = 'spice' | 'alloy' | 'hold';
+
+export interface EarthContract {
+  id: string;
+  status: 'offered' | 'active';
+  kind: ContractKind;
+  name: string;
+  goal: number;
+  progress: number;
+  secondsLeft: number;
+  rewardCredits: number;
+  rewardTech: number;
+  rewardSupplies: number;
+  hold: 'power' | 'morale' | null;
+}
+
+export interface ContractBoard {
+  offer: EarthContract | null;
+  active: EarthContract | null;
+  importPenalty: boolean;
+  introDelay: number;
+}
+
 export interface TechNode {
   id: string;
   name: string;

@@ -38,6 +38,7 @@ interface TopBarProps {
   onToggleMute: () => void;
   onOpenTechTree: () => void;
   onOpenTradeRocket: () => void;
+  contractLabel?: string | null;
   onOpenTutorial: () => void;
   onOpenCustomAssets: () => void;
   onOpenResourceMonitor: (filter?: 'all' | 'power' | 'water' | 'oxygen' | 'food' | 'alloy' | 'ore' | 'spice' | 'credits' | 'crew' | 'health') => void;
@@ -54,6 +55,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onToggleMute,
   onOpenTechTree,
   onOpenTradeRocket,
+  contractLabel,
   onOpenTutorial,
   onOpenCustomAssets,
   onOpenResourceMonitor,
@@ -166,6 +168,11 @@ export const TopBar: React.FC<TopBarProps> = ({
           >
             <Rocket className="w-3.5 h-3.5 text-amber-400" />
             <span className="font-title font-semibold tracking-wide">EARTH SHUTTLE</span>
+            {contractLabel && (
+              <span className="font-mono text-[10px] bg-amber-800/80 px-1.5 py-0.2 rounded text-amber-50">
+                {contractLabel}
+              </span>
+            )}
           </button>
 
           {/* Mission Briefing / Tutorial */}

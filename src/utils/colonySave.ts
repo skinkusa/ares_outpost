@@ -3,6 +3,8 @@ import {
   ColonyEventLog,
   ColonyModule,
   ColonyStats,
+  ContractBoard,
+  EarthContract,
   Harvester,
   RandomEvent,
   ResourceHistoryPoint,
@@ -27,6 +29,7 @@ export interface ColonySave {
   techNodes: TechNode[];
   weather: WeatherCondition;
   randomEvent: RandomEvent | null;
+  contract?: ContractBoard;
   stats: ColonyStats;
   resourceHistory: ResourceHistoryPoint[];
   logs: ColonyEventLog[];
@@ -148,6 +151,41 @@ export function clearColonySave(): void {
   } catch {
     // Nothing else stores the colony.
   }
+}
+
+const CONTRACT_KINDS = new Set(['spice', 'alloy', 'hold']);
+
+function readContract(value: unknown, status: 'offered' | 'active'): EarthContract | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.kind !== 'string' || !CONTRACT_KINDS.has(value.kind)) return null;
+  if (typeof value.goal !== 'number' || typeof value.secondsLeft !== 'number') return null;
+  const kind = value.kind as EarthContract['kind'];
+  const hold = value.hold === 'power' || value.hold === 'morale' ? value.hold : null;
+  return {
+    id: typeof value.id === 'string' ? value.id : `job_${kind}`,
+    status,
+    kind,
+    name: typeof value.name === 'string' ? value.name : 'Earth Contract',
+    goal: value.goal,
+    progress: typeof value.progress === 'number' ? value.progress : 0,
+    secondsLeft: value.secondsLeft,
+    rewardCredits: typeof value.rewardCredits === 'number' ? value.rewardCredits : 0,
+    rewardTech: typeof value.rewardTech === 'number' ? value.rewardTech : 0,
+    rewardSupplies: typeof value.rewardSupplies === 'number' ? value.rewardSupplies : 0,
+    hold: kind === 'hold' ? hold : null,
+  };
+}
+
+export function normalizeContractBoard(value: unknown, freshColony: boolean): ContractBoard {
+  if (!isRecord(value)) {
+    return { offer: null, active: null, importPenalty: false, introDelay: freshColony ? 75 : 25 };
+  }
+  return {
+    offer: readContract(value.offer, 'offered'),
+    active: readContract(value.active, 'active'),
+    importPenalty: value.importPenalty === true,
+    introDelay: typeof value.introDelay === 'number' && value.introDelay >= 0 ? value.introDelay : 0,
+  };
 }
 
 export function mergeSavedTech(saved: TechNode[]): TechNode[] {
